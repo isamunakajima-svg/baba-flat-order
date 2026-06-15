@@ -129,7 +129,7 @@
       deliveryInput.value = `${yyyy}-${mm}-${dd}`;
     }
 
-   function initLiff() {
+    function initLiff() {
       liff.init({ liffId: LIFF_ID })
         .then(() => {
           if (!liff.isLoggedIn()) {
@@ -142,7 +142,6 @@
                 if (profile.pictureUrl) {
                   document.getElementById('user-avatar').src = profile.pictureUrl;
                 }
-                // エラーの原因になっていた回りくどい通信を消し、直接商品を読み込みにいきます
                 loadProducts();
               })
               .catch(err => {
@@ -158,10 +157,8 @@
     }
 
     // --- GASから店舗専用価格の商品一覧を読み込む ---
-// --- GASから店舗専用価格の商品一覧を読み込む ---
     async function loadProducts() {
       try {
-        // 通信エラーを完全に防ぐため、一般的な形式（URLSearchParams）でGASにデータを送ります
         const params = new URLSearchParams();
         params.append('jsonData', JSON.stringify({
           action: "getProducts",
@@ -199,8 +196,7 @@
           throw new Error(data.message);
         }
       } catch (error) {
-        console.error("商品データの読み込み失敗:", error);
-        // 万が一通信が失敗した場合も、画面がフリーズしないようテスト用パンを表示します
+        console.error("商品データの読み込み失敗、バックアップを作動します:", error);
         products = [
           { id: "p1", name: "特製高級食パン (2斤)", price: 540, emoji: "🍞", desc: "きめ細かく、もっちり食感" },
           { id: "p2", name: "発酵バタークロワッサン", price: 180, emoji: "🥐", desc: "香り高い発酵バターを100%使用" },
@@ -210,3 +206,191 @@
         renderProducts();
       }
     }
+
+    // --- 商品リストを画面に表示 ---
+    function renderProducts() {
+      const listContainer = document.getElementById('product-list');
+      listContainer.innerHTML = '';
+
+      if (products.length === 0) {
+        listContainer.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">商品マスタに登録がありません。</div>';
+        return;
+      }
+
+      products.forEach(p => {
+        const qty = cart[p.id] || 0;
+        const cardHtml = `
+          <div class="product-card bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex gap-4 items-center" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">
+            <div class="w-16 h-16 rounded-xl bg-amber-100 flex items-center justify-center overflow-hidden shrink-0">
+              <span class="text-3xl">${p.emoji}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-bold text-slate-800 text-sm truncate">${p.name}</h3>
+              <p class="text-xs text-slate-400 mt-0.5">${p.desc}</p>
+              <div class="text-amber-700 font-bold text-sm mt-2">¥${p.price.toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ 個</span></div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button onclick="changeQty('${p.id}', -1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all"><i class="fa-solid fa-minus text-xs"></i></button>
+              <span id="qty-${p.id}" class="w-6 text-center font-bold text-sm">${qty}</span>
+              <button onclick="changeQty('${p.id}', 1)" class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-200 active:scale-95 transition-all"><i class="fa-solid fa-plus text-xs"></i></button>
+            </div>
+          </div>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', cardHtml);
+      });
+    }
+
+    function changeQty(productId, amount) {
+      if (!cart[productId]) cart[productId] = 0;
+      cart[productId] = Math.max(0, cart[productId] + amount);
+      document.getElementById(`qty-${productId}`).innerText = cart[productId];
+      calculateTotal();
+    }
+
+    function calculateTotal() {
+      let totalCount = 0;
+      let totalPrice = 0;
+
+      products.forEach(p => {
+        const qty = cart[p.id] || 0;
+        totalCount += qty;
+        totalPrice += qty * p.price;
+      });
+
+      document.getElementById('total-count').innerText = totalCount;
+      document.getElementById('total-price').innerText = totalPrice.toLocaleString();
+    }
+
+    function showModal(title, message, type = "info", showCancel = false) {
+      const modal = document.getElementById('custom-modal');
+      const icon = document.getElementById('modal-icon');
+      const titleEl = document.getElementById('modal-title');
+      const msgEl = document.getElementById('modal-message');
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+
+      titleEl.innerText = title;
+      msgEl.innerText = message;
+
+      if (type === "success") {
+        icon.className = "text-4xl text-green-500";
+        icon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+      } else if (type === "error") {
+        icon.className = "text-4xl text-red-500";
+        icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+      } else if (type === "confirm") {
+        icon.className = "text-4xl text-amber-500";
+        icon.innerHTML = '<i class="fa-solid fa-circle-question"></i>';
+      } else {
+        icon.className = "text-4xl text-amber-600";
+        icon.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+      }
+
+      cancelBtn.classList.toggle('hidden', !showCancel);
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('custom-modal').classList.add('hidden');
+    }
+
+    function submitOrder() {
+      const deliveryDate = document.getElementById('delivery-date').value;
+      const notes = document.getElementById('notes').value;
+
+      if (!deliveryDate) {
+        showModal("入力エラー", "納品希望日を選択してください。", "error");
+        return;
+      }
+
+      const orderItems = [];
+      let grandTotal = 0;
+
+      products.forEach(p => {
+        const qty = cart[p.id] || 0;
+        if (qty > 0) {
+          const subtotal = p.price * qty;
+          orderItems.push({
+            productId: p.id,
+            productName: p.name,
+            price: p.price,
+            quantity: qty,
+            subtotal: subtotal
+          });
+          grandTotal += subtotal;
+        }
+      });
+
+      if (orderItems.length === 0) {
+        showModal("入力エラー", "商品が選択されていません。", "error");
+        return;
+      }
+
+      let confirmMessage = `店舗名: ${userProfile.displayName}\n納品希望日: ${deliveryDate}\n\n【ご注文内容】\n`;
+      orderItems.forEach(item => {
+        confirmMessage += `・${item.productName} × ${item.quantity} (単価: ¥${item.price})\n`;
+      });
+      confirmMessage += `\n合計金額: ¥${grandTotal.toLocaleString()}\n\nこの内容で発注してよろしいですか？`;
+
+      showModal("発注確認", confirmMessage, "confirm", true);
+
+      const okBtn = document.getElementById('modal-ok-btn');
+      okBtn.onclick = function() {
+        closeModal();
+        sendDataToGas(deliveryDate, notes, orderItems, grandTotal);
+      };
+    }
+
+    async function sendDataToGas(deliveryDate, notes, items, grandTotal) {
+      const spinner = document.getElementById('loading-spinner');
+      spinner.classList.remove('hidden');
+
+      const params = new URLSearchParams();
+      params.append('jsonData', JSON.stringify({
+        userId: userProfile.userId,
+        userName: userProfile.displayName,
+        deliveryDate: deliveryDate,
+        notes: notes,
+        items: items,
+        totalPrice: grandTotal
+      }));
+
+      const maxRetries = 5;
+      let delay = 1000;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          await fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: params
+          });
+
+          spinner.classList.add('hidden');
+          showModal(
+            "発注完了", 
+            "ご注文データを送信しました！\n\nスプレッドシートを開き、「注文履歴」シートに新しい行が追加されているか確認してください。", 
+            "success"
+          );
+          
+          document.getElementById('modal-ok-btn').onclick = function() {
+            location.reload();
+          };
+          return;
+
+        } catch (error) {
+          console.warn("送信試行中の警告:", error);
+          if (attempt === maxRetries) {
+            spinner.classList.add('hidden');
+            showModal("通信エラー", "接続に失敗しました。電波の良い場所で再度お試しください。", "error");
+            return;
+          }
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2;
+        }
+      }
+    }
+  </script>
+</body>
+</html>
