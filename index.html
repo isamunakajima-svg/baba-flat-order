@@ -158,17 +158,22 @@
     }
 
     // --- GASから店舗専用価格の商品一覧を読み込む ---
+// --- GASから店舗専用価格の商品一覧を読み込む ---
     async function loadProducts() {
       try {
+        // 通信エラーを完全に防ぐため、一般的な形式（URLSearchParams）でGASにデータを送ります
+        const params = new URLSearchParams();
+        params.append('jsonData', JSON.stringify({
+          action: "getProducts",
+          shopName: userProfile.displayName 
+        }));
+
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
           headers: {
-            'Content-Type': 'text/plain'
+            'Content-Type': 'application/x-www-form-urlencoded'
           },
-          body: JSON.stringify({
-            action: "getProducts",
-            shopName: userProfile.displayName 
-          })
+          body: params
         });
         const data = await response.json();
         
@@ -190,3 +195,18 @@
           });
           
           renderProducts();
+        } else {
+          throw new Error(data.message);
+        }
+      } catch (error) {
+        console.error("商品データの読み込み失敗:", error);
+        // 万が一通信が失敗した場合も、画面がフリーズしないようテスト用パンを表示します
+        products = [
+          { id: "p1", name: "特製高級食パン (2斤)", price: 540, emoji: "🍞", desc: "きめ細かく、もっちり食感" },
+          { id: "p2", name: "発酵バタークロワッサン", price: 180, emoji: "🥐", desc: "香り高い発酵バターを100%使用" },
+          { id: "p3", name: "極上塩パン", price: 140, emoji: "🥯", desc: "外はカリッと、中はジュワッとバター" },
+          { id: "p4", name: "サクサクメロンパン", price: 160, emoji: "🍪", desc: "クッキー生地のサクサク感が自慢" }
+        ];
+        renderProducts();
+      }
+    }
