@@ -129,7 +129,7 @@
       deliveryInput.value = `${yyyy}-${mm}-${dd}`;
     }
 
-    function initLiff() {
+   function initLiff() {
       liff.init({ liffId: LIFF_ID })
         .then(() => {
           if (!liff.isLoggedIn()) {
@@ -142,20 +142,12 @@
                 if (profile.pictureUrl) {
                   document.getElementById('user-avatar').src = profile.pictureUrl;
                 }
-                
-                // まずは一度、店舗マスタから正式な店舗名を取得（自動登録も走る）
-                fetch(`${GAS_WEB_APP_URL}?userId=${profile.userId}`)
-                  .then(res => res.json())
-                  .then(data => {
-                    userProfile.displayName = data.shopName;
-                    document.getElementById('user-name').innerText = data.shopName;
-                    // 正式な店舗名が確定してから、個別価格の商品リストを読み込む
-                    loadProducts();
-                  })
-                  .catch(err => {
-                    console.error("店舗名取得エラー:", err);
-                    loadProducts();
-                  });
+                // エラーの原因になっていた回りくどい通信を消し、直接商品を読み込みにいきます
+                loadProducts();
+              })
+              .catch(err => {
+                console.error("プロフィール取得エラー:", err);
+                loadProducts();
               });
           }
         })
