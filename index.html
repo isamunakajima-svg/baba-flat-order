@@ -404,67 +404,62 @@
     //  - action: "submitOrder" を明示
     //  - レスポンスの status を必ず検証
     // ============================================================
-    async function sendDataToGas(deliveryDate, notes, items, grandTotal) {
-      const spinner = document.getElementById('loading-spinner');
-      spinner.classList.remove('hidden');
+async function sendDataToGas(deliveryDate, notes, items, grandTotal) {
+  const spinner = document.getElementById('loading-spinner');
+  spinner.classList.remove('hidden');
 
-      const params = new URLSearchParams();
-      params.append('jsonData', JSON.stringify({
-        action:       "submitOrder",            // ← action を明示
-        userId:       userProfile.userId,
-        shopName:     userProfile.displayName,  // ← userName → shopName に統一
-        deliveryDate: deliveryDate,
-        notes:        notes,
-        items:        items,
-        totalPrice:   grandTotal
-      }));
+  const url = GAS_WEB_APP_URL
+    + "?action=submitOrder"
+    + "&userId="       + encodeURIComponent(userProfile.userId)
+    + "&shopName="     + encodeURIComponent(userProfile.displayName)
+    + "&deliveryDate=" + encodeURIComponent(deliveryDate)
+    + "&notes="        + encodeURIComponent(notes)
+    + "&items="        + encodeURIComponent(JSON.stringify(items))
+    + "&totalPrice="   + encodeURIComponent(grandTotal);
 
-      const maxRetries = 3;
-      let delay = 1500;
+  const maxRetries = 3;
+  let delay = 1500;
 
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          const response = await fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params,
-            redirect: 'follow' 
-          });
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow'
+      });
 
-          // ← レスポンスの status を必ず検証
-          const data = await response.json();
-          if (data.status !== "success") {
-            throw new Error(data.message || "サーバーエラーが発生しました。");
-          }
-
-          spinner.classList.add('hidden');
-          showModal(
-            "発注完了 ✅",
-            `発注番号: ${data.orderId}\n\nご注文を受け付けました！\n注文履歴シートに記録されています。`,
-            "success"
-          );
-          _resetOkBtn(() => {
-            closeModal();
-            location.reload();
-          });
-          return;
-
-        } catch (error) {
-          console.warn(`送信試行 ${attempt}/${maxRetries} 失敗:`, error);
-          if (attempt === maxRetries) {
-            spinner.classList.add('hidden');
-            showModal(
-              "送信エラー",
-              `送信に失敗しました。\n\n${error.message}\n\n電波の良い場所で再度お試しください。`,
-              "error"
-            );
-            return;
-          }
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2;
-        }
+      const data = await response.json();
+      if (data.status !== "success") {
+        throw new Error(data.message || "サーバーエラーが発生しました。");
       }
+
+      spinner.classList.add('hidden');
+      showModal(
+        "発注完了 ✅",
+        `発注番号: ${data.orderId}\n\nご注文を受け付けました！\n注文履歴シートに記録されています。`,
+        "success"
+      );
+      _resetOkBtn(() => {
+        closeModal();
+        location.reload();
+      });
+      return;
+
+    } catch (error) {
+      console.warn(`送信試行 ${attempt}/${maxRetries} 失敗:`, error);
+      if (attempt === maxRetries) {
+        spinner.classList.add('hidden');
+        showModal(
+          "送信エラー",
+          `送信に失敗しました。\n\n${error.message}\n\n電波の良い場所で再度お試しください。`,
+          "error"
+        );
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2;
     }
+  }
+}
   </script>
 </body>
 </html>
