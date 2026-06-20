@@ -188,19 +188,20 @@
     }
 
     // グループIDを店舗マスタに自動登録（店舗名が一致する行のみ更新）
-    async function _tryRegisterGroup() {
-      try {
-        const url = GAS_WEB_APP_URL
-          + "?action=registerGroup"
-          + "&groupId="  + encodeURIComponent(groupId)
-          + "&shopName=" + encodeURIComponent(userProfile.displayName);
-        await fetch(url, { method: 'GET', redirect: 'follow' });
-      } catch (e) {
-        console.warn("グループID登録スキップ:", e);
-      } finally {
-        loadProducts();
-      }
-    }
+async function _tryRegisterGroup() {
+  try {
+    const url = GAS_WEB_APP_URL
+      + "?action=registerGroup"
+      + "&groupId="      + encodeURIComponent(groupId)
+      + "&displayName="  + encodeURIComponent(userProfile.displayName)
+      + "&userId="       + encodeURIComponent(userProfile.userId);
+    await fetch(url, { method: 'GET', redirect: 'follow' });
+  } catch (e) {
+    console.warn("グループID登録スキップ:", e);
+  } finally {
+    loadProducts();
+  }
+}
 
     // ============================================================
     //  商品リスト取得
