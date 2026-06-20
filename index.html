@@ -119,8 +119,8 @@
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzik00tJnW0jCTpXK1Q_3T5N2L4DOFhi1j6hVge5VZ1e3-D68k9PnU4YHh5ehh_scTC6Q/exec";
 
     let userProfile = { userId: "test_local_user", displayName: "テストユーザー" };
-    let groupId     = "";   // LINEグループID
-    let shopName    = "";   // 店舗マスタから解決された店舗名
+    let groupId     = "";
+    let shopName    = "";
     let products    = [];
     let cart        = {};
 
@@ -143,18 +143,20 @@
       deliveryInput.value = `${yyyy}-${mm}-${dd}`;
     }
 
+    // ============================================================
+    //  LIFF初期化（グループID対応版）
+    // ============================================================
     function initLiff() {
       liff.init({ liffId: LIFF_ID })
         .then(() => {
-          if (!liff.isLoggedIn()) {
-            liff.login();
-            return;
-          }
-
-          // グループIDを取得
+          // グループIDを先に取得
           const context = liff.getContext();
+          console.log("LIFF context:", JSON.stringify(context));
           if (context && context.groupId) {
             groupId = context.groupId;
+            console.log("グループID取得:", groupId);
+          } else {
+            console.log("グループIDなし（個人アクセス）");
           }
 
           liff.getProfile()
@@ -169,7 +171,6 @@
                 document.getElementById('user-avatar').src = profile.pictureUrl;
               }
 
-              // グループIDが取得できた場合は自動登録を試みる
               if (groupId) {
                 _tryRegisterGroup();
               } else {
@@ -177,8 +178,12 @@
               }
             })
             .catch(err => {
-              console.error("プロフィール取得エラー:", err);
-              loadProducts();
+              console.error("プロフィール取得失敗:", err);
+              if (!liff.isLoggedIn()) {
+                liff.login();
+              } else {
+                loadProducts();
+              }
             });
         })
         .catch(err => {
@@ -187,21 +192,23 @@
         });
     }
 
-    // グループIDを店舗マスタに自動登録（店舗名が一致する行のみ更新）
-async function _tryRegisterGroup() {
-  try {
-    const url = GAS_WEB_APP_URL
-      + "?action=registerGroup"
-      + "&groupId="      + encodeURIComponent(groupId)
-      + "&displayName="  + encodeURIComponent(userProfile.displayName)
-      + "&userId="       + encodeURIComponent(userProfile.userId);
-    await fetch(url, { method: 'GET', redirect: 'follow' });
-  } catch (e) {
-    console.warn("グループID登録スキップ:", e);
-  } finally {
-    loadProducts();
-  }
-}
+    // ============================================================
+    //  グループIDを店舗マスタに自動登録
+    // ============================================================
+    async function _tryRegisterGroup() {
+      try {
+        const url = GAS_WEB_APP_URL
+          + "?action=registerGroup"
+          + "&groupId="     + encodeURIComponent(groupId)
+          + "&displayName=" + encodeURIComponent(userProfile.displayName)
+          + "&userId="      + encodeURIComponent(userProfile.userId);
+        await fetch(url, { method: 'GET', redirect: 'follow' });
+      } catch (e) {
+        console.warn("グループID登録スキップ:", e);
+      } finally {
+        loadProducts();
+      }
+    }
 
     // ============================================================
     //  商品リスト取得
@@ -221,7 +228,6 @@ async function _tryRegisterGroup() {
           throw new Error(data.message || "商品データの取得に失敗しました。");
         }
 
-        // GASから返ってきた店舗名を使用
         shopName = data.shopName || userProfile.displayName;
         document.getElementById('shop-name').innerText = shopName;
 
@@ -390,9 +396,9 @@ async function _tryRegisterGroup() {
       });
       confirmMessage += `\n合計金額: ¥${grandTotal.toLocaleString()}\n\nこの内容で発注してよろしいですか？`;
 
-      document.getElementById('modal-icon').className   = "text-4xl text-amber-500";
-      document.getElementById('modal-icon').innerHTML   = '<i class="fa-solid fa-circle-question"></i>';
-      document.getElementById('modal-title').innerText  = "発注確認";
+      document.getElementById('modal-icon').className    = "text-4xl text-amber-500";
+      document.getElementById('modal-icon').innerHTML    = '<i class="fa-solid fa-circle-question"></i>';
+      document.getElementById('modal-title').innerText   = "発注確認";
       document.getElementById('modal-message').innerText = confirmMessage;
       document.getElementById('modal-cancel-btn').classList.remove('hidden');
       _resetOkBtn(() => {
