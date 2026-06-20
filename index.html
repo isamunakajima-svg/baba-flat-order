@@ -189,27 +189,23 @@
     //  - action: "getProducts" を明示
     //  - フォールバック商品を削除（架空データを表示しない）
     // ============================================================
-    async function loadProducts() {
-      try {
-        const params = new URLSearchParams();
-        params.append('jsonData', JSON.stringify({
-          action:   "getProducts",
-          userId:   userProfile.userId,       // ← 追加
-          shopName: userProfile.displayName   // ← キー名を shopName に統一
-        }));
+ async function loadProducts() {
+  try {
+    const url = GAS_WEB_APP_URL
+      + "?action=getProducts"
+      + "&userId=" + encodeURIComponent(userProfile.userId)
+      + "&shopName=" + encodeURIComponent(userProfile.displayName);
 
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params,
-          redirect: 'follow' 
-        });
+    const response = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow'
+    });
 
-        const data = await response.json();
+    const data = await response.json();
 
-        if (data.status !== "success") {
-          throw new Error(data.message || "商品データの取得に失敗しました。");
-        }
+    if (data.status !== "success") {
+      throw new Error(data.message || "商品データの取得に失敗しました。");
+    }
 
         products = data.products.map((p, index) => {
           let emoji = "🍞";
