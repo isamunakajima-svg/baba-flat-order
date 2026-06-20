@@ -408,14 +408,14 @@ async function sendDataToGas(deliveryDate, notes, items, grandTotal) {
   const spinner = document.getElementById('loading-spinner');
   spinner.classList.remove('hidden');
 
-  const url = GAS_WEB_APP_URL
-    + "?action=submitOrder"
-    + "&userId="       + encodeURIComponent(userProfile.userId)
-    + "&shopName="     + encodeURIComponent(userProfile.displayName)
-    + "&deliveryDate=" + encodeURIComponent(deliveryDate)
-    + "&notes="        + encodeURIComponent(notes)
-    + "&items="        + encodeURIComponent(JSON.stringify(items))
-    + "&totalPrice="   + encodeURIComponent(grandTotal);
+ const url = GAS_WEB_APP_URL
+  + "?action=submitOrder"
+  + "&userId="       + encodeURIComponent(userProfile.userId)
+  + "&shopName="     + encodeURIComponent(userProfile.displayName)
+  + "&deliveryDate=" + encodeURIComponent(deliveryDate)
+  + "&notes="        + encodeURIComponent(notes)
+  + "&items="        + encodeURIComponent(JSON.stringify(items))
+  + "&totalPrice="   + encodeURIComponent(grandTotal);
 
   const maxRetries = 3;
   let delay = 1500;
