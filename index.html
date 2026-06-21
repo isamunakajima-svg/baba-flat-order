@@ -130,7 +130,7 @@
     window.onload = function () {
       setupDeliveryDate();
 
-    // URLパラメータから店舗コードを取得（LIFF経由対応）
+// URLパラメータから店舗コードを取得（LIFF経由対応）
 const urlParams = new URLSearchParams(window.location.search);
 let shopCodeFromUrl = urlParams.get('shop') || "";
 
@@ -138,14 +138,27 @@ let shopCodeFromUrl = urlParams.get('shop') || "";
 if (!shopCodeFromUrl) {
   const liffState = urlParams.get('liff.state') || "";
   if (liffState) {
-    const decodedState = decodeURIComponent(liffState);
-    const stateParams  = new URLSearchParams(decodedState);
-    shopCodeFromUrl = stateParams.get('shop') || "";
+    // 1回デコード
+    const decoded1 = decodeURIComponent(liffState);
+    const stateParams1 = new URLSearchParams(decoded1);
+    shopCodeFromUrl = stateParams1.get('shop') || "";
+
+    // うまく取れなければ2回デコード
+    if (!shopCodeFromUrl) {
+      const decoded2 = decodeURIComponent(decoded1);
+      const stateParams2 = new URLSearchParams(decoded2);
+      shopCodeFromUrl = stateParams2.get('shop') || "";
+    }
+
+    // それでも取れなければ文字列から直接抽出
+    if (!shopCodeFromUrl) {
+      const match = liffState.match(/[?&]shop=([^&]*)/);
+      if (match) shopCodeFromUrl = decodeURIComponent(match[1]);
+    }
   }
 }
 
 shopCode = shopCodeFromUrl;
-
       if (!shopCode) {
         document.getElementById('product-list').innerHTML = `
           <div class="text-center py-8 text-red-400 text-sm space-y-2">
