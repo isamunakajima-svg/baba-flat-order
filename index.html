@@ -127,9 +127,10 @@
     // ============================================================
     //  初期化
     // ============================================================
-    window.onload = function () {
-      setupDeliveryDate();
-
+   window.onload = function () {
+  setupDeliveryDate();
+  initLiff();
+};
 // URLパラメータから店舗コードを取得（LIFF経由対応）
 const urlParams = new URLSearchParams(window.location.search);
 let shopCodeFromUrl = urlParams.get('shop') || "";
