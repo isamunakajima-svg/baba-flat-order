@@ -130,9 +130,21 @@
     window.onload = function () {
       setupDeliveryDate();
 
-      // URLパラメータから店舗コードを取得
-      const urlParams = new URLSearchParams(window.location.search);
-      shopCode = urlParams.get('shop') || "";
+    // URLパラメータから店舗コードを取得（LIFF経由対応）
+const urlParams = new URLSearchParams(window.location.search);
+let shopCodeFromUrl = urlParams.get('shop') || "";
+
+// LIFFがパラメータを liff.state に格納した場合の対応
+if (!shopCodeFromUrl) {
+  const liffState = urlParams.get('liff.state') || "";
+  if (liffState) {
+    const decodedState = decodeURIComponent(liffState);
+    const stateParams  = new URLSearchParams(decodedState);
+    shopCodeFromUrl = stateParams.get('shop') || "";
+  }
+}
+
+shopCode = shopCodeFromUrl;
 
       if (!shopCode) {
         document.getElementById('product-list').innerHTML = `
