@@ -119,8 +119,8 @@
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzik00tJnW0jCTpXK1Q_3T5N2L4DOFhi1j6hVge5VZ1e3-D68k9PnU4YHh5ehh_scTC6Q/exec";
 
     let userProfile = { userId: "test_local_user", displayName: "テストユーザー" };
-    let groupId     = "";
-    let shopName    = "";
+    let shopCode    = "";  // URLパラメータから取得
+    let shopName    = "";  // GASから返ってくる店舗名
     let products    = [];
     let cart        = {};
 
@@ -129,6 +129,22 @@
     // ============================================================
     window.onload = function () {
       setupDeliveryDate();
+
+      // URLパラメータから店舗コードを取得
+      const urlParams = new URLSearchParams(window.location.search);
+      shopCode = urlParams.get('shop') || "";
+
+      if (!shopCode) {
+        document.getElementById('product-list').innerHTML = `
+          <div class="text-center py-8 text-red-400 text-sm space-y-2">
+            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+            <p>URLに店舗コードが指定されていません。</p>
+            <p class="text-xs text-slate-400">正しいURLからアクセスしてください。</p>
+          </div>`;
+        document.getElementById('user-name').innerText = "URLエラー";
+        return;
+      }
+
       initLiff();
     };
 
@@ -144,21 +160,11 @@
     }
 
     // ============================================================
-    //  LIFF初期化（グループID対応版）
+    //  LIFF初期化
     // ============================================================
     function initLiff() {
       liff.init({ liffId: LIFF_ID })
         .then(() => {
-          // グループIDを先に取得
-          const context = liff.getContext();
-          console.log("LIFF context:", JSON.stringify(context));
-          if (context && context.groupId) {
-            groupId = context.groupId;
-            console.log("グループID取得:", groupId);
-          } else {
-            console.log("グループIDなし（個人アクセス）");
-          }
-
           liff.getProfile()
             .then(profile => {
               userProfile = {
@@ -170,12 +176,7 @@
               if (profile.pictureUrl) {
                 document.getElementById('user-avatar').src = profile.pictureUrl;
               }
-
-              if (groupId) {
-                _tryRegisterGroup();
-              } else {
-                loadProducts();
-              }
+              loadProducts();
             })
             .catch(err => {
               console.error("プロフィール取得失敗:", err);
@@ -193,33 +194,14 @@
     }
 
     // ============================================================
-    //  グループIDを店舗マスタに自動登録
-    // ============================================================
-    async function _tryRegisterGroup() {
-      try {
-        const url = GAS_WEB_APP_URL
-          + "?action=registerGroup"
-          + "&groupId="     + encodeURIComponent(groupId)
-          + "&displayName=" + encodeURIComponent(userProfile.displayName)
-          + "&userId="      + encodeURIComponent(userProfile.userId);
-        await fetch(url, { method: 'GET', redirect: 'follow' });
-      } catch (e) {
-        console.warn("グループID登録スキップ:", e);
-      } finally {
-        loadProducts();
-      }
-    }
-
-    // ============================================================
     //  商品リスト取得
     // ============================================================
     async function loadProducts() {
       try {
         const url = GAS_WEB_APP_URL
           + "?action=getProducts"
-          + "&groupId="  + encodeURIComponent(groupId)
-          + "&userId="   + encodeURIComponent(userProfile.userId)
-          + "&shopName=" + encodeURIComponent(userProfile.displayName);
+          + "&shopCode=" + encodeURIComponent(shopCode)
+          + "&userId="   + encodeURIComponent(userProfile.userId);
 
         const response = await fetch(url, { method: 'GET', redirect: 'follow' });
         const data     = await response.json();
@@ -228,7 +210,7 @@
           throw new Error(data.message || "商品データの取得に失敗しました。");
         }
 
-        shopName = data.shopName || userProfile.displayName;
+        shopName = data.shopName || shopCode;
         document.getElementById('shop-name').innerText = shopName;
 
         products = data.products.map((p, index) => {
@@ -417,9 +399,8 @@
 
       const url = GAS_WEB_APP_URL
         + "?action=submitOrder"
+        + "&shopCode="     + encodeURIComponent(shopCode)
         + "&userId="       + encodeURIComponent(userProfile.userId)
-        + "&shopName="     + encodeURIComponent(shopName)
-        + "&groupId="      + encodeURIComponent(groupId)
         + "&deliveryDate=" + encodeURIComponent(deliveryDate)
         + "&notes="        + encodeURIComponent(notes)
         + "&items="        + encodeURIComponent(JSON.stringify(items))
