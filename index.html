@@ -187,36 +187,68 @@ shopCode = shopCodeFromUrl;
     // ============================================================
     //  LIFF初期化
     // ============================================================
-    function initLiff() {
-      liff.init({ liffId: LIFF_ID })
-        .then(() => {
-          liff.getProfile()
-            .then(profile => {
-              userProfile = {
-                userId:      profile.userId,
-                displayName: profile.displayName,
-                pictureUrl:  profile.pictureUrl || null
-              };
-              document.getElementById('user-name').innerText = profile.displayName;
-              if (profile.pictureUrl) {
-                document.getElementById('user-avatar').src = profile.pictureUrl;
-              }
-              loadProducts();
-            })
-            .catch(err => {
-              console.error("プロフィール取得失敗:", err);
-              if (!liff.isLoggedIn()) {
-                liff.login();
-              } else {
-                loadProducts();
-              }
-            });
+ function initLiff() {
+  liff.init({ liffId: LIFF_ID })
+    .then(() => {
+      // liff.init() 完了後にURLパラメータを再取得
+      const urlParams = new URLSearchParams(window.location.search);
+      shopCode = urlParams.get('shop') || "";
+
+      // liff.state から取得を試みる
+      if (!shopCode) {
+        const liffState = urlParams.get('liff.state') || "";
+        if (liffState) {
+          const decoded = decodeURIComponent(liffState);
+          const stateParams = new URLSearchParams(decoded);
+          shopCode = stateParams.get('shop') || "";
+
+          if (!shopCode) {
+            const match = decoded.match(/[?&]shop=([^&]*)/);
+            if (match) shopCode = decodeURIComponent(match[1]);
+          }
+        }
+      }
+
+      console.log("取得した shopCode:", shopCode);
+
+      if (!shopCode) {
+        document.getElementById('product-list').innerHTML = `
+          <div class="text-center py-8 text-red-400 text-sm space-y-2">
+            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+            <p>URLに店舗コードが指定されていません。</p>
+            <p class="text-xs text-slate-400">正しいURLからアクセスしてください。</p>
+          </div>`;
+        document.getElementById('user-name').innerText = "URLエラー";
+        return;
+      }
+
+      liff.getProfile()
+        .then(profile => {
+          userProfile = {
+            userId:      profile.userId,
+            displayName: profile.displayName,
+            pictureUrl:  profile.pictureUrl || null
+          };
+          document.getElementById('user-name').innerText = profile.displayName;
+          if (profile.pictureUrl) {
+            document.getElementById('user-avatar').src = profile.pictureUrl;
+          }
+          loadProducts();
         })
         .catch(err => {
-          console.error("LIFFエラー:", err);
-          loadProducts();
+          console.error("プロフィール取得失敗:", err);
+          if (!liff.isLoggedIn()) {
+            liff.login();
+          } else {
+            loadProducts();
+          }
         });
-    }
+    })
+    .catch(err => {
+      console.error("LIFFエラー:", err);
+      loadProducts();
+    });
+}
 
     // ============================================================
     //  商品リスト取得
