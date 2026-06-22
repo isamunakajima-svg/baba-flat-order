@@ -257,7 +257,8 @@ function setupDeliveryDate() {
           return {
             id:    p.code || "p" + index,
             name:  p.name,
-            price: Number(p.price), // 税抜価格
+           priceExTax: Number(p.priceExTax),
+　　　　　　priceInTax: Number(p.priceInTax),
             emoji: emoji,
             desc:  desc
           };
