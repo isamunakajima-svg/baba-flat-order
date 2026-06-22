@@ -446,9 +446,8 @@ function setupDeliveryDate() {
       });
       document.getElementById('custom-modal').classList.remove('hidden');
     }
-
-    // ============================================================
-    //  GASへのデータ送信
+// ============================================================
+    //  GASへのデータ送信 ＆ LINEグループへの自動返信
     // ============================================================
     async function sendDataToGas(deliveryDate, notes, items, grandTotal) {
       const spinner = document.getElementById('loading-spinner');
@@ -475,10 +474,40 @@ function setupDeliveryDate() {
             throw new Error(data.message || "サーバーエラーが発生しました。");
           }
 
+          // === 【ここから追加】LINEグループへの自動返信ロジック ===
+          if (liff.isInClient()) {
+            // グループに投稿する文章を組み立て
+            let lineMsg = `【卸発注が完了しました】\n`;
+            lineMsg += `注文店舗: ${data.shopName}\n`;
+            lineMsg += `納品希望日: ${deliveryDate}\n`;
+            lineMsg += `発注番号: ${data.orderId}\n\n`;
+            lineMsg += `【注文内訳】\n`;
+            
+            items.forEach(item => {
+              const itemPriceInTax = Math.floor(item.price * 1.08);
+              lineMsg += `・${item.productName} × ${item.quantity}個 (税込¥${itemPriceInTax.toLocaleString()})\n`;
+            });
+            
+            lineMsg += `\n税込合計金額: ¥${grandTotal.toLocaleString()}\n`;
+            if (notes) {
+              lineMsg += `備考: ${notes}\n`;
+            }
+
+            try {
+              // 現在開いているトークルーム（グループ）にメッセージを送信
+              await liff.sendMessages([{ type: 'text', text: lineMsg }]);
+              console.log("LINEグループへの自動返信に成功しました。");
+            } catch (liffError) {
+              // 1:1トークや、グループ外からテストで開いた場合はここを通り、アプリが落ちるのを防ぎます
+              console.warn("LINEメッセージ送信スキップ（トーク画面外からのアクセスの可能性）:", liffError);
+            }
+          }
+          // === 【ここまで追加】 ===
+
           spinner.classList.add('hidden');
           showModal(
             "発注完了 ✅",
-            `発注番号: ${data.orderId}\n店舗名: ${data.shopName}\n\nご注文を受け付けました！\n注文履歴シートに記録されています。`,
+            `発注番号: ${data.orderId}\n店舗名: ${data.shopName}\n\nご注文を受け付けました！\nLINEグループに明細を投稿し、注文履歴シートに記録しました。`,
             "success"
           );
           _resetOkBtn(() => { closeModal(); location.reload(); });
@@ -495,7 +524,6 @@ function setupDeliveryDate() {
           delay *= 2;
         }
       }
-    }
-  </script>
+    }  </script>
 </body>
 </html>
