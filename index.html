@@ -47,7 +47,7 @@
           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold"
           required>
         <p class="text-[10px] text-amber-700">
-          <i class="fa-solid fa-circle-info"></i> 当日・翌日の配送は締め切っております。明後日以降を選択してください。
+          <i class="fa-solid fa-circle-info"></i> 納品可能日は３日後以降です。
         </p>
       </div>
       <div class="space-y-1">
@@ -129,16 +129,26 @@
       initLiff();
     };
 
-    function setupDeliveryDate() {
-      const deliveryInput = document.getElementById('delivery-date');
-      const minDate = new Date();
-      minDate.setDate(minDate.getDate() + 2);
-      const yyyy = minDate.getFullYear();
-      const mm   = String(minDate.getMonth() + 1).padStart(2, '0');
-      const dd   = String(minDate.getDate()).padStart(2, '0');
-      deliveryInput.min   = `${yyyy}-${mm}-${dd}`;
-      deliveryInput.value = `${yyyy}-${mm}-${dd}`;
-    }
+function setupDeliveryDate() {
+  const deliveryInput = document.getElementById('delivery-date');
+  const minDate = new Date();
+  
+  // 現在の「時（24時間表記）」を取得します
+  const currentHour = minDate.getHours();
+  
+  // 18:00以降なら4日後、18:00前なら3日後を最短の納品日に設定
+  if (currentHour >= 18) {
+    minDate.setDate(minDate.getDate() + 4);
+  } else {
+    minDate.setDate(minDate.getDate() + 3);
+  }
+  
+  const yyyy = minDate.getFullYear();
+  const mm   = String(minDate.getMonth() + 1).padStart(2, '0');
+  const dd   = String(minDate.getDate()).padStart(2, '0');
+  deliveryInput.min   = `${yyyy}-${mm}-${dd}`;
+  deliveryInput.value = `${yyyy}-${mm}-${dd}`;
+}
 
     // ============================================================
     //  URLから店舗コードを取得（liff.init後に呼ぶ）
