@@ -478,7 +478,7 @@ function setupDeliveryDate() {
           if (liff.isInClient()) {
             // グループに投稿する文章を組み立て
             let lineMsg = `【卸発注が完了しました】\n`;
-            lineMsg += `注文店舗: ${data.shopName}\n`;
+            lineMsg += `注文店舗: ${data.shopName}様\n`;
             lineMsg += `納品希望日: ${deliveryDate}\n`;
             lineMsg += `発注番号: ${data.orderId}\n\n`;
             lineMsg += `【注文内訳】\n`;
