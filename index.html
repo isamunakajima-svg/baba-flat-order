@@ -507,7 +507,7 @@ function setupDeliveryDate() {
           spinner.classList.add('hidden');
           showModal(
             "発注完了 ✅",
-            `発注番号: ${data.orderId}\n店舗名: ${data.shopName}\n\nご注文を受け付けました！\nLINEグループに明細を投稿し、注文履歴シートに記録しました。`,
+            `発注番号: ${data.orderId}\n店舗名: ${data.shopName}様\n\nご注文を受け付けました！\nLINEグループに明細を投稿しました。`,
             "success"
           );
           _resetOkBtn(() => { closeModal(); location.reload(); });
