@@ -79,8 +79,7 @@
     <div class="max-w-lg mx-auto flex items-center justify-between gap-4">
       <div>
         <p class="text-[10px] text-slate-400 font-bold">合計点数: <span id="total-count">0</span> 点</p>
-        <p class="text-amber-800 font-black text-xl">¥<span id="total-price">0</span>
-          <span class="text-xs text-slate-400 font-normal">(税込)</span></p>
+        <p class="text-amber-800 font-black text-xl">¥<span id="total-price">0</span></p>
       </div>
       <button onclick="submitOrder()" id="submit-btn"
         class="flex-1 bg-amber-600 text-white font-bold py-3.5 px-4 rounded-xl shadow-md hover:bg-amber-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-sm">
@@ -89,7 +88,6 @@
     </div>
   </footer>
 
-  <!-- モーダル -->
   <div id="custom-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-xl">
       <div id="modal-icon" class="text-4xl text-amber-600"><i class="fa-solid fa-circle-info"></i></div>
@@ -108,7 +106,6 @@
     </div>
   </div>
 
-  <!-- 送信中スピナー -->
   <div id="loading-spinner" class="fixed inset-0 bg-black/60 z-50 flex flex-col items-center justify-center text-white space-y-4 hidden">
     <div class="animate-spin rounded-full h-12 w-12 border-4 border-amber-500 border-t-transparent"></div>
     <p class="text-sm font-bold tracking-wider">データを送信中...</p>
@@ -153,13 +150,11 @@
       if (!code) {
         const liffState = urlParams.get('liff.state') || "";
         if (liffState) {
-          // 1回デコード
           try {
             const decoded1    = decodeURIComponent(liffState);
             const stateParams = new URLSearchParams(decoded1);
             code = stateParams.get('shop') || "";
 
-            // 取れなければ正規表現で抽出
             if (!code) {
               const match = decoded1.match(/[?&]shop=([^&]*)/);
               if (match) code = decodeURIComponent(match[1]);
@@ -180,7 +175,6 @@
     function initLiff() {
       liff.init({ liffId: LIFF_ID })
         .then(() => {
-          // liff.init() 完了後にURLパラメータを取得
           shopCode = _getShopCodeFromUrl();
 
           if (!shopCode) {
@@ -219,7 +213,6 @@
         })
         .catch(err => {
           console.error("LIFFエラー:", err);
-          // LIFF失敗時もshopCodeを取得して商品を読み込む
           shopCode = _getShopCodeFromUrl();
           if (shopCode) loadProducts();
         });
@@ -254,7 +247,7 @@
           return {
             id:    p.code || "p" + index,
             name:  p.name,
-            price: Number(p.price),
+            price: Number(p.price), // 税抜価格
             emoji: emoji,
             desc:  desc
           };
@@ -278,7 +271,7 @@
     }
 
     // ============================================================
-    //  商品カードの描画
+    //  商品カードの描画 (軽減税率8%表示への対応)
     // ============================================================
     function renderProducts() {
       const listContainer = document.getElementById('product-list');
@@ -291,6 +284,8 @@
 
       products.forEach(p => {
         const qty = cart[p.id] || 0;
+        const priceInTax = Math.floor(p.price * 1.08); // 画面表示用に8%の税込単価を計算(切り捨て)
+
         listContainer.insertAdjacentHTML('beforeend', `
           <div class="product-card bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex gap-4 items-center">
             <div class="w-16 h-16 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
@@ -300,7 +295,8 @@
               <h3 class="font-bold text-slate-800 text-sm truncate">${p.name}</h3>
               <p class="text-xs text-slate-400 mt-0.5">${p.desc}</p>
               <div class="text-amber-700 font-bold text-sm mt-2">
-                ¥${p.price.toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ 個</span>
+                ¥${priceInTax.toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ 個 (税込)</span>
+                <p class="text-[10px] text-slate-400 font-normal mt-0.5">税抜 ¥${p.price.toLocaleString()}</p>
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -329,16 +325,29 @@
       calculateTotal();
     }
 
+    // ============================================================
+    //  合計金額計算 (軽減税率8%伝票方式に準拠)
+    // ============================================================
     function calculateTotal() {
+      let totalExTax = 0; // 税抜の合計
       let totalCount = 0;
-      let totalPrice = 0;
+      
       products.forEach(p => {
         const qty = cart[p.id] || 0;
         totalCount += qty;
-        totalPrice += qty * p.price;
+        totalExTax += qty * p.price;
       });
+
+      const tax = Math.floor(totalExTax * 0.08); // 税抜合計に対して一括で8%の消費税算出(切り捨て)
+      const totalInTax = totalExTax + tax;       // 最終的な税込請求合計
+
       document.getElementById('total-count').innerText = totalCount;
-      document.getElementById('total-price').innerText = totalPrice.toLocaleString();
+      document.getElementById('total-price').innerHTML = `
+        ${totalInTax.toLocaleString()} <span class="text-xs text-slate-400 font-normal">(税込)</span>
+        <span class="text-[10px] text-slate-400 font-normal block leading-tight mt-0.5">
+          (税抜 ¥${totalExTax.toLocaleString()} + 消費税 ¥${tax.toLocaleString()})
+        </span>
+      `;
     }
 
     // ============================================================
@@ -373,7 +382,7 @@
     }
 
     // ============================================================
-    //  発注処理
+    //  発注処理 (確認用ダイアログに税詳細を追加)
     // ============================================================
     function submitOrder() {
       const deliveryDate = document.getElementById('delivery-date').value;
@@ -385,17 +394,17 @@
       }
 
       const orderItems = [];
-      let grandTotal   = 0;
+      let totalExTax   = 0;
 
       products.forEach(p => {
         const qty = cart[p.id] || 0;
         if (qty > 0) {
-          const subtotal = p.price * qty;
+          const subtotalExTax = p.price * qty;
           orderItems.push({
             productId: p.id, productName: p.name,
-            price: p.price, quantity: qty, subtotal: subtotal
+            price: p.price, quantity: qty, subtotal: subtotalExTax // 税抜小計を渡す
           });
-          grandTotal += subtotal;
+          totalExTax += subtotalExTax;
         }
       });
 
@@ -404,11 +413,17 @@
         return;
       }
 
+      const tax = Math.floor(totalExTax * 0.08);
+      const totalInTax = totalExTax + tax;
+
       let confirmMessage = `店舗名: ${shopName}\n納品希望日: ${deliveryDate}\n\n【ご注文内容】\n`;
       orderItems.forEach(item => {
-        confirmMessage += `・${item.productName} × ${item.quantity}個 (¥${item.price.toLocaleString()} / 個)\n`;
+        const itemPriceInTax = Math.floor(item.price * 1.08);
+        confirmMessage += `・${item.productName} × ${item.quantity}個 (税込¥${itemPriceInTax.toLocaleString()} / 個)\n`;
       });
-      confirmMessage += `\n合計金額: ¥${grandTotal.toLocaleString()}\n\nこの内容で発注してよろしいですか？`;
+      confirmMessage += `\n税抜合計: ¥${totalExTax.toLocaleString()}\n`;
+      confirmMessage += `消費税(8%): ¥${tax.toLocaleString()}\n`;
+      confirmMessage += `税込合計: ¥${totalInTax.toLocaleString()}\n\nこの内容で発注してよろしいですか？`;
 
       document.getElementById('modal-icon').className    = "text-4xl text-amber-500";
       document.getElementById('modal-icon').innerHTML    = '<i class="fa-solid fa-circle-question"></i>';
@@ -417,7 +432,7 @@
       document.getElementById('modal-cancel-btn').classList.remove('hidden');
       _resetOkBtn(() => {
         closeModal();
-        sendDataToGas(deliveryDate, notes, orderItems, grandTotal);
+        sendDataToGas(deliveryDate, notes, orderItems, totalInTax);
       });
       document.getElementById('custom-modal').classList.remove('hidden');
     }
