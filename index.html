@@ -45,7 +45,8 @@
         </label>
         <input type="date" id="delivery-date"
           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 font-semibold"
-          required>
+          required onchange="updateDayOfWeek()">
+        <p id="day-of-week" class="text-sm font-bold text-amber-700 mt-1 pl-1"></p>
         <p class="text-[10px] text-amber-700">
           <i class="fa-solid fa-circle-info"></i> 【18:00締め切り】当日・翌日・翌々日の配送は締め切っております。（18:00以降のご注文は4日後以降となります）
         </p>
@@ -143,6 +144,15 @@
       const dd   = String(minDate.getDate()).padStart(2, '0');
       deliveryInput.min   = `${yyyy}-${mm}-${dd}`;
       deliveryInput.value = `${yyyy}-${mm}-${dd}`;
+      updateDayOfWeek(); // 初期表示時にも曜日を表示
+    }
+
+    function updateDayOfWeek() {
+      const days = ["（日）", "（月）", "（火）", "（水）", "（木）", "（金）", "（土）"];
+      const val = document.getElementById('delivery-date').value;
+      if (!val) return;
+      const d = new Date(val + "T00:00:00"); // タイムゾーンずれ防止
+      document.getElementById('day-of-week').innerText = days[d.getDay()];
     }
 
     // ============================================================
