@@ -129,26 +129,21 @@
       initLiff();
     };
 
-function setupDeliveryDate() {
-  const deliveryInput = document.getElementById('delivery-date');
-  const minDate = new Date();
-  
-  // 現在の「時（24時間表記）」を取得します
-  const currentHour = minDate.getHours();
-  
-  // 18:00以降なら4日後、18:00前なら3日後を最短の納品日に設定
-  if (currentHour >= 18) {
-    minDate.setDate(minDate.getDate() + 4);
-  } else {
-    minDate.setDate(minDate.getDate() + 3);
-  }
-  
-  const yyyy = minDate.getFullYear();
-  const mm   = String(minDate.getMonth() + 1).padStart(2, '0');
-  const dd   = String(minDate.getDate()).padStart(2, '0');
-  deliveryInput.min   = `${yyyy}-${mm}-${dd}`;
-  deliveryInput.value = `${yyyy}-${mm}-${dd}`;
-}
+    function setupDeliveryDate() {
+      const deliveryInput = document.getElementById('delivery-date');
+      const minDate = new Date();
+      const currentHour = minDate.getHours();
+      if (currentHour >= 18) {
+        minDate.setDate(minDate.getDate() + 4);
+      } else {
+        minDate.setDate(minDate.getDate() + 3);
+      }
+      const yyyy = minDate.getFullYear();
+      const mm   = String(minDate.getMonth() + 1).padStart(2, '0');
+      const dd   = String(minDate.getDate()).padStart(2, '0');
+      deliveryInput.min   = `${yyyy}-${mm}-${dd}`;
+      deliveryInput.value = `${yyyy}-${mm}-${dd}`;
+    }
 
     // ============================================================
     //  URLから店舗コードを取得（liff.init後に呼ぶ）
@@ -164,7 +159,6 @@ function setupDeliveryDate() {
             const decoded1    = decodeURIComponent(liffState);
             const stateParams = new URLSearchParams(decoded1);
             code = stateParams.get('shop') || "";
-
             if (!code) {
               const match = decoded1.match(/[?&]shop=([^&]*)/);
               if (match) code = decodeURIComponent(match[1]);
@@ -255,12 +249,12 @@ function setupDeliveryDate() {
           else if (p.name.includes("塩パン"))     { emoji = "🥯"; desc = "外はカリッと中はジュワッと"; }
           else if (p.name.includes("メロンパン")) { emoji = "🍪"; desc = "サクサク食感が自慢"; }
           return {
-            id:    p.code || "p" + index,
-            name:  p.name,
-            priceExTax: Number(p.priceExTax),
-　　　　　　 priceInTax: Number(p.priceInTax),
-            emoji: emoji,
-            desc:  desc
+            id:         p.code || "p" + index,
+            name:       p.name,
+            priceExTax: Number(p.priceExTax), // ★ 税抜単価
+            priceInTax: Number(p.priceInTax), // ★ 税込単価（GASが計算済み）
+            emoji:      emoji,
+            desc:       desc
           };
         });
 
@@ -282,7 +276,8 @@ function setupDeliveryDate() {
     }
 
     // ============================================================
-    //  商品カードの描画 (軽減税率8%表示への対応)
+    //  商品カードの描画
+    //  ★ p.price → p.priceExTax / p.priceInTax に修正
     // ============================================================
     function renderProducts() {
       const listContainer = document.getElementById('product-list');
@@ -295,7 +290,6 @@ function setupDeliveryDate() {
 
       products.forEach(p => {
         const qty = cart[p.id] || 0;
-        const priceInTax = Math.floor(p.price * 1.08); // 画面表示用に8%の税込単価を計算(切り捨て)
 
         listContainer.insertAdjacentHTML('beforeend', `
           <div class="product-card bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex gap-4 items-center">
@@ -306,8 +300,8 @@ function setupDeliveryDate() {
               <h3 class="font-bold text-slate-800 text-sm truncate">${p.name}</h3>
               <p class="text-xs text-slate-400 mt-0.5">${p.desc}</p>
               <div class="text-amber-700 font-bold text-sm mt-2">
-                ¥${priceInTax.toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ 個 (税込)</span>
-                <p class="text-[10px] text-slate-400 font-normal mt-0.5">税抜 ¥${p.price.toLocaleString()}</p>
+                ¥${p.priceInTax.toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ 個 (税込)</span>
+                <p class="text-[10px] text-slate-400 font-normal mt-0.5">税抜 ¥${p.priceExTax.toLocaleString()}</p>
               </div>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -337,20 +331,21 @@ function setupDeliveryDate() {
     }
 
     // ============================================================
-    //  合計金額計算 (軽減税率8%伝票方式に準拠)
+    //  合計金額計算（税抜合計に対して一括8%）
+    //  ★ p.price → p.priceExTax に修正
     // ============================================================
     function calculateTotal() {
-      let totalExTax = 0; // 税抜の合計
+      let totalExTax = 0;
       let totalCount = 0;
-      
+
       products.forEach(p => {
         const qty = cart[p.id] || 0;
         totalCount += qty;
-        totalExTax += qty * p.price;
+        totalExTax += qty * p.priceExTax; // ★ 修正
       });
 
-      const tax = Math.floor(totalExTax * 0.08); // 税抜合計に対して一括で8%の消費税算出(切り捨て)
-      const totalInTax = totalExTax + tax;       // 最終的な税込請求合計
+      const tax        = Math.floor(totalExTax * 0.08);
+      const totalInTax = totalExTax + tax;
 
       document.getElementById('total-count').innerText = totalCount;
       document.getElementById('total-price').innerHTML = `
@@ -393,7 +388,8 @@ function setupDeliveryDate() {
     }
 
     // ============================================================
-    //  発注処理 (確認用ダイアログに税詳細を追加)
+    //  発注処理
+    //  ★ p.price → p.priceExTax に修正
     // ============================================================
     function submitOrder() {
       const deliveryDate = document.getElementById('delivery-date').value;
@@ -410,10 +406,13 @@ function setupDeliveryDate() {
       products.forEach(p => {
         const qty = cart[p.id] || 0;
         if (qty > 0) {
-          const subtotalExTax = p.price * qty;
+          const subtotalExTax = p.priceExTax * qty; // ★ 修正
           orderItems.push({
-            productId: p.id, productName: p.name,
-            price: p.price, quantity: qty, subtotal: subtotalExTax // 税抜小計を渡す
+            productId:   p.id,
+            productName: p.name,
+            price:       p.priceExTax, // ★ 修正（GASへ税抜単価を渡す）
+            quantity:    qty,
+            subtotal:    subtotalExTax
           });
           totalExTax += subtotalExTax;
         }
@@ -424,13 +423,12 @@ function setupDeliveryDate() {
         return;
       }
 
-      const tax = Math.floor(totalExTax * 0.08);
+      const tax        = Math.floor(totalExTax * 0.08);
       const totalInTax = totalExTax + tax;
 
       let confirmMessage = `店舗名: ${shopName}\n納品希望日: ${deliveryDate}\n\n【ご注文内容】\n`;
       orderItems.forEach(item => {
-        const itemPriceInTax = Math.floor(item.price * 1.08);
-        confirmMessage += `・${item.productName} × ${item.quantity}個 (税込¥${itemPriceInTax.toLocaleString()} / 個)\n`;
+        confirmMessage += `・${item.productName} × ${item.quantity}個 (税込¥${Math.floor(item.price * 1.08).toLocaleString()} / 個)\n`;
       });
       confirmMessage += `\n税抜合計: ¥${totalExTax.toLocaleString()}\n`;
       confirmMessage += `消費税(8%): ¥${tax.toLocaleString()}\n`;
@@ -447,7 +445,8 @@ function setupDeliveryDate() {
       });
       document.getElementById('custom-modal').classList.remove('hidden');
     }
-// ============================================================
+
+    // ============================================================
     //  GASへのデータ送信 ＆ LINEグループへの自動返信
     // ============================================================
     async function sendDataToGas(deliveryDate, notes, items, grandTotal) {
@@ -475,35 +474,26 @@ function setupDeliveryDate() {
             throw new Error(data.message || "サーバーエラーが発生しました。");
           }
 
-          // === 【ここから追加】LINEグループへの自動返信ロジック ===
           if (liff.isInClient()) {
-            // グループに投稿する文章を組み立て
             let lineMsg = `【卸発注が完了しました】\n`;
             lineMsg += `注文店舗: ${data.shopName}様\n`;
             lineMsg += `納品希望日: ${deliveryDate}\n`;
             lineMsg += `発注番号: ${data.orderId}\n\n`;
             lineMsg += `【注文内訳】\n`;
-            
             items.forEach(item => {
-              const itemPriceInTax = Math.floor(item.price * 1.08);
-              lineMsg += `・${item.productName} × ${item.quantity}個 (税込¥${itemPriceInTax.toLocaleString()})\n`;
+              lineMsg += `・${item.productName} × ${item.quantity}個 (税込¥${Math.floor(item.price * 1.08).toLocaleString()})\n`;
             });
-            
             lineMsg += `\n税込合計金額: ¥${grandTotal.toLocaleString()}\n`;
             if (notes) {
               lineMsg += `備考: ${notes}\n`;
             }
-
             try {
-              // 現在開いているトークルーム（グループ）にメッセージを送信
               await liff.sendMessages([{ type: 'text', text: lineMsg }]);
               console.log("LINEグループへの自動返信に成功しました。");
             } catch (liffError) {
-              // 1:1トークや、グループ外からテストで開いた場合はここを通り、アプリが落ちるのを防ぎます
-              console.warn("LINEメッセージ送信スキップ（トーク画面外からのアクセスの可能性）:", liffError);
+              console.warn("LINEメッセージ送信スキップ:", liffError);
             }
           }
-          // === 【ここまで追加】 ===
 
           spinner.classList.add('hidden');
           showModal(
@@ -525,6 +515,7 @@ function setupDeliveryDate() {
           delay *= 2;
         }
       }
-    }  </script>
+    }
+  </script>
 </body>
 </html>
