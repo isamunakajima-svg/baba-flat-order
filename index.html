@@ -203,7 +203,8 @@
       });
       document.getElementById("order-footer").style.display = tab === "order" ? "" : "none";
 
-      if (tab === "history" && historyData.length === 0) {
+      if (tab === "history") {
+        historyData = [];
         loadHistory();
       }
     }
