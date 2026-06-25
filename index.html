@@ -64,6 +64,9 @@
         <p class="text-[10px] text-amber-700">
           <i class="fa-solid fa-circle-info"></i> 【18:00締め切り】当日・翌日・翌々日の配送は締め切っております。（18:00以降のご注文は4日後以降となります）
         </p>
+        <p class="text-[10px] text-slate-400 mt-1">
+          <i class="fa-solid fa-ban"></i> キャンセルは発注当日 23:59 まで可能です（注文履歴タブから）
+        </p>
       </div>
       <div class="space-y-1">
         <label for="notes" class="block text-xs font-bold text-slate-500">備考・連絡事項</label>
@@ -464,7 +467,7 @@
               class="w-full py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-bold border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
               <i class="fa-solid fa-ban"></i> この注文をキャンセルする
             </button>
-            <p class="text-[10px] text-slate-400 text-center mt-1.5">※ 当日中のみキャンセル可能です</p>
+            <p class="text-[10px] text-slate-400 text-center mt-1.5">※ キャンセルは発注当日 23:59 まで可能です</p>
           </div>`;
       }
 
@@ -691,62 +694,9 @@
             lineMsg += `\n税込合計金額: ¥${grandTotal.toLocaleString()}\n`;
             if (notes) lineMsg += `備考: ${notes}\n`;
 
-            // ── 次回発注ボタン（Flexメッセージ） ──
-            const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
-            const flexMsg = {
-              type: "flex",
-              altText: "次回の発注はこちらから",
-              contents: {
-                type: "bubble",
-                size: "kilo",
-                body: {
-                  type: "box",
-                  layout: "vertical",
-                  paddingAll: "16px",
-                  contents: [
-                    {
-                      type: "text",
-                      text: "🍞 次回もよろしくお願いします",
-                      size: "sm",
-                      color: "#92400e",
-                      weight: "bold",
-                      wrap: true
-                    },
-                    {
-                      type: "text",
-                      text: "ボタンからいつでも発注できます",
-                      size: "xs",
-                      color: "#b45309",
-                      margin: "sm",
-                      wrap: true
-                    }
-                  ]
-                },
-                footer: {
-                  type: "box",
-                  layout: "vertical",
-                  paddingAll: "12px",
-                  contents: [
-                    {
-                      type: "button",
-                      style: "primary",
-                      color: "#b45309",
-                      height: "sm",
-                      action: {
-                        type: "uri",
-                        label: "📋 発注フォームを開く",
-                        uri: orderUrl
-                      }
-                    }
-                  ]
-                }
-              }
-            };
-
             try {
               await liff.sendMessages([
-                { type: "text", text: lineMsg },
-                flexMsg
+                { type: "text", text: lineMsg }
               ]);
             } catch (le) {
               console.warn("LINE送信スキップ:", le);
