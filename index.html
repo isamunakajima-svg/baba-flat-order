@@ -619,7 +619,7 @@
             // ── テキスト確認メッセージ ──
             let lineMsg = `【ご注文ありがとうございます。】\n注文店舗: ${data.shopName}様\n納品希望日: ${deliveryDate}${DAYS_JP[dow]}\n発注番号: ${data.orderId}\n\n【注文内訳】\n`;
             items.forEach(item => {
-              lineMsg += `・${item.productName} × ${item.quantity}個 (税込¥${Math.floor(item.price * 1.08).toLocaleString()})\n`;
+              lineMsg += `・${item.productName} × ${item.quantity}個 (税抜¥${item.subtotal.toLocaleString()})\n`;
             });
             lineMsg += `\n税込合計金額: ¥${grandTotal.toLocaleString()}\n`;
             if (notes) lineMsg += `備考: ${notes}\n`;
