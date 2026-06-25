@@ -312,7 +312,7 @@
           if (p.name.includes("クロワッサン"))    { emoji = "🥐"; }
           else if (p.name.includes("塩パン"))     { emoji = "🥯"; }
           else if (p.name.includes("メロンパン")) { emoji = "🍪"; }
-          const desc = p.desc || "卸専用商品"; // ★ GASから受け取った備考を使用
+          const desc = p.desc || "卸専用商品";
           return { id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax), emoji, desc };
         });
         renderProducts();
@@ -362,30 +362,25 @@
     //  カレンダー描画
     // ============================================================
     function renderCalendar() {
-      const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
       document.getElementById('cal-title').innerText = `${calYear}年 ${calMonth + 1}月`;
 
-      // この月に注文がある日のSetを作る
       const orderDates = new Set(historyData.map(h => h.deliveryDate));
+      const grid       = document.getElementById('cal-grid');
+      grid.innerHTML   = "";
 
-      const grid    = document.getElementById('cal-grid');
-      grid.innerHTML = "";
-
-      const firstDay = new Date(calYear, calMonth, 1).getDay(); // 月初の曜日
-      const lastDate = new Date(calYear, calMonth + 1, 0).getDate(); // 月末日
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const lastDate = new Date(calYear, calMonth + 1, 0).getDate();
       const today    = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
 
-      // 前月の空白
       for (let i = 0; i < firstDay; i++) {
         const blank = document.createElement('div');
         blank.className = "cal-day other-month rounded-lg py-2 text-center text-xs";
         grid.appendChild(blank);
       }
 
-      // 日付セル
       for (let d = 1; d <= lastDate; d++) {
-        const dateStr = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const dateStr  = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
         const hasOrder = orderDates.has(dateStr);
         const isToday  = dateStr === todayStr;
         const dow      = new Date(calYear, calMonth, d).getDay();
@@ -420,16 +415,16 @@
     //  履歴詳細モーダル
     // ============================================================
     function showHistoryDetail(dateStr) {
-      const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-      const d       = new Date(dateStr + "T00:00:00");
+      const DAYS_JP  = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+      const d        = new Date(dateStr + "T00:00:00");
       const dayLabel = DAYS_JP[d.getDay()];
-      const record  = historyData.find(h => h.deliveryDate === dateStr);
+      const record   = historyData.find(h => h.deliveryDate === dateStr);
       if (!record) return;
 
       document.getElementById('hmodal-title').innerText = `納品日: ${dateStr}${dayLabel}`;
 
       let totalExTax = 0;
-      let bodyHtml = `<div class="space-y-2">`;
+      let bodyHtml   = `<div class="space-y-2">`;
       record.items.forEach(item => {
         const subtotal = item.price * item.quantity;
         totalExTax += subtotal;
@@ -440,7 +435,7 @@
           </div>`;
       });
 
-      const tax      = Math.floor(totalExTax * 0.08);
+      const tax        = Math.floor(totalExTax * 0.08);
       const totalInTax = totalExTax + tax;
 
       bodyHtml += `</div>
@@ -518,7 +513,7 @@
         totalCount += qty;
         totalExTax += qty * p.priceExTax;
       });
-      const tax = Math.floor(totalExTax * 0.08);
+      const tax        = Math.floor(totalExTax * 0.08);
       const totalInTax = totalExTax + tax;
       document.getElementById('total-count').innerText = totalCount;
       document.getElementById('total-price').innerHTML = `
@@ -549,7 +544,7 @@
     function closeModal() { document.getElementById('custom-modal').classList.add('hidden'); }
 
     function _resetOkBtn(handler) {
-      const old = document.getElementById('modal-ok-btn');
+      const old    = document.getElementById('modal-ok-btn');
       const newBtn = old.cloneNode(true);
       old.parentNode.replaceChild(newBtn, old);
       newBtn.addEventListener('click', handler);
@@ -619,17 +614,79 @@
 
           if (liff.isInClient()) {
             const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-            const dow = new Date(deliveryDate + "T00:00:00").getDay();
+            const dow     = new Date(deliveryDate + "T00:00:00").getDay();
+
+            // ── テキスト確認メッセージ ──
             let lineMsg = `【ご注文ありがとうございます。】\n注文店舗: ${data.shopName}様\n納品希望日: ${deliveryDate}${DAYS_JP[dow]}\n発注番号: ${data.orderId}\n\n【注文内訳】\n`;
             items.forEach(item => {
               lineMsg += `・${item.productName} × ${item.quantity}個 (税込¥${Math.floor(item.price * 1.08).toLocaleString()})\n`;
             });
             lineMsg += `\n税込合計金額: ¥${grandTotal.toLocaleString()}\n`;
             if (notes) lineMsg += `備考: ${notes}\n`;
-            try { await liff.sendMessages([{ type: 'text', text: lineMsg }]); } catch (le) { console.warn("LINE送信スキップ:", le); }
+
+            // ── 次回発注ボタン（Flexメッセージ） ──
+            const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
+            const flexMsg = {
+              type: "flex",
+              altText: "次回の発注はこちらから",
+              contents: {
+                type: "bubble",
+                size: "kilo",
+                body: {
+                  type: "box",
+                  layout: "vertical",
+                  paddingAll: "16px",
+                  contents: [
+                    {
+                      type: "text",
+                      text: "🍞 次回もよろしくお願いします",
+                      size: "sm",
+                      color: "#92400e",
+                      weight: "bold",
+                      wrap: true
+                    },
+                    {
+                      type: "text",
+                      text: "ボタンからいつでも発注できます",
+                      size: "xs",
+                      color: "#b45309",
+                      margin: "sm",
+                      wrap: true
+                    }
+                  ]
+                },
+                footer: {
+                  type: "box",
+                  layout: "vertical",
+                  paddingAll: "12px",
+                  contents: [
+                    {
+                      type: "button",
+                      style: "primary",
+                      color: "#b45309",
+                      height: "sm",
+                      action: {
+                        type: "uri",
+                        label: "📋 発注フォームを開く",
+                        uri: orderUrl
+                      }
+                    }
+                  ]
+                }
+              }
+            };
+
+            try {
+              await liff.sendMessages([
+                { type: "text", text: lineMsg },
+                flexMsg
+              ]);
+            } catch (le) {
+              console.warn("LINE送信スキップ:", le);
+            }
           }
 
-          // 履歴キャッシュをリセット（次回タブ切替で再取得）
+          // 履歴キャッシュをリセット
           historyData = [];
 
           spinner.classList.add('hidden');
