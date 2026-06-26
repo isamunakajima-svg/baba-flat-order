@@ -98,6 +98,10 @@
               <span class="text-[10px] font-bold text-red-400">祝</span>
               <span class="text-[10px] text-slate-400">祝日</span>
             </div>
+            <div class="flex items-center gap-1">
+              <div class="w-4 h-4 rounded border border-dashed border-orange-300 bg-white"></div>
+              <span class="text-[10px] text-slate-400">通常外曜日</span>
+            </div>
           </div>
         </div>
 
@@ -235,6 +239,7 @@
     let historyData = []; // 注文単位の配列（orderId ごと）
     let blockedDates  = [];
     let holidayDates  = []; // 日本の祝日リスト（赤字表示用）
+    let allowedDays   = []; // 納品可能曜日（例:["月","水","金"]、空=全曜日OK）
     let calYear     = new Date().getFullYear();
     let calMonth    = new Date().getMonth();
 
@@ -313,6 +318,110 @@
         `✅ ${dateStr} ${DAYS_JP[d.getDay()]}`;
     }
 
+    // カレンダー日付クリック時のハンドラ（警告・振り替えポップアップを制御）
+    function _onOrderCalDateClick(dateStr) {
+      const DOW_JP   = ["日","月","火","水","木","金","土"];
+      const dow      = new Date(dateStr + "T00:00:00").getDay();
+      const dowLabel = DOW_JP[dow];
+
+      // ── ケース①: blockedDates の日を選んだ → 振り替えポップアップ ──
+      if (blockedDates.includes(dateStr)) {
+        // 前日・翌日を計算（blockedでない日を探す）
+        const prev = new Date(dateStr + "T00:00:00");
+        prev.setDate(prev.getDate() - 1);
+        const prevStr = _toDateStr(prev);
+
+        const next = new Date(dateStr + "T00:00:00");
+        next.setDate(next.getDate() + 1);
+        const nextStr = _toDateStr(next);
+
+        const prevDow = DOW_JP[prev.getDay()];
+        const nextDow = DOW_JP[next.getDay()];
+
+        const prevOk = !blockedDates.includes(prevStr) && prevStr >= orderCalMin;
+        const nextOk = !blockedDates.includes(nextStr) && nextStr >= orderCalMin;
+
+        if (!prevOk && !nextOk) {
+          showModal("納品不可", `${dateStr}（${dowLabel}）は納品不可日です。
+前後の日も納品不可のため、他の日付をお選びください。`, "error");
+          return;
+        }
+
+        // 振り替えポップアップを構築
+        const modal = document.getElementById('custom-modal');
+        document.getElementById('modal-icon').className = "text-4xl text-amber-500";
+        document.getElementById('modal-icon').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        document.getElementById('modal-title').innerText = "納品不可日です";
+        document.getElementById('modal-message').innerText =
+          `${dateStr}（${dowLabel}）は納品不可日です。
+別の日に変更してください。`;
+
+        // ボタンエリアをカスタマイズ
+        const btnArea = document.querySelector('#custom-modal .flex.gap-3');
+        btnArea.innerHTML = "";
+
+        if (prevOk) {
+          const btnPrev = document.createElement('button');
+          btnPrev.className = "flex-1 py-2.5 rounded-xl border border-amber-300 text-sm font-bold text-amber-700 bg-amber-50 hover:bg-amber-100";
+          btnPrev.innerText = `前日 ${prevStr}（${prevDow}）`;
+          btnPrev.addEventListener('click', () => {
+            _setOrderCalDate(prevStr);
+            _restoreModalButtons();
+            closeModal();
+            renderOrderCalendar();
+          });
+          btnArea.appendChild(btnPrev);
+        }
+
+        if (nextOk) {
+          const btnNext = document.createElement('button');
+          btnNext.className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700";
+          btnNext.innerText = `翌日 ${nextStr}（${nextDow}）`;
+          btnNext.addEventListener('click', () => {
+            _setOrderCalDate(nextStr);
+            _restoreModalButtons();
+            closeModal();
+            renderOrderCalendar();
+          });
+          btnArea.appendChild(btnNext);
+        }
+
+        modal.classList.remove('hidden');
+        return;
+      }
+
+      // ── ケース②: 納品可能曜日外の日を選んだ → 警告を出しつつ選択可能 ──
+      if (allowedDays.length > 0 && !allowedDays.includes(dowLabel)) {
+        const allowedStr = allowedDays.join("・");
+        // まず選択状態にしてカレンダーを更新
+        _setOrderCalDate(dateStr);
+        renderOrderCalendar();
+        // 警告モーダルを表示（選択はすでに確定）
+        showModal(
+          "⚠️ 通常外の曜日です",
+          `${dateStr}（${dowLabel}）は通常の納品曜日（${allowedStr}曜日）以外の日付です。
+
+このまま発注することも可能ですが、ご確認の上ご利用ください。`,
+          "confirm"
+        );
+        return;
+      }
+
+      // ── 通常の選択 ──
+      _setOrderCalDate(dateStr);
+      renderOrderCalendar();
+    }
+
+    // 振り替えポップアップ後にモーダルのボタンを元に戻す
+    function _restoreModalButtons() {
+      const btnArea = document.querySelector('#custom-modal .flex.gap-3');
+      btnArea.innerHTML = `
+        <button id="modal-cancel-btn" onclick="closeModal()"
+          class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 hidden">閉じる</button>
+        <button id="modal-ok-btn" onclick="closeModal()"
+          class="flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm">OK</button>`;
+    }
+
     function renderOrderCalendar() {
       document.getElementById('order-cal-title').innerText =
         `${orderCalYear}年 ${orderCalMonth + 1}月`;
@@ -335,29 +444,36 @@
 
       for (let d = 1; d <= lastDate; d++) {
         const dateStr    = `${orderCalYear}-${String(orderCalMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-        const isBlocked   = blockedDates.includes(dateStr) || dateStr < orderCalMin;
-        const isSelected  = dateStr === selected;
-        const isToday     = dateStr === todayStr;
-        const isHoliday   = holidayDates.includes(dateStr);
-        const dow         = new Date(orderCalYear, orderCalMonth, d).getDay();
+        const isBlocked    = blockedDates.includes(dateStr) || dateStr < orderCalMin;
+        const isSelected   = dateStr === selected;
+        const isToday      = dateStr === todayStr;
+        const isHoliday    = holidayDates.includes(dateStr);
+        const dow          = new Date(orderCalYear, orderCalMonth, d).getDay();
+        const DOW_JP       = ["日","月","火","水","木","金","土"];
+        const dowLabel     = DOW_JP[dow];
+        // 納品不可曜日かどうか（allowedDays が設定されていて、その曜日が含まれていない場合）
+        const isNotAllowed = allowedDays.length > 0 && !allowedDays.includes(dowLabel);
 
         const cell = document.createElement('div');
 
         if (isBlocked) {
+          // 定休・特別休業による納品不可日：グレーアウト
           cell.className = "rounded-lg py-2 text-center text-xs text-slate-300 bg-slate-100 cursor-not-allowed select-none";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else if (isSelected) {
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else {
-          // 祝日・日曜は赤、土曜は青、それ以外は通常色
+          // 色の優先順位：納品不可曜日=オレンジ点線枠 > 祝日/日曜=赤 > 土曜=青 > 通常
           const textColor   = (isHoliday || dow === 0) ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
-          cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
-          cell.innerHTML = `<span class="block">${d}</span>`;
+          const notAllowedStyle = isNotAllowed ? "border border-dashed border-orange-300" : "";
+          cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder} ${notAllowedStyle}`;
+          cell.innerHTML = isNotAllowed
+            ? `<span class="block">${d}</span><span class="text-[7px] text-orange-400">通常外</span>`
+            : `<span class="block">${d}</span>`;
           cell.addEventListener('click', () => {
-            _setOrderCalDate(dateStr);
-            renderOrderCalendar();
+            _onOrderCalDateClick(dateStr);
           });
         }
 
@@ -455,6 +571,7 @@
         shopName     = data.shopName || shopCode;
         blockedDates = data.blockedDates || [];
         holidayDates = data.holidayDates || [];
+        allowedDays  = data.allowedDays  || [];
         document.getElementById('shop-name').innerText = shopName;
 
         // blockedDates 確定後に初めてカレンダーを描画・日付を確定させる
