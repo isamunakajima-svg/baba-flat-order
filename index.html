@@ -633,7 +633,7 @@
         if (record.orderDateStr === todayStr && !isCancelled) {
           bodyHtml += `
             <div class="mt-4 pt-3 border-t border-slate-100">
-              <button onclick="confirmCancel('${record.orderId}')"
+              <button onclick="confirmCancelFromHistory('${record.orderId}')"
                 class="w-full py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-bold border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                 <i class="fa-solid fa-ban"></i> この注文をキャンセルする
               </button>
@@ -653,23 +653,36 @@
     // ============================================================
     //  キャンセル確認 → 実行
     // ============================================================
-    function confirmCancel(orderId) {
+    // 履歴モーダルのボタンから呼ぶラッパー（historyDataからrecordを検索して渡す）
+    function confirmCancelFromHistory(orderId) {
+      const record = historyData.find(h => h.orderId === orderId);
+      confirmCancel(orderId, record);
+    }
+
+    // ============================================================
+    function confirmCancel(orderId, record) {
       closeHistoryModal();
       document.getElementById('modal-icon').className  = "text-4xl text-red-500";
       document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-ban"></i>';
       document.getElementById('modal-title').innerText = "注文キャンセルの確認";
-      document.getElementById('modal-message').innerText = `発注番号: ${orderId}\n\nこの注文をキャンセルしますか？\n\nキャンセル後はLINEグループに通知されます。`;
+
+      // 注文内容を確認メッセージに含める
+      let confirmMsg = `発注番号: ${orderId}\n納品希望日: ${record.deliveryDate}\n\n【注文内容】\n`;
+      record.items.forEach(item => { confirmMsg += `・${item.name} × ${item.quantity}個\n`; });
+      confirmMsg += `\nこの注文をキャンセルしますか？\nキャンセル後はLINEグループに通知されます。`;
+      document.getElementById('modal-message').innerText = confirmMsg;
+
       document.getElementById('modal-cancel-btn').classList.remove('hidden');
       document.getElementById('modal-cancel-btn').innerText = "戻る";
 
-      _resetOkBtn(() => { closeModal(); executeCancelOrder(orderId); });
+      _resetOkBtn(() => { closeModal(); executeCancelOrder(orderId, record); });
       const okBtn = document.getElementById('modal-ok-btn');
       okBtn.innerText  = "キャンセルする";
       okBtn.className  = "flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 shadow-sm";
       document.getElementById('custom-modal').classList.remove('hidden');
     }
 
-    async function executeCancelOrder(orderId) {
+    async function executeCancelOrder(orderId, record) {
       const spinner = document.getElementById('loading-spinner');
       spinner.classList.remove('hidden');
       try {
@@ -687,9 +700,22 @@
           } catch (le) { console.warn("LINE送信スキップ:", le); }
         }
 
+        // キャンセル完了メッセージに注文内容を含める
+        let doneMsg = `発注番号: ${orderId}\n納品希望日: ${data.deliveryDate}\n\n【キャンセルした注文内容】\n`;
+        if (record && record.items) {
+          record.items.forEach(item => { doneMsg += `・${item.name} × ${item.quantity}個\n`; });
+        }
+        doneMsg += `\nキャンセルが完了しました。\nLINEグループに通知しました。`;
+
         spinner.classList.add('hidden');
         historyData = [];
-        showModal("キャンセル完了", `発注番号: ${orderId}\n\nキャンセルが完了しました。\nLINEグループに通知しました。`, "success");
+
+        // OKボタンを通常スタイルに戻してから showModal
+        const okBtn = document.getElementById('modal-ok-btn');
+        okBtn.innerText = "OK";
+        okBtn.className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm";
+
+        showModal("キャンセル完了 ✅", doneMsg, "success");
         _resetOkBtn(() => { closeModal(); loadHistory(); });
 
       } catch (error) {
