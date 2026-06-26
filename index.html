@@ -94,6 +94,10 @@
               <div class="w-4 h-4 rounded bg-slate-200"></div>
               <span class="text-[10px] text-slate-400">納品不可</span>
             </div>
+            <div class="flex items-center gap-1">
+              <span class="text-[10px] font-bold text-red-400">祝</span>
+              <span class="text-[10px] text-slate-400">祝日</span>
+            </div>
           </div>
         </div>
 
@@ -230,6 +234,7 @@
     let cart        = {};
     let historyData = []; // 注文単位の配列（orderId ごと）
     let blockedDates  = [];
+    let holidayDates  = []; // 日本の祝日リスト（赤字表示用）
     let calYear     = new Date().getFullYear();
     let calMonth    = new Date().getMonth();
 
@@ -330,10 +335,11 @@
 
       for (let d = 1; d <= lastDate; d++) {
         const dateStr    = `${orderCalYear}-${String(orderCalMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-        const isBlocked  = blockedDates.includes(dateStr) || dateStr < orderCalMin;
-        const isSelected = dateStr === selected;
-        const isToday    = dateStr === todayStr;
-        const dow        = new Date(orderCalYear, orderCalMonth, d).getDay();
+        const isBlocked   = blockedDates.includes(dateStr) || dateStr < orderCalMin;
+        const isSelected  = dateStr === selected;
+        const isToday     = dateStr === todayStr;
+        const isHoliday   = holidayDates.includes(dateStr);
+        const dow         = new Date(orderCalYear, orderCalMonth, d).getDay();
 
         const cell = document.createElement('div');
 
@@ -344,7 +350,8 @@
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else {
-          const textColor   = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
+          // 祝日・日曜は赤、土曜は青、それ以外は通常色
+          const textColor   = (isHoliday || dow === 0) ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
           cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
           cell.innerHTML = `<span class="block">${d}</span>`;
@@ -365,12 +372,12 @@
       if (newMonth < 0)  { newMonth = 11; newYear--; }
       if (newMonth > 11) { newMonth = 0;  newYear++; }
 
-      if (orderCalMin) {
-        const minDate = new Date(orderCalMin + "T00:00:00");
-        if (newYear < minDate.getFullYear() ||
-           (newYear === minDate.getFullYear() && newMonth < minDate.getMonth())) {
-          return; // 過去月へのナビゲーションをブロック
-        }
+      // 先月より前には戻れないようにする
+      const now       = new Date();
+      const limitYear  = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      const limitMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      if (newYear < limitYear || (newYear === limitYear && newMonth < limitMonth)) {
+        return;
       }
 
       orderCalMonth = newMonth;
@@ -447,6 +454,7 @@
 
         shopName     = data.shopName || shopCode;
         blockedDates = data.blockedDates || [];
+        holidayDates = data.holidayDates || [];
         document.getElementById('shop-name').innerText = shopName;
 
         // blockedDates 確定後に初めてカレンダーを描画・日付を確定させる
