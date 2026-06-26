@@ -858,6 +858,8 @@
             console.log("LINE送信成功");
           } catch (le) {
             console.warn("LINE送信失敗:", le);
+            // エラー内容をモーダルで表示（デバッグ用）
+            showModal("LINE送信エラー", `エラー内容:\n${le.toString()}\n\ncode: ${le.code || "なし"}`, "error");
           }
 
           // 履歴キャッシュをリセット
