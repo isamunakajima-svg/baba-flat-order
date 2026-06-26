@@ -821,9 +821,41 @@
             lineMsg += `\n税込合計金額: ¥${grandTotal.toLocaleString()}\n`;
             if (notes) lineMsg += `備考: ${notes}\n`;
 
+            // 次回発注ボタン（Flex）
+            const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
+            const flexBtn = {
+              type: "flex",
+              altText: "次回の発注はこちらから",
+              contents: {
+                type: "bubble",
+                size: "kilo",
+                body: {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    { type: "text", text: "🍞 次回もよろしくお願いします", size: "sm", color: "#92400e", weight: "bold", wrap: true },
+                    { type: "text", text: "ボタンからいつでも発注できます", size: "xs", color: "#b45309", margin: "sm", wrap: true }
+                  ]
+                },
+                footer: {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    {
+                      type: "button",
+                      style: "primary",
+                      color: "#b45309",
+                      height: "sm",
+                      action: { type: "uri", label: "📋 発注フォームを開く", uri: orderUrl }
+                    }
+                  ]
+                }
+              }
+            };
             try {
               await liff.sendMessages([
-                { type: "text", text: lineMsg }
+                { type: "text", text: lineMsg },
+                flexBtn
               ]);
             } catch (le) {
               console.warn("LINE送信スキップ:", le);
