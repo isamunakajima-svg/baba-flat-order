@@ -813,26 +813,82 @@
           const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
           const dow     = new Date(deliveryDate + "T00:00:00").getDay();
 
-          let lineMsg = `【ご注文ありがとうございます。】\n注文店舗: ${data.shopName}様\n納品希望日: ${deliveryDate}${DAYS_JP[dow]}\n発注番号: ${data.orderId}\n\n【注文内訳】\n`;
-          items.forEach(item => {
-            lineMsg += `・${item.productName} × ${item.quantity}個 (税抜¥${item.subtotal.toLocaleString()})\n`;
-          });
-          lineMsg += `\n税込合計金額: ¥${grandTotal.toLocaleString()}\n`;
-          if (notes) lineMsg += `備考: ${notes}\n`;
-
+          // 注文内容をFlexのcontentsに変換
           const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
-          const flexBtn = {
+          const itemContents = items.map(item => ({
+            type: "box",
+            layout: "baseline",
+            contents: [
+              { type: "text", text: `・${item.productName}`, size: "sm", color: "#333333", flex: 4, wrap: true },
+              { type: "text", text: `× ${item.quantity}個`, size: "sm", color: "#333333", flex: 2, align: "end" },
+              { type: "text", text: `¥${item.subtotal.toLocaleString()}`, size: "sm", color: "#666666", flex: 2, align: "end" }
+            ],
+            margin: "xs"
+          }));
+
+          if (notes) {
+            itemContents.push({
+              type: "text",
+              text: `備考: ${notes}`,
+              size: "xs",
+              color: "#888888",
+              margin: "md",
+              wrap: true
+            });
+          }
+
+          const confirmFlex = {
             type: "flex",
-            altText: "次回の発注はこちらから",
+            altText: `【ご注文ありがとうございます】${data.shopName}様 / ${deliveryDate}${DAYS_JP[dow]}`,
             contents: {
               type: "bubble",
-              size: "kilo",
-              body: {
+              styles: {
+                header: { backgroundColor: "#92400e" }
+              },
+              header: {
                 type: "box",
                 layout: "vertical",
                 contents: [
-                  { type: "text", text: "🍞 次回もよろしくお願いします", size: "sm", color: "#92400e", weight: "bold", wrap: true },
-                  { type: "text", text: "ボタンからいつでも発注できます", size: "xs", color: "#b45309", margin: "sm", wrap: true }
+                  { type: "text", text: "🍞 ご注文ありがとうございます", color: "#ffffff", size: "sm", weight: "bold" }
+                ]
+              },
+              body: {
+                type: "box",
+                layout: "vertical",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "box", layout: "baseline",
+                    contents: [
+                      { type: "text", text: "店舗名", size: "xs", color: "#888888", flex: 2 },
+                      { type: "text", text: `${data.shopName}様`, size: "sm", color: "#333333", flex: 5, weight: "bold", wrap: true }
+                    ]
+                  },
+                  {
+                    type: "box", layout: "baseline",
+                    contents: [
+                      { type: "text", text: "納品希望日", size: "xs", color: "#888888", flex: 2 },
+                      { type: "text", text: `${deliveryDate}${DAYS_JP[dow]}`, size: "sm", color: "#333333", flex: 5, weight: "bold" }
+                    ]
+                  },
+                  {
+                    type: "box", layout: "baseline",
+                    contents: [
+                      { type: "text", text: "発注番号", size: "xs", color: "#888888", flex: 2 },
+                      { type: "text", text: data.orderId, size: "xs", color: "#666666", flex: 5, wrap: true }
+                    ]
+                  },
+                  { type: "separator", margin: "md" },
+                  { type: "text", text: "注文内訳", size: "xs", color: "#888888", margin: "md" },
+                  ...itemContents,
+                  { type: "separator", margin: "md" },
+                  {
+                    type: "box", layout: "baseline", margin: "md",
+                    contents: [
+                      { type: "text", text: "税込合計", size: "sm", color: "#333333", flex: 3, weight: "bold" },
+                      { type: "text", text: `¥${grandTotal.toLocaleString()}`, size: "sm", color: "#b45309", flex: 3, align: "end", weight: "bold" }
+                    ]
+                  }
                 ]
               },
               footer: {
@@ -844,22 +900,18 @@
                     style: "primary",
                     color: "#b45309",
                     height: "sm",
-                    action: { type: "uri", label: "📋 発注フォームを開く", uri: orderUrl }
+                    action: { type: "uri", label: "📋 次回の発注はこちら", uri: orderUrl }
                   }
                 ]
               }
             }
           };
+
           try {
-            await liff.sendMessages([
-              { type: "text", text: lineMsg },
-              flexBtn
-            ]);
+            await liff.sendMessages([confirmFlex]);
             console.log("LINE送信成功");
           } catch (le) {
             console.warn("LINE送信失敗:", le);
-            // エラー内容をモーダルで表示（デバッグ用）
-            showModal("LINE送信エラー", `エラー内容:\n${le.toString()}\n\ncode: ${le.code || "なし"}`, "error");
           }
 
           // 履歴キャッシュをリセット
