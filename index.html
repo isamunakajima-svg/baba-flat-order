@@ -99,7 +99,7 @@
               <span class="text-[10px] text-slate-400">祝日</span>
             </div>
             <div class="flex items-center gap-1">
-              <div class="w-4 h-4 rounded border border-dashed border-orange-300 bg-white"></div>
+              <div class="w-4 h-4 rounded bg-slate-100"></div>
               <span class="text-[10px] text-slate-400">通常外曜日</span>
             </div>
           </div>
@@ -467,11 +467,10 @@
           // 色の優先順位：納品不可曜日=オレンジ点線枠 > 祝日/日曜=赤 > 土曜=青 > 通常
           const textColor   = (isHoliday || dow === 0) ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
-          const notAllowedStyle = isNotAllowed ? "border border-dashed border-orange-300" : "";
-          cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder} ${notAllowedStyle}`;
-          cell.innerHTML = isNotAllowed
-            ? `<span class="block">${d}</span><span class="text-[7px] text-orange-400">通常外</span>`
-            : `<span class="block">${d}</span>`;
+          // 通常外曜日：薄いグレー背景、枠なし / 通常曜日：白背景、実線枠
+          const bgStyle     = isNotAllowed ? "bg-slate-100" : "bg-white border border-slate-200";
+          cell.className = `rounded-lg py-2 text-center text-xs font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder} ${bgStyle}`;
+          cell.innerHTML = `<span class="block">${d}</span>`;
           cell.addEventListener('click', () => {
             _onOrderCalDateClick(dateStr);
           });
