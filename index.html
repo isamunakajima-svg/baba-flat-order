@@ -755,6 +755,7 @@
       document.getElementById('modal-title').innerText = title;
       document.getElementById('modal-message').innerText = message;
       document.getElementById('modal-cancel-btn').classList.toggle('hidden', !showCancel);
+      document.getElementById('modal-ok-btn').innerText = "OK";
       _resetOkBtn(() => closeModal());
       document.getElementById('custom-modal').classList.remove('hidden');
     }
