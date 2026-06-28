@@ -94,14 +94,6 @@
               <div class="w-4 h-4 rounded bg-slate-200"></div>
               <span class="text-[10px] text-slate-400">納品不可</span>
             </div>
-            <div class="flex items-center gap-1">
-              <span class="text-[10px] font-bold text-red-400">祝</span>
-              <span class="text-[10px] text-slate-400">祝日</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <div class="w-4 h-4 rounded bg-slate-100"></div>
-              <span class="text-[10px] text-slate-400">通常外曜日</span>
-            </div>
           </div>
         </div>
 
@@ -211,7 +203,7 @@
 
   <!-- 履歴詳細モーダル -->
   <div id="history-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl max-h-[85vh] overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
       <div class="flex items-center justify-between">
         <h3 id="hmodal-title" class="font-bold text-base text-amber-900"></h3>
         <button onclick="closeHistoryModal()" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200">
@@ -229,19 +221,17 @@
 
   <script>
     const LIFF_ID         = "2010516972-5xgmSHys";
-    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwDY2yTrKAaKIGyPCavavnHlKFgrzZRXV0D0xjWrykT2-eTr3o74E5PJePPJ92EYgTlLg/exec";
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw6NHW70u2A6pXhwfZujIJNQw37iu4YRYMsyldSfRaHs0jHsCd4h1e5w-KzI6TKPQWFVA/exec";
 
     let userProfile = { userId: "test_local_user", displayName: "テストユーザー" };
     let shopCode    = "";
     let shopName    = "";
     let products    = [];
     let cart        = {};
-    let historyData = []; // 注文単位の配列（orderId ごと）
-    let blockedDates  = [];
-    let holidayDates  = []; // 日本の祝日リスト（赤字表示用）
-    let allowedDays   = []; // 納品可能曜日（例:["月","水","金"]、空=全曜日OK）
+    let historyData = [];
+    let blockedDates  = []; // 納品不可日リスト（YYYY-MM-DD）
     let calYear     = new Date().getFullYear();
-    let calMonth    = new Date().getMonth();
+    let calMonth    = new Date().getMonth(); // 0-indexed
 
     // ============================================================
     //  タブ切り替え
@@ -265,10 +255,9 @@
 
     // ============================================================
     //  初期化
-    //  ※ setupDeliveryDate() は loadProducts() 内で blockedDates 取得後に呼び出す。
-    //    ここでは LIFF 初期化のみ行い、初期カレンダー表示も loadProducts() 後に実施。
     // ============================================================
     window.onload = function () {
+      setupDeliveryDate();
       initLiff();
     };
 
@@ -280,33 +269,26 @@
     // 発注カレンダー用の状態
     let orderCalYear  = new Date().getFullYear();
     let orderCalMonth = new Date().getMonth();
-    let orderCalMin   = "";
+    let orderCalMin   = ""; // 選択可能な最小日付
 
-    // ── setupDeliveryDate ──
-    // blockedDates が確定した後に呼ぶこと。
-    // すでに有効な日付が選択済みならそのまま維持し、無効になった場合のみ最小日にリセットする。
     function setupDeliveryDate() {
       const currentHour = new Date().getHours();
       const minOffset   = currentHour >= 18 ? 4 : 3;
 
+      // 最低納品日を計算（納品不可日はスキップ）
       let minDate = new Date();
       minDate.setHours(0, 0, 0, 0);
       minDate.setDate(minDate.getDate() + minOffset);
-      // 納品不可日はスキップして最小日を決定
       while (blockedDates.includes(_toDateStr(minDate))) {
         minDate.setDate(minDate.getDate() + 1);
       }
 
-      orderCalMin = _toDateStr(minDate);
+      orderCalMin   = _toDateStr(minDate);
+      orderCalYear  = minDate.getFullYear();
+      orderCalMonth = minDate.getMonth();
 
-      const currentSelected = document.getElementById('delivery-date').value;
-      // 未選択・最小日より前・納品不可日 のいずれかなら最小日に更新
-      if (!currentSelected || currentSelected < orderCalMin || blockedDates.includes(currentSelected)) {
-        orderCalYear  = minDate.getFullYear();
-        orderCalMonth = minDate.getMonth();
-        _setOrderCalDate(orderCalMin);
-      }
-
+      // デフォルト選択
+      _setOrderCalDate(orderCalMin);
       renderOrderCalendar();
     }
 
@@ -316,110 +298,6 @@
       const d = new Date(dateStr + "T00:00:00");
       document.getElementById('selected-date-display').innerText =
         `✅ ${dateStr} ${DAYS_JP[d.getDay()]}`;
-    }
-
-    // カレンダー日付クリック時のハンドラ（警告・振り替えポップアップを制御）
-    function _onOrderCalDateClick(dateStr) {
-      const DOW_JP   = ["日","月","火","水","木","金","土"];
-      const dow      = new Date(dateStr + "T00:00:00").getDay();
-      const dowLabel = DOW_JP[dow];
-
-      // ── ケース①: blockedDates の日を選んだ → 振り替えポップアップ ──
-      if (blockedDates.includes(dateStr)) {
-        // 前日・翌日を計算（blockedでない日を探す）
-        const prev = new Date(dateStr + "T00:00:00");
-        prev.setDate(prev.getDate() - 1);
-        const prevStr = _toDateStr(prev);
-
-        const next = new Date(dateStr + "T00:00:00");
-        next.setDate(next.getDate() + 1);
-        const nextStr = _toDateStr(next);
-
-        const prevDow = DOW_JP[prev.getDay()];
-        const nextDow = DOW_JP[next.getDay()];
-
-        const prevOk = !blockedDates.includes(prevStr) && prevStr >= orderCalMin;
-        const nextOk = !blockedDates.includes(nextStr) && nextStr >= orderCalMin;
-
-        if (!prevOk && !nextOk) {
-          showModal("納品不可", `${dateStr}（${dowLabel}）は納品不可日です。
-前後の日も納品不可のため、他の日付をお選びください。`, "error");
-          return;
-        }
-
-        // 振り替えポップアップを構築
-        const modal = document.getElementById('custom-modal');
-        document.getElementById('modal-icon').className = "text-4xl text-amber-500";
-        document.getElementById('modal-icon').innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-        document.getElementById('modal-title').innerText = "納品不可日です";
-        document.getElementById('modal-message').innerText =
-          `${dateStr}（${dowLabel}）は納品不可日です。
-別の日に変更してください。`;
-
-        // ボタンエリアをカスタマイズ
-        const btnArea = document.querySelector('#custom-modal .flex.gap-3');
-        btnArea.innerHTML = "";
-
-        if (prevOk) {
-          const btnPrev = document.createElement('button');
-          btnPrev.className = "flex-1 py-2.5 rounded-xl border border-amber-300 text-sm font-bold text-amber-700 bg-amber-50 hover:bg-amber-100";
-          btnPrev.innerText = `前日 ${prevStr}（${prevDow}）`;
-          btnPrev.addEventListener('click', () => {
-            _setOrderCalDate(prevStr);
-            _restoreModalButtons();
-            closeModal();
-            renderOrderCalendar();
-          });
-          btnArea.appendChild(btnPrev);
-        }
-
-        if (nextOk) {
-          const btnNext = document.createElement('button');
-          btnNext.className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700";
-          btnNext.innerText = `翌日 ${nextStr}（${nextDow}）`;
-          btnNext.addEventListener('click', () => {
-            _setOrderCalDate(nextStr);
-            _restoreModalButtons();
-            closeModal();
-            renderOrderCalendar();
-          });
-          btnArea.appendChild(btnNext);
-        }
-
-        modal.classList.remove('hidden');
-        return;
-      }
-
-      // ── ケース②: 納品可能曜日外の日を選んだ → 警告を出しつつ選択可能 ──
-      if (allowedDays.length > 0 && !allowedDays.includes(dowLabel)) {
-        const allowedStr = allowedDays.join("・");
-        // まず選択状態にしてカレンダーを更新
-        _setOrderCalDate(dateStr);
-        renderOrderCalendar();
-        // 警告モーダルを表示（選択はすでに確定）
-        showModal(
-          "⚠️ 通常外の曜日です",
-          `${dateStr}（${dowLabel}）は通常の納品曜日（${allowedStr}曜日）以外の日付です。
-
-このまま発注することも可能ですが、ご確認の上ご利用ください。`,
-          "confirm"
-        );
-        return;
-      }
-
-      // ── 通常の選択 ──
-      _setOrderCalDate(dateStr);
-      renderOrderCalendar();
-    }
-
-    // 振り替えポップアップ後にモーダルのボタンを元に戻す
-    function _restoreModalButtons() {
-      const btnArea = document.querySelector('#custom-modal .flex.gap-3');
-      btnArea.innerHTML = `
-        <button id="modal-cancel-btn" onclick="closeModal()"
-          class="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 hidden">閉じる</button>
-        <button id="modal-ok-btn" onclick="closeModal()"
-          class="flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm">OK</button>`;
     }
 
     function renderOrderCalendar() {
@@ -443,36 +321,31 @@
       }
 
       for (let d = 1; d <= lastDate; d++) {
-        const dateStr    = `${orderCalYear}-${String(orderCalMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-        const isBlocked    = blockedDates.includes(dateStr) || dateStr < orderCalMin;
-        const isSelected   = dateStr === selected;
-        const isToday      = dateStr === todayStr;
-        const isHoliday    = holidayDates.includes(dateStr);
-        const dow          = new Date(orderCalYear, orderCalMonth, d).getDay();
-        const DOW_JP       = ["日","月","火","水","木","金","土"];
-        const dowLabel     = DOW_JP[dow];
-        // 納品不可曜日かどうか（allowedDays が設定されていて、その曜日が含まれていない場合）
-        const isNotAllowed = allowedDays.length > 0 && !allowedDays.includes(dowLabel);
+        const dateStr   = `${orderCalYear}-${String(orderCalMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const isBlocked = blockedDates.includes(dateStr) || dateStr < orderCalMin;
+        const isSelected = dateStr === selected;
+        const isToday   = dateStr === todayStr;
+        const dow       = new Date(orderCalYear, orderCalMonth, d).getDay();
 
         const cell = document.createElement('div');
 
         if (isBlocked) {
-          // 定休・特別休業による納品不可日：グレーアウト
+          // 納品不可・過去日: グレーアウト・選択不可
           cell.className = "rounded-lg py-2 text-center text-xs text-slate-300 bg-slate-100 cursor-not-allowed select-none";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else if (isSelected) {
+          // 選択中: アンバー塗り
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else {
-          // 色の優先順位：納品不可曜日=オレンジ点線枠 > 祝日/日曜=赤 > 土曜=青 > 通常
-          const textColor   = (isHoliday || dow === 0) ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
+          // 選択可能
+          const textColor = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
-          // 通常外曜日：薄いグレー背景、枠なし / 通常曜日：白背景、実線枠
-          const bgStyle     = isNotAllowed ? "bg-slate-100" : "bg-white border border-slate-200";
-          cell.className = `rounded-lg py-2 text-center text-xs font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder} ${bgStyle}`;
+          cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
           cell.innerHTML = `<span class="block">${d}</span>`;
           cell.addEventListener('click', () => {
-            _onOrderCalDateClick(dateStr);
+            _setOrderCalDate(dateStr);
+            renderOrderCalendar();
           });
         }
 
@@ -480,23 +353,10 @@
       }
     }
 
-    // 過去月（orderCalMin の月より前）には戻れないようにする
     function orderCalChangeMonth(delta) {
-      let newMonth = orderCalMonth + delta;
-      let newYear  = orderCalYear;
-      if (newMonth < 0)  { newMonth = 11; newYear--; }
-      if (newMonth > 11) { newMonth = 0;  newYear++; }
-
-      // 先月より前には戻れないようにする
-      const now       = new Date();
-      const limitYear  = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-      const limitMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-      if (newYear < limitYear || (newYear === limitYear && newMonth < limitMonth)) {
-        return;
-      }
-
-      orderCalMonth = newMonth;
-      orderCalYear  = newYear;
+      orderCalMonth += delta;
+      if (orderCalMonth < 0)  { orderCalMonth = 11; orderCalYear--; }
+      if (orderCalMonth > 11) { orderCalMonth = 0;  orderCalYear++; }
       renderOrderCalendar();
     }
 
@@ -546,12 +406,12 @@
               if (profile.pictureUrl) document.getElementById('user-avatar').src = profile.pictureUrl;
               loadProducts();
             })
-            .catch(() => {
+            .catch(err => {
               if (!liff.isLoggedIn()) liff.login();
               else loadProducts();
             });
         })
-        .catch(() => {
+        .catch(err => {
           shopCode = _getShopCodeFromUrl();
           if (shopCode) loadProducts();
         });
@@ -559,7 +419,6 @@
 
     // ============================================================
     //  商品リスト取得
-    //  ※ blockedDates 取得後に setupDeliveryDate() を呼ぶ（ここが唯一の呼び出し箇所）
     // ============================================================
     async function loadProducts() {
       try {
@@ -569,11 +428,9 @@
 
         shopName     = data.shopName || shopCode;
         blockedDates = data.blockedDates || [];
-        holidayDates = data.holidayDates || [];
-        allowedDays  = data.allowedDays  || [];
         document.getElementById('shop-name').innerText = shopName;
 
-        // blockedDates 確定後に初めてカレンダーを描画・日付を確定させる
+        // 店舗確定後、納品不可日を反映して日付フィールドを再セット
         setupDeliveryDate();
 
         products = data.products.map((p, i) => {
@@ -628,14 +485,12 @@
     }
 
     // ============================================================
-    //  カレンダー描画（orderId 単位の historyData を使用）
+    //  カレンダー描画
     // ============================================================
     function renderCalendar() {
       document.getElementById('cal-title').innerText = `${calYear}年 ${calMonth + 1}月`;
 
-      // 注文がある日付のセット（キャンセル含む全注文）
       const orderDates = new Set(historyData.map(h => h.deliveryDate));
-
       const grid       = document.getElementById('cal-grid');
       grid.innerHTML   = "";
 
@@ -656,9 +511,6 @@
         const isToday  = dateStr === todayStr;
         const dow      = new Date(calYear, calMonth, d).getDay();
 
-        // アクティブな注文が1件以上あるか
-        const hasActive = hasOrder && historyData.some(h => h.deliveryDate === dateStr && h.status !== "キャンセル");
-
         const cell = document.createElement('div');
         cell.className = [
           "cal-day rounded-lg py-2 text-center text-xs transition-all",
@@ -668,7 +520,7 @@
         ].join(" ");
 
         cell.innerHTML = hasOrder
-          ? `<span class="block">${d}</span><span class="text-[8px]">${hasActive ? "🍞" : "❌"}</span>`
+          ? `<span class="block">${d}</span><span class="text-[8px]">🍞</span>`
           : `<span class="block">${d}</span>`;
 
         if (hasOrder) {
@@ -686,77 +538,61 @@
     }
 
     // ============================================================
-    //  履歴詳細モーダル（同じ納品日の複数注文に対応）
+    //  履歴詳細モーダル
     // ============================================================
     function showHistoryDetail(dateStr) {
       const DAYS_JP  = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
       const d        = new Date(dateStr + "T00:00:00");
       const dayLabel = DAYS_JP[d.getDay()];
-
-      // 該当日の全注文を取得（降順で表示）
-      const orders = historyData.filter(h => h.deliveryDate === dateStr);
-      if (orders.length === 0) return;
+      const record   = historyData.find(h => h.deliveryDate === dateStr);
+      if (!record) return;
 
       document.getElementById('hmodal-title').innerText = `納品日: ${dateStr}${dayLabel}`;
 
+      const isCancelled = record.status === "キャンセル";
+      let bodyHtml = isCancelled
+        ? `<div class="text-center py-1 mb-2 bg-red-50 rounded-lg text-red-500 text-xs font-bold">⚠️ キャンセル済み</div>`
+        : "";
+
+      let totalExTax = 0;
+      bodyHtml += `<div class="space-y-2 ${isCancelled ? "opacity-50" : ""}">`;
+      record.items.forEach(item => {
+        const subtotal = item.price * item.quantity;
+        totalExTax += subtotal;
+        bodyHtml += `
+          <div class="flex justify-between items-center py-1.5 border-b border-slate-100">
+            <span class="text-slate-700">${item.name}</span>
+            <span class="font-bold text-slate-800">× ${item.quantity}個</span>
+          </div>`;
+      });
+
+      const tax        = Math.floor(totalExTax * 0.08);
+      const totalInTax = totalExTax + tax;
+
+      bodyHtml += `</div>
+        <div class="mt-3 pt-3 border-t border-amber-100 text-xs text-slate-500 space-y-0.5 ${isCancelled ? "opacity-50" : ""}">
+          <div class="flex justify-between"><span>税抜合計</span><span>¥${totalExTax.toLocaleString()}</span></div>
+          <div class="flex justify-between"><span>消費税(8%)</span><span>¥${tax.toLocaleString()}</span></div>
+          <div class="flex justify-between font-bold text-amber-800 text-sm mt-1"><span>税込合計</span><span>¥${totalInTax.toLocaleString()}</span></div>
+        </div>`;
+
+      if (record.notes) {
+        bodyHtml += `<div class="mt-2 text-xs text-slate-400"><i class="fa-solid fa-note-sticky mr-1"></i>${record.notes}</div>`;
+      }
+
+      // 当日注文かつキャンセル未済みの場合のみキャンセルボタンを表示
       const today    = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
-
-      let bodyHtml = '';
-
-      orders.forEach((record, idx) => {
-        const isCancelled = record.status === "キャンセル";
-
-        // 複数注文がある場合は区切りを表示
-        if (idx > 0) {
-          bodyHtml += `<hr class="border-slate-200 my-4">`;
-        }
-        if (orders.length > 1) {
-          bodyHtml += `<div class="text-[10px] font-bold text-slate-400 mb-2">注文 ${idx + 1} / ${orders.length}　<span class="text-slate-300">${record.orderId}</span></div>`;
-        }
-
-        if (isCancelled) {
-          bodyHtml += `<div class="text-center py-1 mb-2 bg-red-50 rounded-lg text-red-500 text-xs font-bold">⚠️ キャンセル済み</div>`;
-        }
-
-        let totalExTax = 0;
-        bodyHtml += `<div class="space-y-1 ${isCancelled ? "opacity-50" : ""}">`;
-        record.items.forEach(item => {
-          const subtotal = item.price * item.quantity;
-          totalExTax += subtotal;
-          bodyHtml += `
-            <div class="flex justify-between items-center py-1.5 border-b border-slate-100">
-              <span class="text-slate-700">${item.name}</span>
-              <span class="font-bold text-slate-800">× ${item.quantity}個</span>
-            </div>`;
-        });
-
-        const tax        = Math.floor(totalExTax * 0.08);
-        const totalInTax = totalExTax + tax;
-
-        bodyHtml += `</div>
-          <div class="mt-3 pt-2 border-t border-amber-100 text-xs text-slate-500 space-y-0.5 ${isCancelled ? "opacity-50" : ""}">
-            <div class="flex justify-between"><span>税抜合計</span><span>¥${totalExTax.toLocaleString()}</span></div>
-            <div class="flex justify-between"><span>消費税(8%)</span><span>¥${tax.toLocaleString()}</span></div>
-            <div class="flex justify-between font-bold text-amber-800 text-sm mt-1"><span>税込合計</span><span>¥${totalInTax.toLocaleString()}</span></div>
+      if (record.orderDateStr === todayStr && !isCancelled) {
+        bodyHtml += `
+          <div class="mt-4 pt-3 border-t border-slate-100">
+            <button onclick="confirmCancel('${record.orderId}')"
+              class="w-full py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-bold border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-ban"></i> この注文をキャンセルする
+            </button>
+            <p class="text-[10px] text-slate-400 text-center mt-1.5">※ キャンセルは発注当日 23:59 まで可能です</p>
           </div>`;
-
-        if (record.notes) {
-          bodyHtml += `<div class="mt-2 text-xs text-slate-400"><i class="fa-solid fa-note-sticky mr-1"></i>${record.notes}</div>`;
-        }
-
-        // 当日発注かつキャンセル未済みの場合のみキャンセルボタンを表示
-        if (record.orderDateStr === todayStr && !isCancelled) {
-          bodyHtml += `
-            <div class="mt-4 pt-3 border-t border-slate-100">
-              <button onclick="confirmCancelFromHistory('${record.orderId}')"
-                class="w-full py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-bold border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                <i class="fa-solid fa-ban"></i> この注文をキャンセルする
-              </button>
-              <p class="text-[10px] text-slate-400 text-center mt-1.5">※ キャンセルは発注当日 23:59 まで可能です</p>
-            </div>`;
-        }
-      });
+      }
 
       document.getElementById('hmodal-body').innerHTML = bodyHtml;
       document.getElementById('history-modal').classList.remove('hidden');
@@ -769,36 +605,23 @@
     // ============================================================
     //  キャンセル確認 → 実行
     // ============================================================
-    // 履歴モーダルのボタンから呼ぶラッパー（historyDataからrecordを検索して渡す）
-    function confirmCancelFromHistory(orderId) {
-      const record = historyData.find(h => h.orderId === orderId);
-      confirmCancel(orderId, record);
-    }
-
-    // ============================================================
-    function confirmCancel(orderId, record) {
+    function confirmCancel(orderId) {
       closeHistoryModal();
       document.getElementById('modal-icon').className  = "text-4xl text-red-500";
       document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-ban"></i>';
       document.getElementById('modal-title').innerText = "注文キャンセルの確認";
-
-      // 注文内容を確認メッセージに含める
-      let confirmMsg = `発注番号: ${orderId}\n納品希望日: ${record.deliveryDate}\n\n【注文内容】\n`;
-      record.items.forEach(item => { confirmMsg += `・${item.name} × ${item.quantity}個\n`; });
-      confirmMsg += `\nこの注文をキャンセルしますか？\nキャンセル後はLINEグループに通知されます。`;
-      document.getElementById('modal-message').innerText = confirmMsg;
-
+      document.getElementById('modal-message').innerText = `発注番号: ${orderId}\n\nこの注文をキャンセルしますか？\n\nキャンセル後はLINEグループに通知されます。`;
       document.getElementById('modal-cancel-btn').classList.remove('hidden');
       document.getElementById('modal-cancel-btn').innerText = "戻る";
-
-      _resetOkBtn(() => { closeModal(); executeCancelOrder(orderId, record); });
-      const okBtn = document.getElementById('modal-ok-btn');
-      okBtn.innerText  = "キャンセルする";
-      okBtn.className  = "flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 shadow-sm";
+      const okBtn = document.getElementById('modal-ok-btn').cloneNode(true);
+      document.getElementById('modal-ok-btn').parentNode.replaceChild(okBtn, document.getElementById('modal-ok-btn'));
+      okBtn.addEventListener('click', () => { closeModal(); executeCancelOrder(orderId); });
+      okBtn.innerText = "キャンセルする";
+      okBtn.className = "flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 shadow-sm";
       document.getElementById('custom-modal').classList.remove('hidden');
     }
 
-    async function executeCancelOrder(orderId, record) {
+    async function executeCancelOrder(orderId) {
       const spinner = document.getElementById('loading-spinner');
       spinner.classList.remove('hidden');
       try {
@@ -806,7 +629,6 @@
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") throw new Error(data.message || "キャンセルに失敗しました。");
 
-        // LIFF内のみ送信可能（isInClient() 確認必須）
         if (liff.isInClient()) {
           try {
             await liff.sendMessages([{
@@ -816,22 +638,10 @@
           } catch (le) { console.warn("LINE送信スキップ:", le); }
         }
 
-        // キャンセル完了メッセージに注文内容を含める
-        let doneMsg = `発注番号: ${orderId}\n納品希望日: ${data.deliveryDate}\n\n【キャンセルした注文内容】\n`;
-        if (record && record.items) {
-          record.items.forEach(item => { doneMsg += `・${item.name} × ${item.quantity}個\n`; });
-        }
-        doneMsg += `\nキャンセルが完了しました。\nLINEグループに通知しました。`;
-
         spinner.classList.add('hidden');
         historyData = [];
-
-        // OKボタンを通常スタイルに戻してから showModal
-        const okBtn = document.getElementById('modal-ok-btn');
-        okBtn.innerText = "OK";
-        okBtn.className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm";
-
-        showModal("キャンセル完了 ✅", doneMsg, "success");
+        const okBtn2 = document.getElementById('modal-ok-btn');
+        showModal("キャンセル完了", `発注番号: ${orderId}\n\nキャンセルが完了しました。\nLINEグループに通知しました。`, "success");
         _resetOkBtn(() => { closeModal(); loadHistory(); });
 
       } catch (error) {
@@ -999,11 +809,12 @@
           const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
           if (data.status !== "success") throw new Error(data.message || "サーバーエラーが発生しました。");
 
-          // ── LINEへの確認 Flex メッセージ送信（LIFF内のみ動作）──
-          const DAYS_JP   = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-          const dow       = new Date(deliveryDate + "T00:00:00").getDay();
-          const orderUrl  = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
+          // LINE送信（isInClientに関わらず試みる）
+          const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+          const dow     = new Date(deliveryDate + "T00:00:00").getDay();
 
+          // 注文内容をFlexのcontentsに変換
+          const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
           const itemContents = items.map(item => ({
             type: "box",
             layout: "baseline",
@@ -1031,7 +842,9 @@
             altText: `【ご注文ありがとうございます】${data.shopName}様 / ${deliveryDate}${DAYS_JP[dow]}`,
             contents: {
               type: "bubble",
-              styles: { header: { backgroundColor: "#92400e" } },
+              styles: {
+                header: { backgroundColor: "#92400e" }
+              },
               header: {
                 type: "box",
                 layout: "vertical",
@@ -1047,7 +860,7 @@
                   {
                     type: "box", layout: "baseline",
                     contents: [
-                      { type: "text", text: "店舗名",    size: "xs", color: "#888888", flex: 2 },
+                      { type: "text", text: "店舗名", size: "xs", color: "#888888", flex: 2 },
                       { type: "text", text: `${data.shopName}様`, size: "sm", color: "#333333", flex: 5, weight: "bold", wrap: true }
                     ]
                   },
@@ -1094,27 +907,18 @@
             }
           };
 
-          // liff.sendMessages() は LIFF ブラウザ内でのみ動作する
-          let lineSendSuccess = false;
-          if (liff.isInClient()) {
-            try {
-              await liff.sendMessages([confirmFlex]);
-              lineSendSuccess = true;
-            } catch (le) {
-              console.warn("LINE Flex メッセージ送信失敗:", le);
-            }
+          try {
+            await liff.sendMessages([confirmFlex]);
+            console.log("LINE送信成功");
+          } catch (le) {
+            console.warn("LINE送信失敗:", le);
           }
 
+          // 履歴キャッシュをリセット
           historyData = [];
+
           spinner.classList.add('hidden');
-
-          const lineStatusMsg = lineSendSuccess
-            ? "LINEに注文明細を送信しました。"
-            : "発注は完了しましたが、LINEへの明細送信に失敗しました。";
-
-          showModal("発注完了 ✅",
-            `発注番号: ${data.orderId}\n店舗名: ${data.shopName}様\n\nご注文を受け付けました！\n${lineStatusMsg}`,
-            "success");
+          showModal("発注完了 ✅", `発注番号: ${data.orderId}\n店舗名: ${data.shopName}様\n\nご注文を受け付けました！\nLINEグループに明細を投稿しました。`, "success");
           _resetOkBtn(() => { closeModal(); location.reload(); });
           return;
 
