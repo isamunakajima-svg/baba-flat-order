@@ -97,7 +97,7 @@
           </div>
         </div>
 
-        <!-- 選択結果表示（hidden input で値保持） -->
+        <!-- 選択結果表示 -->
         <input type="hidden" id="delivery-date" value="">
         <div id="selected-date-display" class="text-base font-black text-amber-800 pl-1 min-h-[1.5rem]"></div>
 
@@ -123,7 +123,11 @@
         <h2 class="font-bold text-amber-900 flex items-center gap-2 text-base">
           <i class="fa-solid fa-list"></i> 商品リスト
         </h2>
-        <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-bold">単価 (税込)</span>
+        <div class="text-right">
+          <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-bold">単価 (税込)</span>
+          <!-- ★追加: 単価基準日の表示 -->
+          <p id="price-date-label" class="text-[10px] text-slate-400 mt-0.5"></p>
+        </div>
       </div>
       <div id="product-list" class="space-y-3">
         <div class="text-center py-8 text-slate-400 text-sm">
@@ -141,7 +145,6 @@
       履歴を読み込んでいます...
     </div>
     <div id="history-calendar" class="hidden">
-      <!-- 月ナビゲーション -->
       <div class="flex items-center justify-between mb-3">
         <button onclick="changeMonth(-1)" class="w-9 h-9 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center hover:bg-amber-200">
           <i class="fa-solid fa-chevron-left text-sm"></i>
@@ -151,7 +154,6 @@
           <i class="fa-solid fa-chevron-right text-sm"></i>
         </button>
       </div>
-      <!-- 曜日ヘッダー -->
       <div class="grid grid-cols-7 mb-1">
         <div class="text-center text-[10px] font-bold text-red-400 py-1">日</div>
         <div class="text-center text-[10px] font-bold text-slate-400 py-1">月</div>
@@ -161,9 +163,7 @@
         <div class="text-center text-[10px] font-bold text-slate-400 py-1">金</div>
         <div class="text-center text-[10px] font-bold text-blue-400 py-1">土</div>
       </div>
-      <!-- カレンダーグリッド -->
       <div id="cal-grid" class="grid grid-cols-7 gap-1 bg-white rounded-2xl p-3 shadow-sm border border-amber-100"></div>
-      <!-- 凡例 -->
       <div class="flex items-center gap-2 mt-2 px-1">
         <div class="w-4 h-4 rounded bg-amber-100 border-2 border-amber-600"></div>
         <span class="text-[10px] text-slate-400">注文あり（タップで詳細）</span>
@@ -175,7 +175,7 @@
     </div>
   </div>
 
-  <!-- フッター（発注タブのみ表示） -->
+  <!-- フッター -->
   <footer id="order-footer" class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-4 py-3 z-40">
     <div class="max-w-lg mx-auto flex items-center justify-between gap-4">
       <div>
@@ -226,16 +226,16 @@
     const LIFF_ID         = "2010516972-5xgmSHys";
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw6NHW70u2A6pXhwfZujIJNQw37iu4YRYMsyldSfRaHs0jHsCd4h1e5w-KzI6TKPQWFVA/exec";
 
-    let userProfile = { userId: "test_local_user", displayName: "テストユーザー" };
-    let shopCode    = "";
-    let shopName    = "";
-    let products    = [];
-    let cart        = {};
-    let historyData = [];
-    let blockedDates  = []; // 納品不可日リスト（YYYY-MM-DD）
-    let isAdmin     = false; // 管理者フラグ
-    let calYear     = new Date().getFullYear();
-    let calMonth    = new Date().getMonth(); // 0-indexed
+    let userProfile  = { userId: "test_local_user", displayName: "テストユーザー" };
+    let shopCode     = "";
+    let shopName     = "";
+    let products     = [];
+    let cart         = {};
+    let historyData  = [];
+    let blockedDates = [];
+    let isAdmin      = false;
+    let calYear      = new Date().getFullYear();
+    let calMonth     = new Date().getMonth();
 
     // ============================================================
     //  タブ切り替え
@@ -250,7 +250,6 @@
         btn.classList.toggle("border-transparent", t !== tab);
       });
       document.getElementById("order-footer").style.display = tab === "order" ? "" : "none";
-
       if (tab === "history") {
         historyData = [];
         loadHistory();
@@ -265,29 +264,23 @@
       initLiff();
     };
 
-    // 日付をYYYY-MM-DD形式の文字列に変換
     function _toDateStr(d) {
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
     }
 
-    // 発注カレンダー用の状態
     let orderCalYear  = new Date().getFullYear();
     let orderCalMonth = new Date().getMonth();
-    let orderCalMin   = ""; // 選択可能な最小日付
+    let orderCalMin   = "";
 
     function setupDeliveryDate() {
       const currentHour = new Date().getHours();
-
       let minOffset;
       if (isAdmin) {
-        // 管理者：翌日17時まで翌日納品可能、それ以降は翌々日
         minOffset = currentHour >= 17 ? 2 : 1;
       } else {
-        // 通常：18時以降は4日後、それ以前は3日後
         minOffset = currentHour >= 18 ? 4 : 3;
       }
 
-      // 最低納品日を計算（納品不可日はスキップ）
       let minDate = new Date();
       minDate.setHours(0, 0, 0, 0);
       minDate.setDate(minDate.getDate() + minOffset);
@@ -299,17 +292,22 @@
       orderCalYear  = minDate.getFullYear();
       orderCalMonth = minDate.getMonth();
 
-      // デフォルト選択
-      _setOrderCalDate(orderCalMin);
+      _setOrderCalDate(orderCalMin, false); // 初期設定時は商品再読み込みしない
       renderOrderCalendar();
     }
 
-    function _setOrderCalDate(dateStr) {
+    // ★修正: reloadProducts引数を追加（日付選択時のみtrue）
+    function _setOrderCalDate(dateStr, reloadProducts = true) {
       document.getElementById('delivery-date').value = dateStr;
       const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
       const d = new Date(dateStr + "T00:00:00");
       document.getElementById('selected-date-display').innerText =
         `✅ ${dateStr} ${DAYS_JP[d.getDay()]}`;
+
+      // ★追加: 納品日が変わったら単価を再取得（初期ロード時を除く）
+      if (reloadProducts && shopCode) {
+        loadProducts();
+      }
     }
 
     function renderOrderCalendar() {
@@ -325,7 +323,6 @@
       const today    = new Date();
       const todayStr = _toDateStr(today);
 
-      // 前月の空白
       for (let i = 0; i < firstDay; i++) {
         const blank = document.createElement('div');
         blank.className = "rounded-lg py-2 text-center text-xs text-slate-200";
@@ -333,15 +330,14 @@
       }
 
       for (let d = 1; d <= lastDate; d++) {
-        const dateStr   = `${orderCalYear}-${String(orderCalMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-        const isBlocked = blockedDates.includes(dateStr) || dateStr < orderCalMin;
+        const dateStr    = `${orderCalYear}-${String(orderCalMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const isBlocked  = blockedDates.includes(dateStr) || dateStr < orderCalMin;
         const isSelected = dateStr === selected;
-        const isToday   = dateStr === todayStr;
-        const dow       = new Date(orderCalYear, orderCalMonth, d).getDay();
+        const isToday    = dateStr === todayStr;
+        const dow        = new Date(orderCalYear, orderCalMonth, d).getDay();
 
         const cell = document.createElement('div');
 
-        // 本日から14日以内かチェック（管理者は除外、休業日判定より先に行う）
         const maxDate = new Date();
         maxDate.setHours(0, 0, 0, 0);
         maxDate.setDate(maxDate.getDate() + 14);
@@ -349,7 +345,6 @@
         const isBeyondMax = !isAdmin && dateStr > maxDateStr;
 
         if (isBeyondMax) {
-          // 15日以降：休業日かどうかに関わらずポップアップ
           const textColor   = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-400";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
           const isHoliday   = blockedDates.includes(dateStr);
@@ -359,21 +354,18 @@
             showModal("注文期間外", "15日以降はご注文できません。", "error");
           });
         } else if (isBlocked) {
-          // 納品不可・過去日: グレーアウト・選択不可
           cell.className = "rounded-lg py-2 text-center text-xs text-slate-300 bg-slate-100 cursor-not-allowed select-none";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else if (isSelected) {
-          // 選択中: アンバー塗り
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else {
-          // 選択可能
           const textColor   = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
           cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
           cell.innerHTML = `<span class="block">${d}</span>`;
           cell.addEventListener('click', () => {
-            _setOrderCalDate(dateStr);
+            _setOrderCalDate(dateStr, true); // ★日付選択時は再読み込みあり
             renderOrderCalendar();
           });
         }
@@ -448,10 +440,25 @@
 
     // ============================================================
     //  商品リスト取得
+    //  ★修正: deliveryDateをGASに渡して納品日基準の単価を取得
     // ============================================================
     async function loadProducts() {
+      // 読み込み中表示
+      document.getElementById('product-list').innerHTML = `
+        <div class="text-center py-8 text-slate-400 text-sm">
+          <div class="animate-spin rounded-full h-8 w-8 border-2 border-amber-500 border-t-transparent mx-auto mb-2"></div>
+          商品情報を読み込んでいます...
+        </div>`;
+      document.getElementById('price-date-label').innerText = "";
+
       try {
-        const url  = `${GAS_WEB_APP_URL}?action=getProducts&shopCode=${encodeURIComponent(shopCode)}&userId=${encodeURIComponent(userProfile.userId)}`;
+        // ★修正: deliveryDateを追加してGASに渡す
+        const deliveryDate = document.getElementById('delivery-date').value;
+        const url = `${GAS_WEB_APP_URL}?action=getProducts`
+          + `&shopCode=${encodeURIComponent(shopCode)}`
+          + `&userId=${encodeURIComponent(userProfile.userId)}`
+          + `&deliveryDate=${encodeURIComponent(deliveryDate)}`;
+
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") throw new Error(data.message || "商品データの取得に失敗しました。");
 
@@ -460,9 +467,21 @@
         isAdmin      = data.isAdmin || false;
         document.getElementById('shop-name').innerText = shopName + (isAdmin ? " ★" : "");
 
-        // 店舗確定後、納品不可日を反映して日付フィールドを再セット
-        setupDeliveryDate();
+        // 店舗確定後、初回のみ納品不可日を反映して日付を再セット
+        if (!orderCalMin) {
+          setupDeliveryDate();
+        }
 
+        // ★追加: 単価の基準日を表示
+        if (deliveryDate) {
+          const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+          const d = new Date(deliveryDate + "T00:00:00");
+          document.getElementById('price-date-label').innerText =
+            `※ ${deliveryDate}${DAYS_JP[d.getDay()]} 納品時点の単価`;
+        }
+
+        // カートを保持しつつ商品リストを更新
+        const prevCart = { ...cart };
         products = data.products.map((p, i) => {
           let emoji = "🍞";
           if (p.name.includes("クロワッサン"))    { emoji = "🥐"; }
@@ -471,7 +490,10 @@
           const desc = p.desc || "卸専用商品";
           return { id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax), emoji, desc };
         });
+        cart = prevCart; // カートの数量を引き継ぐ
         renderProducts();
+        calculateTotal();
+
       } catch (error) {
         document.getElementById('product-list').innerHTML = `
           <div class="text-center py-8 text-red-400 text-sm space-y-2">
@@ -520,11 +542,9 @@
     function renderCalendar() {
       document.getElementById('cal-title').innerText = `${calYear}年 ${calMonth + 1}月`;
 
-      // 日付ごとに有効な注文があるか確認（キャンセル済みは除く）
       const activeDates    = new Set(historyData.filter(h => h.status !== "キャンセル").map(h => h.deliveryDate));
       const cancelledDates = new Set(historyData.filter(h => h.status === "キャンセル").map(h => h.deliveryDate));
-      // 有効注文がある日だけ🍞表示
-      const orderDates = activeDates;
+      const orderDates     = activeDates;
 
       const grid     = document.getElementById('cal-grid');
       grid.innerHTML = "";
@@ -541,11 +561,11 @@
       }
 
       for (let d = 1; d <= lastDate; d++) {
-        const dateStr    = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-        const hasActive  = orderDates.has(dateStr);
-        const hasAny     = hasActive || cancelledDates.has(dateStr);
-        const isToday    = dateStr === todayStr;
-        const dow        = new Date(calYear, calMonth, d).getDay();
+        const dateStr   = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const hasActive = orderDates.has(dateStr);
+        const hasAny    = hasActive || cancelledDates.has(dateStr);
+        const isToday   = dateStr === todayStr;
+        const dow       = new Date(calYear, calMonth, d).getDay();
 
         const cell = document.createElement('div');
         cell.className = [
@@ -581,7 +601,6 @@
       const d        = new Date(dateStr + "T00:00:00");
       const dayLabel = DAYS_JP[d.getDay()];
 
-      // この日付の全注文を取得
       const records = historyData.filter(h => h.deliveryDate === dateStr);
       if (records.length === 0) return;
 
@@ -632,7 +651,6 @@
           bodyHtml += `<div class="mt-1 text-xs text-slate-400"><i class="fa-solid fa-note-sticky mr-1"></i>${record.notes}</div>`;
         }
 
-        // 当日注文かつキャンセル未済みの場合のみキャンセルボタンを表示
         if (record.orderDateStr === todayStr && !isCancelled) {
           bodyHtml += `
             <div class="mt-3 pt-2 border-t border-slate-100">
@@ -695,7 +713,6 @@
 
         spinner.classList.add('hidden');
         historyData = [];
-        const okBtn2 = document.getElementById('modal-ok-btn');
         showModal("キャンセル完了", `発注番号: ${orderId}\n\nキャンセルが完了しました。\nLINEグループに通知しました。`, "success");
         _resetOkBtn(() => { closeModal(); loadHistory(); });
 
@@ -823,7 +840,6 @@
       });
       if (orderItems.length === 0) { showModal("入力エラー", "商品が選択されていません。", "error"); return; }
 
-      // 税抜5000円未満の場合は配送料確認を表示
       if (totalExTax < 5000) {
         _showDeliveryFeeConfirm(deliveryDate, notes, orderItems, totalExTax);
         return;
@@ -832,18 +848,13 @@
       _showOrderConfirm(deliveryDate, notes, orderItems, totalExTax);
     }
 
-    // 配送料確認モーダル
     function _showDeliveryFeeConfirm(deliveryDate, notes, orderItems, totalExTax) {
-      const tax        = Math.floor(totalExTax * 0.08);
-      const totalInTax = totalExTax + tax;
-
       document.getElementById('modal-icon').className  = "text-4xl text-amber-500";
       document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-truck"></i>';
       document.getElementById('modal-title').innerText = "配送料のご確認";
       document.getElementById('modal-message').innerText =
         `現在のご注文合計が税抜¥${totalExTax.toLocaleString()}のため\n配送料 ¥2,000（税抜）が発生します。\n\nどうされますか？`;
 
-      // キャンセルボタン→「注文しなおす」
       const cancelBtn = document.getElementById('modal-cancel-btn');
       cancelBtn.classList.remove('hidden');
       cancelBtn.innerText = "注文しなおす";
@@ -851,13 +862,11 @@
       cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
       newCancelBtn.addEventListener('click', () => closeModal());
 
-      // OKボタン→「はい（配送料5000円）」
       const okBtn = document.getElementById('modal-ok-btn');
       okBtn.innerText = "はい（配送料2000円）";
       okBtn.className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm";
       _resetOkBtn(() => {
         closeModal();
-        // 配送料を追加
         const deliveryFee = 2000;
         orderItems.push({
           productId:   "delivery",
@@ -872,7 +881,6 @@
       document.getElementById('custom-modal').classList.remove('hidden');
     }
 
-    // 通常の発注確認モーダル
     function _showOrderConfirm(deliveryDate, notes, orderItems, totalExTax) {
       const tax        = Math.floor(totalExTax * 0.08);
       const totalInTax = totalExTax + tax;
@@ -922,11 +930,9 @@
           const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
           if (data.status !== "success") throw new Error(data.message || "サーバーエラーが発生しました。");
 
-          // LINE送信（isInClientに関わらず試みる）
           const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
           const dow     = new Date(deliveryDate + "T00:00:00").getDay();
 
-          // 注文内容をFlexのcontentsに変換
           const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
           const itemContents = items.map(item => ({
             type: "box",
@@ -955,9 +961,7 @@
             altText: `【ご注文ありがとうございます】${data.shopName}様 / ${deliveryDate}${DAYS_JP[dow]}`,
             contents: {
               type: "bubble",
-              styles: {
-                header: { backgroundColor: "#92400e" }
-              },
+              styles: { header: { backgroundColor: "#92400e" } },
               header: {
                 type: "box",
                 layout: "vertical",
@@ -1027,9 +1031,7 @@
             console.warn("LINE送信失敗:", le);
           }
 
-          // 履歴キャッシュをリセット
           historyData = [];
-
           spinner.classList.add('hidden');
           showModal("発注完了 ✅", `発注番号: ${data.orderId}\n店舗名: ${data.shopName}様\n\nご注文を受け付けました！\nLINEグループに明細を投稿しました。`, "success");
           _resetOkBtn(() => { closeModal(); location.reload(); });
