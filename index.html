@@ -451,8 +451,10 @@
     // ============================================================
     async function loadProducts() {
       try {
-        const url  = `${GAS_WEB_APP_URL}?action=getProducts&shopCode=${encodeURIComponent(shopCode)}&userId=${encodeURIComponent(userProfile.userId)}`;
+        const url  = `${GAS_WEB_APP_URL}?action=getProducts&shopCode=${encodeURIComponent(shopCode)}&userId=${encodeURIComponent(userProfile.userId)}&_t=${Date.now()}`;
+        console.log("送信userId:", userProfile.userId);
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
+        console.log("受信isAdmin:", data.isAdmin, "userId確認:", userProfile.userId);
         if (data.status !== "success") throw new Error(data.message || "商品データの取得に失敗しました。");
 
         shopName     = data.shopName || shopCode;
