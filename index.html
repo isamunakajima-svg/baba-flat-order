@@ -233,6 +233,7 @@
     let cart        = {};
     let historyData = [];
     let blockedDates  = []; // 納品不可日リスト（YYYY-MM-DD）
+    let isAdmin     = false; // 管理者フラグ
     let calYear     = new Date().getFullYear();
     let calMonth    = new Date().getMonth(); // 0-indexed
 
@@ -276,7 +277,15 @@
 
     function setupDeliveryDate() {
       const currentHour = new Date().getHours();
-      const minOffset   = currentHour >= 18 ? 4 : 3;
+
+      let minOffset;
+      if (isAdmin) {
+        // 管理者：翌日17時まで翌日納品可能、それ以降は翌々日
+        minOffset = currentHour >= 17 ? 2 : 1;
+      } else {
+        // 通常：18時以降は4日後、それ以前は3日後
+        minOffset = currentHour >= 18 ? 4 : 3;
+      }
 
       // 最低納品日を計算（納品不可日はスキップ）
       let minDate = new Date();
@@ -332,12 +341,12 @@
 
         const cell = document.createElement('div');
 
-        // 本日から14日以内かチェック（休業日判定より先に行う）
+        // 本日から14日以内かチェック（管理者は除外、休業日判定より先に行う）
         const maxDate = new Date();
         maxDate.setHours(0, 0, 0, 0);
         maxDate.setDate(maxDate.getDate() + 14);
         const maxDateStr  = _toDateStr(maxDate);
-        const isBeyondMax = dateStr > maxDateStr;
+        const isBeyondMax = !isAdmin && dateStr > maxDateStr;
 
         if (isBeyondMax) {
           // 15日以降：休業日かどうかに関わらずポップアップ
@@ -448,6 +457,7 @@
 
         shopName     = data.shopName || shopCode;
         blockedDates = data.blockedDates || [];
+        isAdmin      = data.isAdmin || false;
         document.getElementById('shop-name').innerText = shopName;
 
         // 店舗確定後、納品不可日を反映して日付フィールドを再セット
