@@ -332,7 +332,24 @@
 
         const cell = document.createElement('div');
 
-        if (isBlocked) {
+        // 本日から14日以内かチェック（休業日判定より先に行う）
+        const maxDate = new Date();
+        maxDate.setHours(0, 0, 0, 0);
+        maxDate.setDate(maxDate.getDate() + 14);
+        const maxDateStr  = _toDateStr(maxDate);
+        const isBeyondMax = dateStr > maxDateStr;
+
+        if (isBeyondMax) {
+          // 15日以降：休業日かどうかに関わらずポップアップ
+          const textColor   = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-400";
+          const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
+          const isHoliday   = blockedDates.includes(dateStr);
+          cell.className = `rounded-lg py-2 text-center text-xs font-semibold cursor-pointer hover:bg-red-50 transition-all ${textColor} ${todayBorder} opacity-50 ${isHoliday ? "bg-slate-100" : "bg-white"}`;
+          cell.innerHTML = `<span class="block">${d}</span>`;
+          cell.addEventListener('click', () => {
+            showModal("注文期間外", "15日以降はご注文できません。", "error");
+          });
+        } else if (isBlocked) {
           // 納品不可・過去日: グレーアウト・選択不可
           cell.className = "rounded-lg py-2 text-center text-xs text-slate-300 bg-slate-100 cursor-not-allowed select-none";
           cell.innerHTML = `<span class="block">${d}</span>`;
@@ -341,32 +358,15 @@
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else {
-          // 本日から14日以内かチェック
-          const maxDate = new Date();
-          maxDate.setHours(0, 0, 0, 0);
-          maxDate.setDate(maxDate.getDate() + 14);
-          const maxDateStr = _toDateStr(maxDate);
-          const isBeyondMax = dateStr > maxDateStr;
-
+          // 選択可能
           const textColor   = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
-
-          if (isBeyondMax) {
-            // 15日以降：表示はするがタップでポップアップ
-            cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-red-50 transition-all ${textColor} ${todayBorder} opacity-50`;
-            cell.innerHTML = `<span class="block">${d}</span>`;
-            cell.addEventListener('click', () => {
-              showModal("注文期間外", "15日以降はご注文できません。", "error");
-            });
-          } else {
-            // 選択可能
-            cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
-            cell.innerHTML = `<span class="block">${d}</span>`;
-            cell.addEventListener('click', () => {
-              _setOrderCalDate(dateStr);
-              renderOrderCalendar();
-            });
-          }
+          cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
+          cell.innerHTML = `<span class="block">${d}</span>`;
+          cell.addEventListener('click', () => {
+            _setOrderCalDate(dateStr);
+            renderOrderCalendar();
+          });
         }
 
         grid.appendChild(cell);
