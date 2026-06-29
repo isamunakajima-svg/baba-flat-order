@@ -458,7 +458,8 @@
         shopName     = data.shopName || shopCode;
         blockedDates = data.blockedDates || [];
         isAdmin      = data.isAdmin || false;
-        document.getElementById('shop-name').innerText = shopName;
+        document.getElementById('shop-name').innerText = shopName + (isAdmin ? "★" : "");
+        console.log("isAdmin:", isAdmin, "userId:", userProfile.userId);
 
         // 店舗確定後、納品不可日を反映して日付フィールドを再セット
         setupDeliveryDate();
