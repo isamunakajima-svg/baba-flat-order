@@ -793,12 +793,67 @@
       });
       if (orderItems.length === 0) { showModal("入力エラー", "商品が選択されていません。", "error"); return; }
 
+      // 税抜5000円未満の場合は配送料確認を表示
+      if (totalExTax < 5000) {
+        _showDeliveryFeeConfirm(deliveryDate, notes, orderItems, totalExTax);
+        return;
+      }
+
+      _showOrderConfirm(deliveryDate, notes, orderItems, totalExTax);
+    }
+
+    // 配送料確認モーダル
+    function _showDeliveryFeeConfirm(deliveryDate, notes, orderItems, totalExTax) {
+      const tax        = Math.floor(totalExTax * 0.08);
+      const totalInTax = totalExTax + tax;
+
+      document.getElementById('modal-icon').className  = "text-4xl text-amber-500";
+      document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-truck"></i>';
+      document.getElementById('modal-title').innerText = "配送料のご確認";
+      document.getElementById('modal-message').innerText =
+        `現在のご注文合計が税抜¥${totalExTax.toLocaleString()}のため\n配送料 ¥2,000（税抜）が発生します。\n\nどうされますか？`;
+
+      // キャンセルボタン→「注文しなおす」
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+      cancelBtn.classList.remove('hidden');
+      cancelBtn.innerText = "注文しなおす";
+      const newCancelBtn = cancelBtn.cloneNode(true);
+      cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+      newCancelBtn.addEventListener('click', () => closeModal());
+
+      // OKボタン→「はい（配送料5000円）」
+      const okBtn = document.getElementById('modal-ok-btn');
+      okBtn.innerText = "はい（配送料2000円）";
+      okBtn.className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm";
+      _resetOkBtn(() => {
+        closeModal();
+        // 配送料を追加
+        const deliveryFee = 2000;
+        orderItems.push({
+          productId:   "delivery",
+          productName: "配送料",
+          price:       deliveryFee,
+          quantity:    1,
+          subtotal:    deliveryFee
+        });
+        _showOrderConfirm(deliveryDate, notes, orderItems, totalExTax + deliveryFee);
+      });
+      document.getElementById('modal-ok-btn').innerText = "はい（配送料2000円）";
+      document.getElementById('custom-modal').classList.remove('hidden');
+    }
+
+    // 通常の発注確認モーダル
+    function _showOrderConfirm(deliveryDate, notes, orderItems, totalExTax) {
       const tax        = Math.floor(totalExTax * 0.08);
       const totalInTax = totalExTax + tax;
 
       let confirmMessage = `店舗名: ${shopName}\n納品希望日: ${deliveryDate}\n\n【ご注文内容】\n`;
       orderItems.forEach(item => {
-        confirmMessage += `・${item.productName} × ${item.quantity}個 (税込¥${Math.floor(item.price * 1.08).toLocaleString()} / 個)\n`;
+        if (item.productId === "delivery") {
+          confirmMessage += `・${item.productName} ¥${item.price.toLocaleString()}（税抜）\n`;
+        } else {
+          confirmMessage += `・${item.productName} × ${item.quantity}個 (税込¥${Math.floor(item.price * 1.08).toLocaleString()} / 個)\n`;
+        }
       });
       confirmMessage += `\n税抜合計: ¥${totalExTax.toLocaleString()}\n消費税(8%): ¥${tax.toLocaleString()}\n税込合計: ¥${totalInTax.toLocaleString()}\n\nこの内容で発注してよろしいですか？`;
 
@@ -807,6 +862,8 @@
       document.getElementById('modal-title').innerText = "発注確認";
       document.getElementById('modal-message').innerText = confirmMessage;
       document.getElementById('modal-cancel-btn').classList.remove('hidden');
+      document.getElementById('modal-cancel-btn').innerText = "閉じる";
+      document.getElementById('modal-ok-btn').innerText = "OK";
       _resetOkBtn(() => { closeModal(); sendDataToGas(deliveryDate, notes, orderItems, totalInTax); });
       document.getElementById('custom-modal').classList.remove('hidden');
     }
