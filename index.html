@@ -91,11 +91,11 @@
               <span class="text-[10px] text-slate-400">選択中</span>
             </div>
             <div class="flex items-center gap-1">
-              <div class="w-4 h-4 rounded bg-slate-200"></div>
+              <div class="w-4 h-4 rounded bg-slate-100"></div>
               <span class="text-[10px] text-slate-400">納品不可</span>
             </div>
             <div class="flex items-center gap-1">
-              <div class="w-4 h-4 rounded bg-slate-300"></div>
+              <div class="w-4 h-4 rounded bg-slate-200"></div>
               <span class="text-[10px] text-slate-400">要確認（担当者へご相談ください）</span>
             </div>
           </div>
@@ -399,10 +399,10 @@
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else if (isWarn) {
-          // ★追加: 背景はグレーだが、数字は通常色（実線）。クリックすると確認ポップアップ
-          const textColor   = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
+          // ★調整: 背景をより薄く（slate-200）、数字も少し薄めの色に（発注不可日より目立たないように）
+          const textColor   = dow === 0 ? "text-red-300" : dow === 6 ? "text-blue-300" : "text-slate-500";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
-          cell.className = `rounded-lg py-2 text-center text-xs bg-slate-300 font-semibold cursor-pointer hover:bg-slate-400 active:bg-slate-400 transition-all ${textColor} ${todayBorder}`;
+          cell.className = `rounded-lg py-2 text-center text-xs bg-slate-200 font-semibold cursor-pointer hover:bg-slate-300 active:bg-slate-300 transition-all ${textColor} ${todayBorder}`;
           cell.innerHTML = `<span class="block">${d}</span>`;
           cell.addEventListener('click', () => {
             _confirmWeekdayWarnDate(dateStr);
@@ -799,15 +799,15 @@
             </div>
             <div class="flex flex-col items-center gap-1 shrink-0">
               <div class="flex items-center gap-1">
-                <button onclick="changeQty('${p.id}', -10)" class="h-7 px-1.5 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-[10px]">-10</button>
-                <button onclick="changeQty('${p.id}', -1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
-                  <i class="fa-solid fa-minus text-xs"></i>
+                <button onclick="changeQty('${p.id}', -10)" class="h-8 px-2 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-xs">-10</button>
+                <button onclick="changeQty('${p.id}', -1)" class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
+                  <i class="fa-solid fa-minus text-sm"></i>
                 </button>
-                <span id="qty-${p.id}" class="w-7 text-center font-bold text-sm">${qty}</span>
-                <button onclick="changeQty('${p.id}', 1)" class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-200 active:scale-95 transition-all">
-                  <i class="fa-solid fa-plus text-xs"></i>
+                <span id="qty-${p.id}" class="w-8 text-center font-bold text-base">${qty}</span>
+                <button onclick="changeQty('${p.id}', 1)" class="w-9 h-9 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-200 active:scale-95 transition-all">
+                  <i class="fa-solid fa-plus text-sm"></i>
                 </button>
-                <button onclick="changeQty('${p.id}', 10)" class="h-7 px-1.5 rounded-lg bg-amber-200 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-300 active:scale-95 transition-all text-[10px]">+10</button>
+                <button onclick="changeQty('${p.id}', 10)" class="h-8 px-2 rounded-lg bg-amber-200 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-300 active:scale-95 transition-all text-xs">+10</button>
               </div>
             </div>
           </div>`);
