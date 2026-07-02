@@ -408,9 +408,10 @@
             _confirmWeekdayWarnDate(dateStr);
           });
         } else {
-          const textColor   = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
+          // ★調整: 発注可能日を「影＋濃い太字」で少し目立たせる
+          const textColor   = dow === 0 ? "text-red-500" : dow === 6 ? "text-blue-500" : "text-slate-800";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
-          cell.className = `rounded-lg py-2 text-center text-xs bg-white font-semibold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
+          cell.className = `rounded-lg py-2 text-center text-xs bg-white shadow-sm font-bold cursor-pointer hover:bg-amber-50 hover:shadow active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
           cell.innerHTML = `<span class="block">${d}</span>`;
           cell.addEventListener('click', () => {
             _setOrderCalDate(dateStr, true); // ★日付選択時は再読み込みあり
