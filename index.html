@@ -85,7 +85,7 @@
           <!-- 日付グリッド -->
           <div id="order-cal-grid" class="grid grid-cols-7 gap-1"></div>
           <!-- 凡例 -->
-          <div class="flex items-center gap-3 mt-2 px-1">
+          <div class="flex items-center gap-3 mt-2 px-1 flex-wrap">
             <div class="flex items-center gap-1">
               <div class="w-4 h-4 rounded bg-amber-500"></div>
               <span class="text-[10px] text-slate-400">選択中</span>
@@ -93,6 +93,10 @@
             <div class="flex items-center gap-1">
               <div class="w-4 h-4 rounded bg-slate-200"></div>
               <span class="text-[10px] text-slate-400">納品不可</span>
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-4 h-4 rounded bg-slate-300"></div>
+              <span class="text-[10px] text-slate-400">要確認（担当者へご相談ください）</span>
             </div>
           </div>
         </div>
@@ -226,16 +230,17 @@
     const LIFF_ID         = "2010516972-5xgmSHys";
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw6NHW70u2A6pXhwfZujIJNQw37iu4YRYMsyldSfRaHs0jHsCd4h1e5w-KzI6TKPQWFVA/exec";
 
-    let userProfile  = { userId: "test_local_user", displayName: "テストユーザー" };
-    let shopCode     = "";
-    let shopName     = "";
-    let products     = [];
-    let cart         = {};
-    let historyData  = [];
-    let blockedDates = [];
-    let isAdmin      = false;
-    let calYear      = new Date().getFullYear();
-    let calMonth     = new Date().getMonth();
+    let userProfile     = { userId: "test_local_user", displayName: "テストユーザー" };
+    let shopCode        = "";
+    let shopName        = "";
+    let products         = [];
+    let cart             = {};
+    let historyData       = [];
+    let blockedDates     = [];
+    let weekdayWarnDates = []; // ★追加: 店舗別「通常は納品しない曜日」（要確認・選択自体は可能）
+    let isAdmin          = false;
+    let calYear          = new Date().getFullYear();
+    let calMonth         = new Date().getMonth();
 
     // ============================================================
     //  タブ切り替え
@@ -283,7 +288,9 @@
       let minDate = new Date();
       minDate.setHours(0, 0, 0, 0);
       minDate.setDate(minDate.getDate() + minOffset);
-      while (blockedDates.includes(_toDateStr(minDate))) {
+      // ★休業ルール(blockedDates)に加え、通常は納品しない曜日(weekdayWarnDates)も
+      //   初期提案日としては避ける（手動でなら選択自体は可能）
+      while (blockedDates.includes(_toDateStr(minDate)) || weekdayWarnDates.includes(_toDateStr(minDate))) {
         minDate.setDate(minDate.getDate() + 1);
       }
 
@@ -309,6 +316,38 @@
       }
     }
 
+    // ============================================================
+    //  ★追加: 「要確認」日をタップした際の確認ポップアップ
+    //  通常は納品していない曜日だが、担当者確認の上で選択自体は可能
+    // ============================================================
+    function _confirmWeekdayWarnDate(dateStr) {
+      const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+      const d = new Date(dateStr + "T00:00:00");
+
+      document.getElementById('modal-icon').className  = "text-4xl text-amber-500";
+      document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-triangle-exclamation"></i>';
+      document.getElementById('modal-title').innerText = "納品日のご確認";
+      document.getElementById('modal-message').innerText =
+        `${dateStr}${DAYS_JP[d.getDay()]}は、通常この店舗様への納品を行っていない曜日です。\n\nご発注の前に、担当者へご確認ください。\n\nそれでもこの日をご希望の場合は「この日を選択する」を押してください。`;
+
+      const cancelBtn = document.getElementById('modal-cancel-btn');
+      cancelBtn.classList.remove('hidden');
+      cancelBtn.innerText = "戻る";
+      const newCancelBtn = cancelBtn.cloneNode(true);
+      cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+      newCancelBtn.addEventListener('click', () => closeModal());
+
+      document.getElementById('modal-ok-btn').innerText = "この日を選択する";
+      document.getElementById('modal-ok-btn').className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm";
+      _resetOkBtn(() => {
+        closeModal();
+        _setOrderCalDate(dateStr, true);
+        renderOrderCalendar();
+      });
+
+      document.getElementById('custom-modal').classList.remove('hidden');
+    }
+
     function renderOrderCalendar() {
       document.getElementById('order-cal-title').innerText =
         `${orderCalYear}年 ${orderCalMonth + 1}月`;
@@ -331,6 +370,7 @@
       for (let d = 1; d <= lastDate; d++) {
         const dateStr    = `${orderCalYear}-${String(orderCalMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
         const isBlocked  = blockedDates.includes(dateStr) || dateStr < orderCalMin;
+        const isWarn     = !isBlocked && weekdayWarnDates.includes(dateStr); // ★追加
         const isSelected = dateStr === selected;
         const isToday    = dateStr === todayStr;
         const dow        = new Date(orderCalYear, orderCalMonth, d).getDay();
@@ -358,6 +398,15 @@
         } else if (isSelected) {
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
           cell.innerHTML = `<span class="block">${d}</span>`;
+        } else if (isWarn) {
+          // ★追加: 背景はグレーだが、数字は通常色（実線）。クリックすると確認ポップアップ
+          const textColor   = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
+          const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
+          cell.className = `rounded-lg py-2 text-center text-xs bg-slate-300 font-semibold cursor-pointer hover:bg-slate-400 active:bg-slate-400 transition-all ${textColor} ${todayBorder}`;
+          cell.innerHTML = `<span class="block">${d}</span>`;
+          cell.addEventListener('click', () => {
+            _confirmWeekdayWarnDate(dateStr);
+          });
         } else {
           const textColor   = dow === 0 ? "text-red-400" : dow === 6 ? "text-blue-400" : "text-slate-700";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
@@ -440,6 +489,7 @@
     // ============================================================
     //  商品リスト取得
     //  ★修正: deliveryDateをGASに渡して納品日基準の単価を取得
+    //  ★修正: weekdayWarnDatesも受け取る
     // ============================================================
     async function loadProducts() {
       // 読み込み中表示
@@ -461,9 +511,10 @@
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") throw new Error(data.message || "商品データの取得に失敗しました。");
 
-        shopName     = data.shopName || shopCode;
-        blockedDates = data.blockedDates || [];
-        isAdmin      = data.isAdmin || false;
+        shopName         = data.shopName || shopCode;
+        blockedDates     = data.blockedDates || [];
+        weekdayWarnDates = data.weekdayWarnDates || []; // ★追加
+        isAdmin          = data.isAdmin || false;
         document.getElementById('shop-name').innerText = shopName + (isAdmin ? " ★" : "");
 
         // 店舗確定後、初回のみ納品不可日を反映して日付を再セット
@@ -822,6 +873,7 @@
       const deliveryDate = document.getElementById('delivery-date').value;
       const notes        = document.getElementById('notes').value;
       if (!deliveryDate) { showModal("入力エラー", "納品希望日を選択してください。", "error"); return; }
+      // ★休業ルール（ハードブロック）のみチェック。weekdayWarnDatesは確認済みのため送信可能
       if (blockedDates.includes(deliveryDate)) {
         showModal("日程エラー", "選択された日は納品できません。\n別の日をご指定ください。", "error");
         return;
