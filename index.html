@@ -753,18 +753,30 @@
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") throw new Error(data.message || "キャンセルに失敗しました。");
 
+        // ★修正: liff.sendMessages()の成否を管理し、失敗時はGAS経由で管理者へ報告、
+        //         かつユーザーへも「通知は未送信」であることを正直に伝える
+        let cancelLineSendSuccess = false;
         if (liff.isInClient()) {
           try {
             await liff.sendMessages([{
               type: "text",
               text: `【注文キャンセルのご連絡】\n店舗: ${data.shopName}様\n納品希望日: ${data.deliveryDate}\n発注番号: ${orderId}\n\n上記の注文をキャンセルしました。`
             }]);
-          } catch (le) { console.warn("LINE送信スキップ:", le); }
+            cancelLineSendSuccess = true;
+          } catch (le) {
+            console.warn("LINE送信スキップ:", le);
+            _reportLineSendFailure(shopCode, orderId, "キャンセル確認", (le && le.message) ? le.message : String(le));
+          }
         }
 
         spinner.classList.add('hidden');
         historyData = [];
-        showModal("キャンセル完了", `発注番号: ${orderId}\n\nキャンセルが完了しました。\nLINEグループに通知しました。`, "success");
+
+        if (cancelLineSendSuccess) {
+          showModal("キャンセル完了", `発注番号: ${orderId}\n\nキャンセルが完了しました。\nLINEグループに通知しました。`, "success");
+        } else {
+          showModal("キャンセル完了（グループ通知は未送信）", `発注番号: ${orderId}\n\nキャンセル自体は正常に完了しました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、担当者へキャンセルの旨をご一報ください。`, "info");
+        }
         _resetOkBtn(() => { closeModal(); loadHistory(); });
 
       } catch (error) {
@@ -959,6 +971,23 @@
     }
 
     // ============================================================
+    //  ★追加: liff.sendMessages失敗時にGAS経由で管理者へ報告する
+    //  （管理者=イサムさん個人のLINEへ、システム設定シートのNOTIFY_USER_ID宛）
+    // ============================================================
+    async function _reportLineSendFailure(shopCodeVal, orderId, context, errorMsg) {
+      try {
+        const url = `${GAS_WEB_APP_URL}?action=notifyLineFailure`
+          + `&shopCode=${encodeURIComponent(shopCodeVal || "")}`
+          + `&orderId=${encodeURIComponent(orderId || "")}`
+          + `&context=${encodeURIComponent(context || "")}`
+          + `&errorMsg=${encodeURIComponent(errorMsg || "")}`;
+        await fetch(url, { method: 'GET', redirect: 'follow' });
+      } catch (e) {
+        console.warn("LINE送信失敗の報告自体にも失敗:", e);
+      }
+    }
+
+    // ============================================================
     //  GASへのデータ送信
     // ============================================================
     async function sendDataToGas(deliveryDate, notes, items, grandTotal) {
@@ -1076,16 +1105,28 @@
             }
           };
 
-          try {
-            await liff.sendMessages([confirmFlex]);
-            console.log("LINE送信成功");
-          } catch (le) {
-            console.warn("LINE送信失敗:", le);
+          // ★修正: liff.sendMessages()の成否を管理し、失敗時はGAS経由で管理者へ報告、
+          //         かつユーザーへも「通知は未送信」であることを正直に伝える
+          let lineSendSuccess = false;
+          if (liff.isInClient()) {
+            try {
+              await liff.sendMessages([confirmFlex]);
+              console.log("LINE送信成功");
+              lineSendSuccess = true;
+            } catch (le) {
+              console.warn("LINE送信失敗:", le);
+              _reportLineSendFailure(shopCode, data.orderId, "発注確認", (le && le.message) ? le.message : String(le));
+            }
           }
 
           historyData = [];
           spinner.classList.add('hidden');
-          showModal("発注完了 ✅", `発注番号: ${data.orderId}\n店舗名: ${data.shopName}様\n\nご注文を受け付けました！\nLINEグループに明細を投稿しました。`, "success");
+
+          if (lineSendSuccess) {
+            showModal("発注完了 ✅", `発注番号: ${data.orderId}\n店舗名: ${data.shopName}様\n\nご注文を受け付けました！\nLINEグループに明細を投稿しました。`, "success");
+          } else {
+            showModal("発注完了（グループ通知は未送信）", `発注番号: ${data.orderId}\n店舗名: ${data.shopName}様\n\nご注文自体は正常に受け付けられました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、この画面をLINEグループのトーク内から開き直してご確認いただくか、担当者へ発注内容をご一報ください。`, "info");
+          }
           _resetOkBtn(() => { closeModal(); location.reload(); });
           return;
 
