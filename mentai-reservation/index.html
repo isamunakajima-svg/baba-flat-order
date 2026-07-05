@@ -155,6 +155,25 @@ let selectedShift = null;
 let quantity = 1;
 let currentShifts = [];
 
+// fetchの代わりにXMLHttpRequestを使う（GASのCORS問題を回避するため）
+function callGAS(payload) {
+  return new Promise(function (resolve, reject) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', GAS_URL, true);
+    xhr.onload = function () {
+      try {
+        resolve(JSON.parse(xhr.responseText));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    xhr.onerror = function () {
+      reject(new Error('通信エラー'));
+    };
+    xhr.send(JSON.stringify(payload));
+  });
+}
+
 async function main() {
   await liff.init({ liffId: LIFF_ID });
 
@@ -166,7 +185,6 @@ async function main() {
   const profile = await liff.getProfile();
   userId = profile.userId;
 
-  // 友だち追加チェック
   try {
     const friendship = await liff.getFriendship();
     if (!friendship.friendFlag) {
@@ -210,13 +228,13 @@ async function loadAvailability(dateStr) {
   document.getElementById('qtyCard').style.display = 'none';
   selectedShift = null;
 
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'getAvailability', date: dateStr })
-  });
-  const data = await res.json();
-  currentShifts = data.shifts || [];
-  renderShifts();
+  try {
+    const data = await callGAS({ action: 'getAvailability', date: dateStr });
+    currentShifts = data.shifts || [];
+    renderShifts();
+  } catch (e) {
+    showMessage('error', '在庫情報の取得に失敗しました');
+  }
 }
 
 function renderShifts() {
@@ -278,19 +296,15 @@ async function submitReservation() {
   btn.textContent = '送信中...';
 
   try {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        action: 'reserve',
-        userId: userId,
-        name: name,
-        phone: phone,
-        date: date,
-        shift: selectedShift.name,
-        quantity: quantity
-      })
+    const data = await callGAS({
+      action: 'reserve',
+      userId: userId,
+      name: name,
+      phone: phone,
+      date: date,
+      shift: selectedShift.name,
+      quantity: quantity
     });
-    const data = await res.json();
 
     if (data.success) {
       showMessage('success', 'ご予約が完了しました！LINEに確認メッセージが届きます。');
@@ -306,7 +320,7 @@ async function submitReservation() {
     btn.textContent = 'この内容で予約する';
   }
 }
-
+ 
 main();
 </script>
 </body>
