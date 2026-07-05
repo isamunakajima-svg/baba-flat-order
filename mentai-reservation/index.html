@@ -1,3 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>明太フランス予約</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+    background: #fafafa;
+    margin: 0;
+    padding: 16px;
+    color: #333;
+  }
+  h1 {
+    font-size: 20px;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    color: #555;
+  }
+  input[type="text"], input[type="tel"], input[type="date"], input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+  .shift-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 2px solid #eee;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+  .shift-option.selected {
+    border-color: #06C755;
+    background: #f0fff4;
+  }
+  .shift-option.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .shift-name { font-weight: bold; }
+  .shift-remain { font-size: 13px; color: #888; }
+  .qty-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+  .qty-btn {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: #06C755;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .qty-value { font-size: 22px; font-weight: bold; min-width: 30px; text-align: center; }
+  button.submit {
+    width: 100%;
+    padding: 14px;
+    background: #06C755;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button.submit:disabled { background: #ccc; }
+  .msg {
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+  .msg.error { background: #ffe5e5; color: #c0392b; }
+  .msg.success { background: #e5ffe9; color: #1e7e34; }
+  .loading { text-align: center; padding: 40px; color: #888; }
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading">読み込み中...</div>
+<div id="app" style="display:none;">
+  <h1>明太フランス予約</h1>
+  <div class="subtitle">馬場FLAT / 高円寺FLAT</div>
+
+  <div id="msgArea"></div>
+
+  <div class="card">
+    <label>受け取り日</label>
+    <input type="date" id="dateInput">
+  </div>
+
+  <div class="card" id="shiftCard" style="display:none;">
+    <label>受け取り便</label>
+    <div id="shiftList"></div>
+  </div>
+
+  <div class="card" id="qtyCard" style="display:none;">
+    <label>個数</label>
+    <div class="qty-row">
+      <button class="qty-btn" id="qtyMinus">−</button>
+      <div class="qty-value" id="qtyValue">1</div>
+      <button class="qty-btn" id="qtyPlus">＋</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>お名前</label>
+    <input type="text" id="nameInput" placeholder="山田 太郎">
+    <label>電話番号</label>
+    <input type="tel" id="phoneInput" placeholder="090-1234-5678">
+  </div>
+
+  <button class="submit" id="submitBtn">この内容で予約する</button>
+</div>
+
+<script>
 const LIFF_ID = '2010599952-MaUdLuhq';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyo3bKfGoxZYOqFnWeqAutK36b5Lv2hlhOxhIVMVKyPvDknGUyIvis1dZntfQnl6xKosA/exec';
 
@@ -6,13 +155,11 @@ let selectedShift = null;
 let quantity = 1;
 let currentShifts = [];
 
-// GETリクエストでGASを呼ぶ（CORS回避のため、POSTではなくGETを使う）
 function callGAS(params) {
   const query = Object.keys(params)
     .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
     .join('&');
   const url = GAS_URL + '?' + query;
-
   return fetch(url).then(function (res) { return res.json(); });
 }
 
@@ -106,59 +253,3 @@ function formatTime(t) {
 function selectShift(s, el) {
   selectedShift = s;
   document.querySelectorAll('.shift-option').forEach(function (o) { o.classList.remove('selected'); });
-  el.classList.add('selected');
-  quantity = 1;
-  document.getElementById('qtyValue').textContent = quantity;
-  document.getElementById('qtyCard').style.display = 'block';
-}
-
-function changeQty(delta) {
-  const max = selectedShift ? selectedShift.remaining : 99;
-  quantity = Math.min(max, Math.max(1, quantity + delta));
-  document.getElementById('qtyValue').textContent = quantity;
-}
-
-function showMessage(type, text) {
-  document.getElementById('msgArea').innerHTML = `<div class="msg ${type}">${text}</div>`;
-}
-
-async function submitReservation() {
-  const name = document.getElementById('nameInput').value.trim();
-  const phone = document.getElementById('phoneInput').value.trim();
-  const date = document.getElementById('dateInput').value;
-
-  if (!selectedShift) { showMessage('error', '受け取り便を選択してください'); return; }
-  if (!name) { showMessage('error', 'お名前を入力してください'); return; }
-  if (!phone) { showMessage('error', '電話番号を入力してください'); return; }
-
-  const btn = document.getElementById('submitBtn');
-  btn.disabled = true;
-  btn.textContent = '送信中...';
-
-  try {
-    const data = await callGAS({
-      action: 'reserve',
-      userId: userId,
-      name: name,
-      phone: phone,
-      date: date,
-      shift: selectedShift.name,
-      quantity: quantity
-    });
-
-    if (data.success) {
-      showMessage('success', 'ご予約が完了しました！LINEに確認メッセージが届きます。');
-      setTimeout(() => liff.closeWindow(), 2500);
-    } else {
-      showMessage('error', data.error || '予約に失敗しました');
-      btn.disabled = false;
-      btn.textContent = 'この内容で予約する';
-    }
-  } catch (e) {
-    showMessage('error', '通信エラーが発生しました');
-    btn.disabled = false;
-    btn.textContent = 'この内容で予約する';
-  }
-}
-
-main();
