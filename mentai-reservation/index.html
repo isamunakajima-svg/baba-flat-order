@@ -164,43 +164,65 @@ function callGAS(params) {
 }
 
 async function main() {
-  await liff.init({ liffId: LIFF_ID });
-
-  if (!liff.isLoggedIn()) {
-    liff.login();
-    return;
-  }
-
-  const profile = await liff.getProfile();
-  userId = profile.userId;
+  const debugDiv = document.createElement('div');
+  debugDiv.style.cssText = 'background:#000;color:#0f0;padding:10px;font-size:11px;white-space:pre-wrap;word-break:break-all;';
+  document.body.insertBefore(debugDiv, document.body.firstChild);
+  function log(msg) { debugDiv.textContent += msg + '\n'; }
 
   try {
-    const friendship = await liff.getFriendship();
-    if (!friendship.friendFlag) {
-      showMessage('error', 'ご予約の前に、公式アカウントの友だち追加をお願いします。');
-      document.getElementById('loading').style.display = 'none';
-      const btn = document.createElement('button');
-      btn.textContent = '友だち追加する';
-      btn.className = 'submit';
-      btn.onclick = () => liff.openWindow({ url: 'https://line.me/R/ti/p/@493rwgms', external: false });
-      document.getElementById('msgArea').appendChild(btn);
+    log('1. liff.init 開始');
+    await liff.init({ liffId: LIFF_ID });
+    log('2. liff.init 成功');
+
+    log('3. isLoggedIn: ' + liff.isLoggedIn());
+    if (!liff.isLoggedIn()) {
+      log('4. ログインしていないのでlogin()を呼びます');
+      liff.login();
       return;
     }
-  } catch (e) {}
 
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+    log('5. getProfile 開始');
+    const profile = await liff.getProfile();
+    userId = profile.userId;
+    log('6. getProfile 成功: ' + userId);
 
-  const today = new Date();
-  const dateInput = document.getElementById('dateInput');
-  dateInput.min = formatDate(today);
-  dateInput.value = formatDate(today);
-  loadAvailability(dateInput.value);
+    log('7. getFriendship 開始');
+    try {
+      const friendship = await liff.getFriendship();
+      log('8. getFriendship 成功: friendFlag=' + friendship.friendFlag);
+      if (!friendship.friendFlag) {
+        showMessage('error', 'ご予約の前に、公式アカウントの友だち追加をお願いします。');
+        document.getElementById('loading').style.display = 'none';
+        const btn = document.createElement('button');
+        btn.textContent = '友だち追加する';
+        btn.className = 'submit';
+        btn.onclick = () => liff.openWindow({ url: 'https://line.me/R/ti/p/@493rwgms', external: false });
+        document.getElementById('msgArea').appendChild(btn);
+        return;
+      }
+    } catch (fe) {
+      log('8. getFriendship エラー: ' + fe.message);
+    }
 
-  dateInput.addEventListener('change', () => loadAvailability(dateInput.value));
-  document.getElementById('qtyMinus').addEventListener('click', () => changeQty(-1));
-  document.getElementById('qtyPlus').addEventListener('click', () => changeQty(1));
-  document.getElementById('submitBtn').addEventListener('click', submitReservation);
+    log('9. 画面表示処理へ');
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+    const today = new Date();
+    const dateInput = document.getElementById('dateInput');
+    dateInput.min = formatDate(today);
+    dateInput.value = formatDate(today);
+    log('10. loadAvailability 開始');
+    loadAvailability(dateInput.value);
+
+    dateInput.addEventListener('change', () => loadAvailability(dateInput.value));
+    document.getElementById('qtyMinus').addEventListener('click', () => changeQty(-1));
+    document.getElementById('qtyPlus').addEventListener('click', () => changeQty(1));
+    document.getElementById('submitBtn').addEventListener('click', submitReservation);
+    log('11. 完了');
+  } catch (e) {
+    log('!!! main()内でエラー: ' + e.message);
+  }
 }
 
 function formatDate(d) {
@@ -253,3 +275,62 @@ function formatTime(t) {
 function selectShift(s, el) {
   selectedShift = s;
   document.querySelectorAll('.shift-option').forEach(function (o) { o.classList.remove('selected'); });
+  el.classList.add('selected');
+  quantity = 1;
+  document.getElementById('qtyValue').textContent = quantity;
+  document.getElementById('qtyCard').style.display = 'block';
+}
+
+function changeQty(delta) {
+  const max = selectedShift ? selectedShift.remaining : 99;
+  quantity = Math.min(max, Math.max(1, quantity + delta));
+  document.getElementById('qtyValue').textContent = quantity;
+}
+
+function showMessage(type, text) {
+  document.getElementById('msgArea').innerHTML = `<div class="msg ${type}">${text}</div>`;
+}
+
+async function submitReservation() {
+  const name = document.getElementById('nameInput').value.trim();
+  const phone = document.getElementById('phoneInput').value.trim();
+  const date = document.getElementById('dateInput').value;
+
+  if (!selectedShift) { showMessage('error', '受け取り便を選択してください'); return; }
+  if (!name) { showMessage('error', 'お名前を入力してください'); return; }
+  if (!phone) { showMessage('error', '電話番号を入力してください'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  try {
+    const data = await callGAS({
+      action: 'reserve',
+      userId: userId,
+      name: name,
+      phone: phone,
+      date: date,
+      shift: selectedShift.name,
+      quantity: quantity
+    });
+
+    if (data.success) {
+      showMessage('success', 'ご予約が完了しました！LINEに確認メッセージが届きます。');
+      setTimeout(() => liff.closeWindow(), 2500);
+    } else {
+      showMessage('error', data.error || '予約に失敗しました');
+      btn.disabled = false;
+      btn.textContent = 'この内容で予約する';
+    }
+  } catch (e) {
+    showMessage('error', '通信エラーが発生しました');
+    btn.disabled = false;
+    btn.textContent = 'この内容で予約する';
+  }
+}
+
+main();
+</script>
+</body>
+</html>
