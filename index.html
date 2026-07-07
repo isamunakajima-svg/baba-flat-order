@@ -29,7 +29,7 @@
         <img id="user-avatar" class="w-8 h-8 rounded-full border border-amber-500"
           src="https://placehold.co/100x100/d97706/ffffff?text=Bakery" alt="Avatar">
         <div class="text-right">
-          <p id="shop-name" class="text-xs font-black text-amber-200 max-w-[120px] truncate"></p>
+          <p id="shop-name" class="text-sm font-black text-amber-200 max-w-[180px] text-right leading-tight"></p>
           <p id="user-name" class="text-[10px] text-amber-300 max-w-[120px] truncate">読込中...</p>
         </div>
       </div>
@@ -575,7 +575,7 @@
         blockedDates     = data.blockedDates || [];
         weekdayWarnDates = data.weekdayWarnDates || [];
         isAdmin          = data.isAdmin || false;
-        document.getElementById('shop-name').innerText = shopName + (isAdmin ? " ★" : "");
+        document.getElementById('shop-name').innerText = shopName + "様" + (isAdmin ? " ★" : "");
 
         // 店舗確定後、初回のみ納品不可日を反映して日付を再セット
         if (!orderCalMin) {
