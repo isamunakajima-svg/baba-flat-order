@@ -55,7 +55,7 @@
       </h2>
       <div class="space-y-2">
         <label class="block text-xs font-bold text-slate-500">
-          納品希望日 <span class="text-red-500">※必須</span>
+          納品希望日（複数選択可・最大7日） <span class="text-red-500">※必須</span>
         </label>
 
         <!-- カスタムカレンダー -->
@@ -101,18 +101,17 @@
           </div>
         </div>
 
-        <!-- 選択結果表示 -->
-        <input type="hidden" id="delivery-date" value="">
-        <div id="selected-date-display" class="text-base font-black text-amber-800 pl-1 min-h-[1.5rem]"></div>
+        <!-- ★変更: 選択結果を「複数チップ」表示に変更 -->
+        <div id="selected-dates-chips" class="flex flex-wrap gap-2 pl-1 min-h-[2rem]"></div>
 
         <p class="text-[10px] text-amber-700">
           <i class="fa-solid fa-circle-info"></i> 【18:00締め切り】当日・翌日・翌々日の配送は締め切っております。（18:00以降のご注文は4日後以降となります）
         </p>
         <p class="text-[10px] text-slate-400 mt-1">
-          <i class="fa-solid fa-ban"></i> キャンセルは発注当日 23:59 まで可能です（注文履歴タブから）
+          <i class="fa-solid fa-ban"></i> キャンセルは各納品日の3日前 18:00 まで可能です（注文履歴タブから）
         </p>
         <p class="text-[10px] text-amber-700 mt-1">
-          <i class="fa-solid fa-circle-info"></i> 注文内容税抜5,000円未満の場合、配送料2,000円（税抜）が発生します。
+          <i class="fa-solid fa-circle-info"></i> 注文内容税抜5,000円未満の場合、配送料2,000円（税抜）が発生します。※配送日ごとの判定です。
         </p>
       </div>
       <div class="space-y-1">
@@ -125,11 +124,10 @@
     <section class="space-y-3">
       <div class="flex items-center justify-between">
         <h2 class="font-bold text-amber-900 flex items-center gap-2 text-base">
-          <i class="fa-solid fa-list"></i> 商品リスト
+          <i class="fa-solid fa-list"></i> 商品リスト（配送日ごとに入力）
         </h2>
         <div class="text-right">
           <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-bold">単価 (税込)</span>
-          <!-- ★追加: 単価基準日の表示 -->
           <p id="price-date-label" class="text-[10px] text-slate-400 mt-0.5"></p>
         </div>
       </div>
@@ -183,7 +181,7 @@
   <footer id="order-footer" class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-4 py-3 z-40">
     <div class="max-w-lg mx-auto flex items-center justify-between gap-4">
       <div>
-        <p class="text-[10px] text-slate-400 font-bold">合計点数: <span id="total-count">0</span> 点</p>
+        <p class="text-[10px] text-slate-400 font-bold">合計点数: <span id="total-count">0</span> 点（<span id="total-days">0</span>日分）</p>
         <p class="text-amber-800 font-black text-xl">¥<span id="total-price">0</span></p>
       </div>
       <button onclick="submitOrder()" id="submit-btn"
@@ -229,15 +227,26 @@
   <script>
     const LIFF_ID         = "2010516972-5xgmSHys";
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw6NHW70u2A6pXhwfZujIJNQw37iu4YRYMsyldSfRaHs0jHsCd4h1e5w-KzI6TKPQWFVA/exec";
+    const MAX_SELECT_DAYS = 7; // ★まとめて選択できる配送日の上限
 
     let userProfile     = { userId: "test_local_user", displayName: "テストユーザー" };
     let shopCode        = "";
     let shopName        = "";
     let products         = [];
-    let cart             = {};
+
+    // ★変更: cartはシングルではなく「配送日ごと」に保持する
+    // cartByDate = { "2026-07-07": { productId: qty, ... }, ... }
+    let cartByDate       = {};
+    // ★変更: 単一のdelivery-dateではなく、選択済み配送日の配列
+    let selectedDates    = [];
+    // 商品リスト（アコーディオン）で現在開いている配送日
+    let activeAccordionDate = null;
+    // 単価取得の基準にした配送日（変わったときだけ再取得する）
+    let lastLoadedPriceDate = null;
+
     let historyData       = [];
     let blockedDates     = [];
-    let weekdayWarnDates = []; // ★追加: 店舗別「通常は納品しない曜日」（要確認・選択自体は可能）
+    let weekdayWarnDates = []; // 店舗別「通常は納品しない曜日」（要確認・選択自体は可能）
     let isAdmin          = false;
     let calYear          = new Date().getFullYear();
     let calMonth         = new Date().getMonth();
@@ -288,8 +297,8 @@
       let minDate = new Date();
       minDate.setHours(0, 0, 0, 0);
       minDate.setDate(minDate.getDate() + minOffset);
-      // ★休業ルール(blockedDates)に加え、通常は納品しない曜日(weekdayWarnDates)も
-      //   初期提案日としては避ける（手動でなら選択自体は可能）
+      // 休業ルール(blockedDates)に加え、通常は納品しない曜日(weekdayWarnDates)も
+      // 初期提案日としては避ける（手動でなら選択自体は可能）
       while (blockedDates.includes(_toDateStr(minDate)) || weekdayWarnDates.includes(_toDateStr(minDate))) {
         minDate.setDate(minDate.getDate() + 1);
       }
@@ -298,26 +307,73 @@
       orderCalYear  = minDate.getFullYear();
       orderCalMonth = minDate.getMonth();
 
-      _setOrderCalDate(orderCalMin, false); // 初期設定時は商品再読み込みしない
-      renderOrderCalendar();
-    }
-
-    // ★修正: reloadProducts引数を追加（日付選択時のみtrue）
-    function _setOrderCalDate(dateStr, reloadProducts = true) {
-      document.getElementById('delivery-date').value = dateStr;
-      const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-      const d = new Date(dateStr + "T00:00:00");
-      document.getElementById('selected-date-display').innerText =
-        `✅ ${dateStr} ${DAYS_JP[d.getDay()]}`;
-
-      // ★追加: 納品日が変わったら単価を再取得（初期ロード時を除く）
-      if (reloadProducts && shopCode) {
-        loadProducts();
+      // ★変更: 初回のみ、選択可能な最短日を自動で1件選択しておく（UXを維持）
+      if (selectedDates.length === 0) {
+        selectedDates = [orderCalMin];
+        cartByDate[orderCalMin] = {};
       }
+      onSelectedDatesChanged();
     }
 
     // ============================================================
-    //  ★追加: 「要確認」日をタップした際の確認ポップアップ
+    //  ★追加: 配送日の選択トグル（複数選択・最大7日）
+    // ============================================================
+    function toggleDateSelection(dateStr) {
+      const idx = selectedDates.indexOf(dateStr);
+      if (idx !== -1) {
+        // 選択解除
+        selectedDates.splice(idx, 1);
+        delete cartByDate[dateStr];
+        if (activeAccordionDate === dateStr) activeAccordionDate = null;
+      } else {
+        if (selectedDates.length >= MAX_SELECT_DAYS) {
+          showModal("選択上限エラー", `配送日は一度に最大${MAX_SELECT_DAYS}日までまとめて選択できます。`, "error");
+          return;
+        }
+        selectedDates.push(dateStr);
+        selectedDates.sort();
+        cartByDate[dateStr] = {};
+      }
+      onSelectedDatesChanged();
+    }
+
+    // 配送日の選択状態が変わるたびに呼ぶ（描画・単価再取得のトリガー）
+    function onSelectedDatesChanged() {
+      renderOrderCalendar();
+      renderSelectedChips();
+      renderProductAccordion();
+      calculateTotal();
+
+      // ★単価は「選択中で最も早い配送日」を基準に取得する
+      //  （特別価格の期限が選択期間内にまたがる場合は担当者側で確認してください）
+      const earliest = selectedDates[0] || "";
+      if (earliest !== lastLoadedPriceDate) {
+        lastLoadedPriceDate = earliest;
+        if (shopCode) loadProducts();
+      }
+    }
+
+    function renderSelectedChips() {
+      const box = document.getElementById('selected-dates-chips');
+      if (!box) return;
+      if (selectedDates.length === 0) {
+        box.innerHTML = `<span class="text-xs text-slate-400 py-1">カレンダーから配送希望日を選択してください（最大${MAX_SELECT_DAYS}日まで）</span>`;
+        return;
+      }
+      const DAYS_JP = ["日","月","火","水","木","金","土"];
+      box.innerHTML = selectedDates.map(dateStr => {
+        const d = new Date(dateStr + "T00:00:00");
+        return `<span class="inline-flex items-center gap-1.5 bg-amber-500 text-white text-xs font-bold pl-3 pr-2 py-1.5 rounded-full">
+          ${dateStr}（${DAYS_JP[d.getDay()]}）
+          <button type="button" onclick="toggleDateSelection('${dateStr}')" class="w-4 h-4 flex items-center justify-center rounded-full hover:bg-amber-600">
+            <i class="fa-solid fa-xmark text-[10px]"></i>
+          </button>
+        </span>`;
+      }).join("");
+    }
+
+    // ============================================================
+    //  「要確認」日をタップした際の確認ポップアップ
     //  通常は納品していない曜日だが、担当者確認の上で選択自体は可能
     // ============================================================
     function _confirmWeekdayWarnDate(dateStr) {
@@ -341,8 +397,7 @@
       document.getElementById('modal-ok-btn').className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm";
       _resetOkBtn(() => {
         closeModal();
-        _setOrderCalDate(dateStr, true);
-        renderOrderCalendar();
+        toggleDateSelection(dateStr);
       });
 
       document.getElementById('custom-modal').classList.remove('hidden');
@@ -357,7 +412,6 @@
 
       const firstDay = new Date(orderCalYear, orderCalMonth, 1).getDay();
       const lastDate = new Date(orderCalYear, orderCalMonth + 1, 0).getDate();
-      const selected = document.getElementById('delivery-date').value;
       const today    = new Date();
       const todayStr = _toDateStr(today);
 
@@ -370,8 +424,9 @@
       for (let d = 1; d <= lastDate; d++) {
         const dateStr    = `${orderCalYear}-${String(orderCalMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
         const isBlocked  = blockedDates.includes(dateStr) || dateStr < orderCalMin;
-        const isWarn     = !isBlocked && weekdayWarnDates.includes(dateStr); // ★追加
-        const isSelected = dateStr === selected;
+        const isWarn     = !isBlocked && weekdayWarnDates.includes(dateStr);
+        // ★変更: 単一選択 → 複数選択の判定に変更
+        const isSelected = selectedDates.includes(dateStr);
         const isToday    = dateStr === todayStr;
         const dow        = new Date(orderCalYear, orderCalMonth, d).getDay();
 
@@ -396,10 +451,13 @@
           cell.className = "rounded-lg py-2 text-center text-xs text-slate-300 bg-slate-100 cursor-not-allowed select-none";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else if (isSelected) {
+          // ★選択中セルはタップで解除できるようにする
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
           cell.innerHTML = `<span class="block">${d}</span>`;
+          cell.addEventListener('click', () => {
+            toggleDateSelection(dateStr);
+          });
         } else if (isWarn) {
-          // ★調整: 背景をより薄く（slate-200）、数字も少し薄めの色に（発注不可日より目立たないように）
           const textColor   = dow === 0 ? "text-red-300" : dow === 6 ? "text-blue-300" : "text-slate-500";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
           cell.className = `rounded-lg py-2 text-center text-xs bg-slate-200 font-semibold cursor-pointer hover:bg-slate-300 active:bg-slate-300 transition-all ${textColor} ${todayBorder}`;
@@ -408,14 +466,12 @@
             _confirmWeekdayWarnDate(dateStr);
           });
         } else {
-          // ★調整: 発注可能日を「影＋濃い太字」で少し目立たせる
           const textColor   = dow === 0 ? "text-red-500" : dow === 6 ? "text-blue-500" : "text-slate-800";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
           cell.className = `rounded-lg py-2 text-center text-xs bg-white shadow-sm font-bold cursor-pointer hover:bg-amber-50 hover:shadow active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
           cell.innerHTML = `<span class="block">${d}</span>`;
           cell.addEventListener('click', () => {
-            _setOrderCalDate(dateStr, true); // ★日付選択時は再読み込みあり
-            renderOrderCalendar();
+            toggleDateSelection(dateStr);
           });
         }
 
@@ -489,11 +545,9 @@
 
     // ============================================================
     //  商品リスト取得
-    //  ★修正: deliveryDateをGASに渡して納品日基準の単価を取得
-    //  ★修正: weekdayWarnDatesも受け取る
+    //  ★変更: deliveryDateは「選択中で最も早い配送日」を基準に取得
     // ============================================================
     async function loadProducts() {
-      // 読み込み中表示
       document.getElementById('product-list').innerHTML = `
         <div class="text-center py-8 text-slate-400 text-sm">
           <div class="animate-spin rounded-full h-8 w-8 border-2 border-amber-500 border-t-transparent mx-auto mb-2"></div>
@@ -502,8 +556,7 @@
       document.getElementById('price-date-label').innerText = "";
 
       try {
-        // ★修正: deliveryDateを追加してGASに渡す
-        const deliveryDate = document.getElementById('delivery-date').value;
+        const deliveryDate = selectedDates[0] || "";
         const url = `${GAS_WEB_APP_URL}?action=getProducts`
           + `&shopCode=${encodeURIComponent(shopCode)}`
           + `&userId=${encodeURIComponent(userProfile.userId)}`
@@ -514,7 +567,7 @@
 
         shopName         = data.shopName || shopCode;
         blockedDates     = data.blockedDates || [];
-        weekdayWarnDates = data.weekdayWarnDates || []; // ★追加
+        weekdayWarnDates = data.weekdayWarnDates || [];
         isAdmin          = data.isAdmin || false;
         document.getElementById('shop-name').innerText = shopName + (isAdmin ? " ★" : "");
 
@@ -523,16 +576,13 @@
           setupDeliveryDate();
         }
 
-        // ★追加: 単価の基準日を表示
         if (deliveryDate) {
           const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
           const d = new Date(deliveryDate + "T00:00:00");
           document.getElementById('price-date-label').innerText =
-            `※ ${deliveryDate}${DAYS_JP[d.getDay()]} 納品時点の単価`;
+            `※ ${deliveryDate}${DAYS_JP[d.getDay()]} 納品時点の単価（選択中で最も早い日付が基準）`;
         }
 
-        // カートを保持しつつ商品リストを更新
-        const prevCart = { ...cart };
         products = data.products.map((p, i) => {
           let emoji = "🍞";
           if (p.name.includes("クロワッサン"))    { emoji = "🥐"; }
@@ -541,8 +591,8 @@
           const desc = p.desc || "卸専用商品";
           return { id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax), emoji, desc };
         });
-        cart = prevCart; // カートの数量を引き継ぐ
-        renderProducts();
+
+        renderProductAccordion();
         calculateTotal();
 
       } catch (error) {
@@ -588,7 +638,7 @@
     }
 
     // ============================================================
-    //  カレンダー描画
+    //  カレンダー描画（注文履歴タブ側・変更なし）
     // ============================================================
     function renderCalendar() {
       document.getElementById('cal-title').innerText = `${calYear}年 ${calMonth + 1}月`;
@@ -645,7 +695,7 @@
     }
 
     // ============================================================
-    //  履歴詳細モーダル
+    //  履歴詳細モーダル（変更なし）
     // ============================================================
     function showHistoryDetail(dateStr) {
       const DAYS_JP  = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
@@ -656,9 +706,6 @@
       if (records.length === 0) return;
 
       document.getElementById('hmodal-title').innerText = `納品日: ${dateStr}${dayLabel}`;
-
-      const today    = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
 
       let bodyHtml = "";
 
@@ -702,14 +749,14 @@
           bodyHtml += `<div class="mt-1 text-xs text-slate-400"><i class="fa-solid fa-note-sticky mr-1"></i>${record.notes}</div>`;
         }
 
-        if (record.orderDateStr === todayStr && !isCancelled) {
+        if (!isCancelled && _isCancelAllowedClient(dateStr)) {
           bodyHtml += `
             <div class="mt-3 pt-2 border-t border-slate-100">
               <button onclick="confirmCancel('${record.orderId}')"
                 class="w-full py-2 rounded-xl bg-red-50 text-red-600 text-sm font-bold border border-red-200 hover:bg-red-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                 <i class="fa-solid fa-ban"></i> この発注をキャンセルする
               </button>
-              <p class="text-[10px] text-slate-400 text-center mt-1">※ キャンセルは発注当日 23:59 まで可能です</p>
+              <p class="text-[10px] text-slate-400 text-center mt-1">※ キャンセル期限: ${_cancelDeadlineLabel(dateStr)}</p>
             </div>`;
         }
 
@@ -727,7 +774,31 @@
     }
 
     // ============================================================
-    //  キャンセル確認 → 実行
+    //  ★追加: キャンセル可否判定（納品日の3日前 18:00 まで）
+    //  GAS側の _isCancelAllowed と同じロジック（必ず両方揃えて変更すること）
+    // ============================================================
+    function _isCancelAllowedClient(deliveryDateStr) {
+      const parts = String(deliveryDateStr).split("-");
+      if (parts.length !== 3) return false;
+      const deliveryDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      const deadline = new Date(deliveryDate);
+      deadline.setDate(deadline.getDate() - 3);
+      deadline.setHours(18, 0, 0, 0);
+      return new Date() <= deadline;
+    }
+
+    // キャンセル期限を「7/4 18:00」のような表示用文字列に変換
+    function _cancelDeadlineLabel(deliveryDateStr) {
+      const parts = String(deliveryDateStr).split("-");
+      const deliveryDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      const deadline = new Date(deliveryDate);
+      deadline.setDate(deadline.getDate() - 3);
+      deadline.setHours(18, 0, 0, 0);
+      return `${deadline.getMonth() + 1}/${deadline.getDate()} 18:00`;
+    }
+
+    // ============================================================
+    //  キャンセル確認 → 実行（変更なし・orderId単位のまま機能する）
     // ============================================================
     function confirmCancel(orderId) {
       closeHistoryModal();
@@ -753,8 +824,6 @@
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") throw new Error(data.message || "キャンセルに失敗しました。");
 
-        // ★修正: liff.sendMessages()の成否を管理し、失敗時はGAS経由で管理者へ報告、
-        //         かつユーザーへも「通知は未送信」であることを正直に伝える
         let cancelLineSendSuccess = false;
         if (liff.isInClient()) {
           try {
@@ -786,71 +855,121 @@
     }
 
     // ============================================================
-    //  商品カード描画
+    //  ★変更: 商品カード描画 → 配送日ごとのアコーディオン形式に変更
     // ============================================================
-    function renderProducts() {
-      const listContainer = document.getElementById('product-list');
-      listContainer.innerHTML = '';
-      if (products.length === 0) {
-        listContainer.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">この店舗の商品マスタに登録がありません。</div>';
+    function renderProductAccordion() {
+      const container = document.getElementById('product-list');
+      container.innerHTML = '';
+
+      if (selectedDates.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">まずカレンダーから配送希望日を選択してください。</div>';
         return;
       }
-      products.forEach(p => {
-        const qty = cart[p.id] || 0;
-        listContainer.insertAdjacentHTML('beforeend', `
-          <div class="product-card bg-white p-3.5 rounded-2xl shadow-sm border border-slate-100 flex gap-4 items-center">
-            <div class="w-16 h-16 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-              <span class="text-3xl">${p.emoji}</span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <h3 class="font-bold text-slate-800 text-sm truncate">${p.name}</h3>
-              <p class="text-xs text-slate-400 mt-0.5">${p.desc}</p>
-              <div class="text-amber-700 font-bold text-sm mt-2">
-                ¥${p.priceInTax.toLocaleString()} <span class="text-[10px] text-slate-400 font-normal">/ 個 (税込)</span>
-                <p class="text-[10px] text-slate-400 font-normal mt-0.5">税抜 ¥${p.priceExTax.toLocaleString()}</p>
-              </div>
-            </div>
-            <div class="flex flex-col items-center gap-1 shrink-0">
-              <div class="flex items-center gap-1">
-                <button onclick="changeQty('${p.id}', -10)" class="h-8 px-2 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-xs">-10</button>
-                <button onclick="changeQty('${p.id}', -1)" class="w-9 h-9 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
-                  <i class="fa-solid fa-minus text-sm"></i>
-                </button>
-                <span id="qty-${p.id}" class="w-8 text-center font-bold text-base">${qty}</span>
-                <button onclick="changeQty('${p.id}', 1)" class="w-9 h-9 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-200 active:scale-95 transition-all">
-                  <i class="fa-solid fa-plus text-sm"></i>
-                </button>
-                <button onclick="changeQty('${p.id}', 10)" class="h-8 px-2 rounded-lg bg-amber-200 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-300 active:scale-95 transition-all text-xs">+10</button>
-              </div>
-            </div>
-          </div>`);
+      if (products.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">この店舗の商品マスタに登録がありません。</div>';
+        return;
+      }
+
+      const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+
+      selectedDates.forEach((dateStr, idx) => {
+        if (!cartByDate[dateStr]) cartByDate[dateStr] = {};
+        const cart = cartByDate[dateStr];
+        const d = new Date(dateStr + "T00:00:00");
+        // デフォルトでは先頭の配送日だけ開いた状態にする
+        const isOpen = activeAccordionDate === dateStr || (activeAccordionDate === null && idx === 0);
+
+        let dateTotalCount = 0, dateTotalExTax = 0;
+        products.forEach(p => {
+          const qty = cart[p.id] || 0;
+          dateTotalCount += qty;
+          dateTotalExTax += qty * p.priceExTax;
+        });
+
+        const section = document.createElement('div');
+        section.className = "bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden";
+
+        const header = document.createElement('button');
+        header.type = "button";
+        header.className = "w-full flex items-center justify-between px-4 py-3 bg-amber-50 hover:bg-amber-100 transition-all text-left";
+        header.innerHTML = `
+          <span class="font-bold text-amber-900 text-sm">${dateStr}${DAYS_JP[d.getDay()]}</span>
+          <span class="flex items-center gap-2 text-xs text-slate-500 shrink-0">
+            <span>${dateTotalCount}点 ${dateTotalCount > 0 ? ("/ ¥" + dateTotalExTax.toLocaleString() + "（税抜）") : ""}</span>
+            <i class="fa-solid fa-chevron-${isOpen ? "up" : "down"}"></i>
+          </span>`;
+        header.addEventListener('click', () => {
+          activeAccordionDate = isOpen ? null : dateStr;
+          renderProductAccordion();
+        });
+        section.appendChild(header);
+
+        if (isOpen) {
+          const body = document.createElement('div');
+          body.className = "p-3 space-y-3";
+          products.forEach(p => {
+            const qty = cart[p.id] || 0;
+            body.insertAdjacentHTML('beforeend', `
+              <div class="flex gap-3 items-center border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                  <span class="text-2xl">${p.emoji}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-bold text-slate-800 text-xs truncate">${p.name}</h3>
+                  <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)</p>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button onclick="changeQtyForDate('${dateStr}','${p.id}',-10)" class="h-7 px-1.5 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-[10px]">-10</button>
+                  <button onclick="changeQtyForDate('${dateStr}','${p.id}',-1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
+                    <i class="fa-solid fa-minus text-xs"></i>
+                  </button>
+                  <span id="qty-${dateStr}-${p.id}" class="w-7 text-center font-bold text-sm">${qty}</span>
+                  <button onclick="changeQtyForDate('${dateStr}','${p.id}',1)" class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-200 active:scale-95 transition-all">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                  </button>
+                  <button onclick="changeQtyForDate('${dateStr}','${p.id}',10)" class="h-7 px-1.5 rounded-lg bg-amber-200 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-300 active:scale-95 transition-all text-[10px]">+10</button>
+                </div>
+              </div>`);
+          });
+          section.appendChild(body);
+        }
+
+        container.appendChild(section);
       });
     }
 
-    function changeQty(productId, amount) {
-      if (!cart[productId]) cart[productId] = 0;
-      cart[productId] = Math.max(0, cart[productId] + amount);
-      document.getElementById(`qty-${productId}`).innerText = cart[productId];
+    // ★変更: 数量変更は「配送日＋商品ID」単位で行う
+    function changeQtyForDate(dateStr, productId, amount) {
+      if (!cartByDate[dateStr]) cartByDate[dateStr] = {};
+      const cart = cartByDate[dateStr];
+      cart[productId] = Math.max(0, (cart[productId] || 0) + amount);
+      // 数量表示とヘッダーの小計だけ更新（全体再描画より軽い）
+      renderProductAccordion();
       calculateTotal();
     }
 
+    // ★変更: 全配送日を合算して合計を計算
     function calculateTotal() {
       let totalExTax = 0, totalCount = 0;
-      products.forEach(p => {
-        const qty = cart[p.id] || 0;
-        totalCount += qty;
-        totalExTax += qty * p.priceExTax;
+      selectedDates.forEach(dateStr => {
+        const cart = cartByDate[dateStr] || {};
+        products.forEach(p => {
+          const qty = cart[p.id] || 0;
+          totalCount += qty;
+          totalExTax += qty * p.priceExTax;
+        });
       });
       const tax        = Math.floor(totalExTax * 0.08);
       const totalInTax = totalExTax + tax;
       document.getElementById('total-count').innerText = totalCount;
+      document.getElementById('total-days').innerText  = selectedDates.length;
       document.getElementById('total-price').innerHTML = `
         ${totalInTax.toLocaleString()} <span class="text-xs text-slate-400 font-normal">(税込)</span>
-        <span class="text-[10px] text-slate-400 font-normal block leading-tight mt-0.5">(税抜 ¥${totalExTax.toLocaleString()} + 消費税 ¥${tax.toLocaleString()})</span>`;
+        <span class="text-[10px] text-slate-400 font-normal block leading-tight mt-0.5">(税抜 ¥${totalExTax.toLocaleString()} + 消費税 ¥${tax.toLocaleString()} / 配送料は含みません)</span>`;
     }
 
     // ============================================================
-    //  モーダル
+    //  モーダル（変更なし）
     // ============================================================
     function showModal(title, message, type = "info", showCancel = false) {
       const iconMap = {
@@ -880,44 +999,70 @@
     }
 
     // ============================================================
-    //  発注処理
+    //  ★変更: 発注処理 → 選択済みの全配送日についてまとめて処理する
     // ============================================================
     function submitOrder() {
-      const deliveryDate = document.getElementById('delivery-date').value;
-      const notes        = document.getElementById('notes').value;
-      if (!deliveryDate) { showModal("入力エラー", "納品希望日を選択してください。", "error"); return; }
-      // ★休業ルール（ハードブロック）のみチェック。weekdayWarnDatesは確認済みのため送信可能
-      if (blockedDates.includes(deliveryDate)) {
-        showModal("日程エラー", "選択された日は納品できません。\n別の日をご指定ください。", "error");
+      if (selectedDates.length === 0) {
+        showModal("入力エラー", "配送希望日を1つ以上選択してください。", "error");
         return;
       }
 
-      const orderItems = [];
-      let totalExTax   = 0;
-      products.forEach(p => {
-        const qty = cart[p.id] || 0;
-        if (qty > 0) {
-          const subtotalExTax = p.priceExTax * qty;
-          orderItems.push({ productId: p.id, productName: p.name, price: p.priceExTax, quantity: qty, subtotal: subtotalExTax });
-          totalExTax += subtotalExTax;
+      const notes = document.getElementById('notes').value;
+      const orders = [];
+
+      for (const dateStr of selectedDates) {
+        // 休業ルール（ハードブロック）のみチェック。weekdayWarnDatesは選択時に確認済み
+        if (blockedDates.includes(dateStr)) {
+          showModal("日程エラー", `${dateStr} は納品できません。\nカレンダーから選び直してください。`, "error");
+          return;
         }
-      });
-      if (orderItems.length === 0) { showModal("入力エラー", "商品が選択されていません。", "error"); return; }
+        const cart  = cartByDate[dateStr] || {};
+        const items = [];
+        products.forEach(p => {
+          const qty = cart[p.id] || 0;
+          if (qty > 0) {
+            const subtotalExTax = p.priceExTax * qty;
+            items.push({ productId: p.id, productName: p.name, price: p.priceExTax, quantity: qty, subtotal: subtotalExTax });
+          }
+        });
+        if (items.length > 0) {
+          orders.push({ deliveryDate: dateStr, items });
+        }
+      }
 
-      if (totalExTax < 5000) {
-        _showDeliveryFeeConfirm(deliveryDate, notes, orderItems, totalExTax);
+      if (orders.length === 0) {
+        showModal("入力エラー", "いずれかの配送日に商品を1点以上入力してください。", "error");
         return;
       }
 
-      _showOrderConfirm(deliveryDate, notes, orderItems, totalExTax);
+      _checkDeliveryFeeAndConfirm(orders, notes);
     }
 
-    function _showDeliveryFeeConfirm(deliveryDate, notes, orderItems, totalExTax) {
+    // ============================================================
+    //  ★追加: 配送料が発生する日をまとめてチェックし、該当日があれば
+    //  専用の警告ポップアップを1回だけ表示してから最終確認へ進む
+    // ============================================================
+    function _checkDeliveryFeeAndConfirm(orders, notes) {
+      const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+      const feeDates = orders
+        .filter(o => o.items.reduce((s, i) => s + i.subtotal, 0) < 5000)
+        .map(o => o.deliveryDate);
+
+      if (feeDates.length === 0) {
+        _showOrderConfirmMulti(orders, notes);
+        return;
+      }
+
+      const dateListStr = feeDates.map(ds => {
+        const d = new Date(ds + "T00:00:00");
+        return `${ds}${DAYS_JP[d.getDay()]}`;
+      }).join("\n・");
+
       document.getElementById('modal-icon').className  = "text-4xl text-amber-500";
       document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-truck"></i>';
       document.getElementById('modal-title').innerText = "配送料のご確認";
       document.getElementById('modal-message').innerText =
-        `現在のご注文合計が税抜¥${totalExTax.toLocaleString()}のため\n配送料 ¥2,000（税抜）が発生します。\n\nどうされますか？`;
+        `以下の${feeDates.length}日は、ご注文合計が税抜¥5,000未満のため\n配送料 ¥2,000（税抜）が発生します。\n\n・${dateListStr}\n\nどうされますか？`;
 
       const cancelBtn = document.getElementById('modal-cancel-btn');
       cancelBtn.classList.remove('hidden');
@@ -927,37 +1072,55 @@
       newCancelBtn.addEventListener('click', () => closeModal());
 
       const okBtn = document.getElementById('modal-ok-btn');
-      okBtn.innerText = "はい（配送料2000円）";
+      okBtn.innerText = "はい（内容を確認しました）";
       okBtn.className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm";
       _resetOkBtn(() => {
         closeModal();
-        const deliveryFee = 2000;
-        orderItems.push({
-          productId:   "delivery",
-          productName: "配送料",
-          price:       deliveryFee,
-          quantity:    1,
-          subtotal:    deliveryFee
-        });
-        _showOrderConfirm(deliveryDate, notes, orderItems, totalExTax + deliveryFee);
+        _showOrderConfirmMulti(orders, notes);
       });
-      document.getElementById('modal-ok-btn').innerText = "はい（配送料2000円）";
       document.getElementById('custom-modal').classList.remove('hidden');
     }
 
-    function _showOrderConfirm(deliveryDate, notes, orderItems, totalExTax) {
-      const tax        = Math.floor(totalExTax * 0.08);
-      const totalInTax = totalExTax + tax;
+    // ============================================================
+    //  ★追加: 複数配送日分の発注確認モーダル
+    //  ★配送料（税抜5,000円未満で+2,000円）は「配送日ごと」に判定する
+    // ============================================================
+    function _showOrderConfirmMulti(orders, notes) {
+      const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
 
-      let confirmMessage = `店舗名: ${shopName}\n納品希望日: ${deliveryDate}\n\n【ご注文内容】\n`;
-      orderItems.forEach(item => {
-        if (item.productId === "delivery") {
-          confirmMessage += `・${item.productName} ¥${item.price.toLocaleString()}（税抜）\n`;
-        } else {
-          confirmMessage += `・${item.productName} × ${item.quantity}個 (税込¥${Math.floor(item.price * 1.08).toLocaleString()} / 個)\n`;
+      const finalOrders = orders.map(o => {
+        const totalExTax = o.items.reduce((s, i) => s + i.subtotal, 0);
+        const items = [...o.items];
+        let fee = 0;
+        if (totalExTax < 5000) {
+          fee = 2000;
+          items.push({ productId: "delivery", productName: "配送料", price: fee, quantity: 1, subtotal: fee });
         }
+        return { deliveryDate: o.deliveryDate, items, totalExTax: totalExTax + fee };
       });
-      confirmMessage += `\n税抜合計: ¥${totalExTax.toLocaleString()}\n消費税(8%): ¥${tax.toLocaleString()}\n税込合計: ¥${totalInTax.toLocaleString()}\n\nこの内容で発注してよろしいですか？`;
+
+      let grandExTax = 0;
+      let confirmMessage = `店舗名: ${shopName}\n`;
+      if (finalOrders.length > 1) {
+        confirmMessage += `（${finalOrders.length}日分まとめてのご注文です）\n`;
+      }
+
+      finalOrders.forEach(o => {
+        const d = new Date(o.deliveryDate + "T00:00:00");
+        confirmMessage += `\n■ ${o.deliveryDate}${DAYS_JP[d.getDay()]}\n`;
+        o.items.forEach(item => {
+          if (item.productId === "delivery") {
+            confirmMessage += `　・${item.productName} ¥${item.price.toLocaleString()}（税抜）\n`;
+          } else {
+            confirmMessage += `　・${item.productName} × ${item.quantity}個 (税込¥${Math.floor(item.price * 1.08).toLocaleString()} / 個)\n`;
+          }
+        });
+        grandExTax += o.totalExTax;
+      });
+
+      const grandTax   = Math.floor(grandExTax * 0.08);
+      const grandInTax = grandExTax + grandTax;
+      confirmMessage += `\n税抜合計: ¥${grandExTax.toLocaleString()}\n消費税(8%): ¥${grandTax.toLocaleString()}\n税込合計: ¥${grandInTax.toLocaleString()}\n\nこの内容で発注してよろしいですか？`;
 
       document.getElementById('modal-icon').className  = "text-4xl text-amber-500";
       document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-circle-question"></i>';
@@ -966,13 +1129,12 @@
       document.getElementById('modal-cancel-btn').classList.remove('hidden');
       document.getElementById('modal-cancel-btn').innerText = "閉じる";
       document.getElementById('modal-ok-btn').innerText = "OK";
-      _resetOkBtn(() => { closeModal(); sendDataToGas(deliveryDate, notes, orderItems, totalInTax); });
+      _resetOkBtn(() => { closeModal(); sendDataToGas(finalOrders, notes, grandInTax); });
       document.getElementById('custom-modal').classList.remove('hidden');
     }
 
     // ============================================================
-    //  ★追加: liff.sendMessages失敗時にGAS経由で管理者へ報告する
-    //  （管理者=イサムさん個人のLINEへ、システム設定シートのNOTIFY_USER_ID宛）
+    //  liff.sendMessages失敗時にGAS経由で管理者へ報告する
     // ============================================================
     async function _reportLineSendFailure(shopCodeVal, orderId, context, errorMsg) {
       try {
@@ -988,20 +1150,19 @@
     }
 
     // ============================================================
-    //  GASへのデータ送信
+    //  ★変更: GASへのデータ送信 → 複数配送日分を1回のリクエストで送る
+    //  LINE通知（グループ通知・確認Flex）も1通に集約する
     // ============================================================
-    async function sendDataToGas(deliveryDate, notes, items, grandTotal) {
+    async function sendDataToGas(orders, notes, grandTotal) {
       const spinner = document.getElementById('loading-spinner');
       spinner.classList.remove('hidden');
 
       const url = GAS_WEB_APP_URL
         + "?action=submitOrder"
-        + "&shopCode="     + encodeURIComponent(shopCode)
-        + "&userId="       + encodeURIComponent(userProfile.userId)
-        + "&deliveryDate=" + encodeURIComponent(deliveryDate)
-        + "&notes="        + encodeURIComponent(notes)
-        + "&items="        + encodeURIComponent(JSON.stringify(items))
-        + "&totalPrice="   + encodeURIComponent(grandTotal);
+        + "&shopCode=" + encodeURIComponent(shopCode)
+        + "&userId="   + encodeURIComponent(userProfile.userId)
+        + "&notes="    + encodeURIComponent(notes)
+        + "&orders="   + encodeURIComponent(JSON.stringify(orders));
 
       const maxRetries = 3;
       let delay = 1500;
@@ -1011,35 +1172,64 @@
           const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
           if (data.status !== "success") throw new Error(data.message || "サーバーエラーが発生しました。");
 
-          const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-          const dow     = new Date(deliveryDate + "T00:00:00").getDay();
-
+          const DAYS_JP  = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
           const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
-          const itemContents = items.map(item => ({
-            type: "box",
-            layout: "baseline",
-            contents: [
-              { type: "text", text: `・${item.productName}`, size: "sm", color: "#333333", flex: 4, wrap: true },
-              { type: "text", text: `× ${item.quantity}個`, size: "sm", color: "#333333", flex: 2, align: "end" },
-              { type: "text", text: `¥${item.subtotal.toLocaleString()}`, size: "sm", color: "#666666", flex: 2, align: "end" }
-            ],
-            margin: "xs"
-          }));
+
+          // ★配送日ごとのブロックを1つのFlexメッセージにまとめる
+          // ★変更: 日付ごとの税込小計を追加。複数日の場合は全体合計を表示しない
+          const dateBlocks = [];
+          orders.forEach(o => {
+            const d = new Date(o.deliveryDate + "T00:00:00");
+            dateBlocks.push({
+              type: "text",
+              text: `📅 ${o.deliveryDate}${DAYS_JP[d.getDay()]}`,
+              size: "sm", weight: "bold", color: "#92400e", margin: "md"
+            });
+            let dateExTax = 0;
+            o.items.forEach(item => {
+              dateExTax += Number(item.subtotal || 0);
+              dateBlocks.push({
+                type: "box", layout: "baseline", margin: "xs",
+                contents: [
+                  { type: "text", text: `・${item.productName}`, size: "xs", color: "#333333", flex: 4, wrap: true },
+                  { type: "text", text: `× ${item.quantity}個`, size: "xs", color: "#333333", flex: 2, align: "end" },
+                  { type: "text", text: `¥${item.subtotal.toLocaleString()}`, size: "xs", color: "#666666", flex: 2, align: "end" }
+                ]
+              });
+            });
+            // ★この配送日の税込小計（配送料が乗っていればそれも含めた金額）
+            const dateTax       = Math.floor(dateExTax * 0.08);
+            const dateTotalInTax = dateExTax + dateTax;
+            dateBlocks.push({
+              type: "box", layout: "baseline", margin: "sm",
+              contents: [
+                { type: "text", text: "この日の税込合計", size: "xs", color: "#888888", flex: 3 },
+                { type: "text", text: `¥${dateTotalInTax.toLocaleString()}`, size: "xs", color: "#b45309", flex: 3, align: "end", weight: "bold" }
+              ]
+            });
+          });
 
           if (notes) {
-            itemContents.push({
-              type: "text",
-              text: `備考: ${notes}`,
-              size: "xs",
-              color: "#888888",
-              margin: "md",
-              wrap: true
-            });
+            dateBlocks.push({ type: "text", text: `備考: ${notes}`, size: "xs", color: "#888888", margin: "md", wrap: true });
           }
+
+          // ★全体合計は「単日発注のときだけ」表示する（複数日は表示しない）
+          const totalSummaryBlock = orders.length === 1
+            ? [
+                { type: "separator", margin: "md" },
+                {
+                  type: "box", layout: "baseline", margin: "md",
+                  contents: [
+                    { type: "text", text: "税込合計", size: "sm", color: "#333333", flex: 3, weight: "bold" },
+                    { type: "text", text: `¥${grandTotal.toLocaleString()}`, size: "sm", color: "#b45309", flex: 3, align: "end", weight: "bold" }
+                  ]
+                }
+              ]
+            : [];
 
           const confirmFlex = {
             type: "flex",
-            altText: `【ご注文ありがとうございます】${data.shopName}様 / ${deliveryDate}${DAYS_JP[dow]}`,
+            altText: `【ご注文ありがとうございます】${data.shopName}様 / ${orders.length}日分`,
             contents: {
               type: "bubble",
               styles: { header: { backgroundColor: "#92400e" } },
@@ -1062,31 +1252,9 @@
                       { type: "text", text: `${data.shopName}様`, size: "sm", color: "#333333", flex: 5, weight: "bold", wrap: true }
                     ]
                   },
-                  {
-                    type: "box", layout: "baseline",
-                    contents: [
-                      { type: "text", text: "納品希望日", size: "xs", color: "#888888", flex: 2 },
-                      { type: "text", text: `${deliveryDate}${DAYS_JP[dow]}`, size: "sm", color: "#333333", flex: 5, weight: "bold" }
-                    ]
-                  },
-                  {
-                    type: "box", layout: "baseline",
-                    contents: [
-                      { type: "text", text: "発注番号", size: "xs", color: "#888888", flex: 2 },
-                      { type: "text", text: data.orderId, size: "xs", color: "#666666", flex: 5, wrap: true }
-                    ]
-                  },
                   { type: "separator", margin: "md" },
-                  { type: "text", text: "注文内訳", size: "xs", color: "#888888", margin: "md" },
-                  ...itemContents,
-                  { type: "separator", margin: "md" },
-                  {
-                    type: "box", layout: "baseline", margin: "md",
-                    contents: [
-                      { type: "text", text: "税込合計", size: "sm", color: "#333333", flex: 3, weight: "bold" },
-                      { type: "text", text: `¥${grandTotal.toLocaleString()}`, size: "sm", color: "#b45309", flex: 3, align: "end", weight: "bold" }
-                    ]
-                  }
+                  ...dateBlocks,
+                  ...totalSummaryBlock
                 ]
               },
               footer: {
@@ -1105,8 +1273,6 @@
             }
           };
 
-          // ★修正: liff.sendMessages()の成否を管理し、失敗時はGAS経由で管理者へ報告、
-          //         かつユーザーへも「通知は未送信」であることを正直に伝える
           let lineSendSuccess = false;
           if (liff.isInClient()) {
             try {
@@ -1115,17 +1281,21 @@
               lineSendSuccess = true;
             } catch (le) {
               console.warn("LINE送信失敗:", le);
-              _reportLineSendFailure(shopCode, data.orderId, "発注確認", (le && le.message) ? le.message : String(le));
+              _reportLineSendFailure(shopCode, data.batchId, "発注確認", (le && le.message) ? le.message : String(le));
             }
           }
 
-          historyData = [];
+          historyData   = [];
+          selectedDates = [];
+          cartByDate    = {};
           spinner.classList.add('hidden');
 
+          const orderIdsText = (data.orders || []).map(o => o.orderId).join(", ") || data.batchId;
+
           if (lineSendSuccess) {
-            showModal("発注完了 ✅", `発注番号: ${data.orderId}\n店舗名: ${data.shopName}様\n\nご注文を受け付けました！\nLINEグループに明細を投稿しました。`, "success");
+            showModal("発注完了 ✅", `発注番号: ${orderIdsText}\n店舗名: ${data.shopName}様\n\n${orders.length}日分のご注文を受け付けました！\nLINEグループに明細を投稿しました。`, "success");
           } else {
-            showModal("発注完了（グループ通知は未送信）", `発注番号: ${data.orderId}\n店舗名: ${data.shopName}様\n\nご注文自体は正常に受け付けられました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、この画面をLINEグループのトーク内から開き直してご確認いただくか、担当者へ発注内容をご一報ください。`, "info");
+            showModal("発注完了（グループ通知は未送信）", `発注番号: ${orderIdsText}\n店舗名: ${data.shopName}様\n\nご注文自体は正常に受け付けられました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、この画面をLINEグループのトーク内から開き直してご確認いただくか、担当者へ発注内容をご一報ください。`, "info");
           }
           _resetOkBtn(() => { closeModal(); location.reload(); });
           return;
