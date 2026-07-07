@@ -49,6 +49,9 @@
 
   <!-- ===== 発注タブ ===== -->
   <div id="tab-content-order" class="tab-content active flex-1 max-w-lg w-full mx-auto px-4 py-6 space-y-6">
+    <!-- ★追加: お知らせバナー表示エリア -->
+    <div id="announcements-container" class="space-y-2"></div>
+
     <section class="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 space-y-4">
       <h2 class="font-bold text-amber-900 flex items-center gap-2 text-base border-b border-amber-100 pb-2">
         <i class="fa-solid fa-truck-fast"></i> 納品日の指定
@@ -248,6 +251,9 @@
     let blockedDates     = [];
     let weekdayWarnDates = []; // 店舗別「通常は納品しない曜日」（要確認・選択自体は可能）
     let isAdmin          = false;
+    // ★追加: お知らせ関連
+    let currentAnnouncements     = [];
+    let dismissedAnnouncementIds = new Set(); // このページ表示中だけ有効（永続化しない）
     let calYear          = new Date().getFullYear();
     let calMonth         = new Date().getMonth();
 
@@ -592,6 +598,10 @@
           return { id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax), emoji, desc };
         });
 
+        // ★追加: お知らせの取得と描画
+        currentAnnouncements = data.announcements || [];
+        renderAnnouncements();
+
         renderProductAccordion();
         calculateTotal();
 
@@ -771,6 +781,42 @@
 
     function closeHistoryModal() {
       document.getElementById('history-modal').classList.add('hidden');
+    }
+
+    // ============================================================
+    //  ★追加: お知らせバナーの描画
+    // ============================================================
+    function renderAnnouncements() {
+      const container = document.getElementById('announcements-container');
+      if (!container) return;
+      const visible = (currentAnnouncements || []).filter(a => !dismissedAnnouncementIds.has(a.id));
+      if (visible.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+      container.innerHTML = visible.map(a => `
+        <div class="bg-amber-100 border border-amber-300 rounded-xl px-4 py-3 flex items-start gap-2">
+          <i class="fa-solid fa-bullhorn text-amber-700 mt-0.5 shrink-0"></i>
+          <p class="flex-1 text-xs text-amber-900 whitespace-pre-line">${_escapeHtml(a.message)}</p>
+          <button type="button" onclick="dismissAnnouncement('${a.id}')" class="text-amber-500 hover:text-amber-700 shrink-0">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>`).join('');
+    }
+
+    // 「✕」で閉じる（このページを開いている間だけ非表示。次回開いたときはまた表示される）
+    function dismissAnnouncement(id) {
+      dismissedAnnouncementIds.add(id);
+      renderAnnouncements();
+    }
+
+    function _escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     // ============================================================
