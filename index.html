@@ -595,7 +595,8 @@
           else if (p.name.includes("塩パン"))     { emoji = "🥯"; }
           else if (p.name.includes("メロンパン")) { emoji = "🍪"; }
           const desc = p.desc || "卸専用商品";
-          return { id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax), emoji, desc };
+          // ★追加: 商品画像マスタに登録があればimageUrlを引き継ぐ（無ければ空文字＝絵文字にフォールバック）
+          return { id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax), emoji, desc, imageUrl: p.imageUrl || "" };
         });
 
         // ★追加: お知らせの取得と描画
@@ -831,6 +832,14 @@
         .replace(/'/g, "&#39;");
     }
 
+    // ★追加: 商品写真の読み込みに失敗した場合、その場で絵文字アイコンに差し替える
+    function _onProductImageError(imgEl, emoji) {
+      const parent = imgEl.parentElement;
+      if (parent) {
+        parent.innerHTML = `<span class="text-2xl">${emoji}</span>`;
+      }
+    }
+
     // ============================================================
     //  キャンセル可否判定
     //  ・一般店舗: 納品日の3日前 18:00 まで
@@ -969,11 +978,19 @@
           body.className = "p-3 space-y-3";
           products.forEach(p => {
             const qty = cart[p.id] || 0;
+            // ★変更: imageUrlがあれば写真を表示、無ければ従来通り絵文字。
+            //   写真の読み込みに失敗した場合も自動で絵文字にフォールバックする
+            const iconHtml = p.imageUrl
+              ? `<div class="w-12 h-12 rounded-xl bg-amber-100 overflow-hidden shrink-0 flex items-center justify-center">
+                   <img src="${_escapeHtml(p.imageUrl)}" alt="${_escapeHtml(p.name)}" class="w-full h-full object-cover" loading="lazy" decoding="async"
+                        onerror="_onProductImageError(this, '${p.emoji}')">
+                 </div>`
+              : `<div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                   <span class="text-2xl">${p.emoji}</span>
+                 </div>`;
             body.insertAdjacentHTML('beforeend', `
               <div class="flex gap-3 items-center border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-                <div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                  <span class="text-2xl">${p.emoji}</span>
-                </div>
+                ${iconHtml}
                 <div class="flex-1 min-w-0">
                   <h3 class="font-bold text-slate-800 text-xs truncate">${p.name}</h3>
                   <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)</p>
