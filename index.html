@@ -832,7 +832,9 @@
     }
 
     // ============================================================
-    //  ★追加: キャンセル可否判定（納品日の3日前 18:00 まで）
+    //  キャンセル可否判定
+    //  ・一般店舗: 納品日の3日前 18:00 まで
+    //  ・管理者: 納品日の前日 18:00 まで（発注のリードタイムが短いため）
     //  GAS側の _isCancelAllowed と同じロジック（必ず両方揃えて変更すること）
     // ============================================================
     function _isCancelAllowedClient(deliveryDateStr) {
@@ -840,7 +842,7 @@
       if (parts.length !== 3) return false;
       const deliveryDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       const deadline = new Date(deliveryDate);
-      deadline.setDate(deadline.getDate() - 3);
+      deadline.setDate(deadline.getDate() - (isAdmin ? 1 : 3));
       deadline.setHours(18, 0, 0, 0);
       return new Date() <= deadline;
     }
@@ -850,7 +852,7 @@
       const parts = String(deliveryDateStr).split("-");
       const deliveryDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
       const deadline = new Date(deliveryDate);
-      deadline.setDate(deadline.getDate() - 3);
+      deadline.setDate(deadline.getDate() - (isAdmin ? 1 : 3));
       deadline.setHours(18, 0, 0, 0);
       return `${deadline.getMonth() + 1}/${deadline.getDate()} 18:00`;
     }
@@ -878,7 +880,7 @@
       const spinner = document.getElementById('loading-spinner');
       spinner.classList.remove('hidden');
       try {
-        const url  = `${GAS_WEB_APP_URL}?action=cancelOrder&orderId=${encodeURIComponent(orderId)}&shopCode=${encodeURIComponent(shopCode)}`;
+        const url  = `${GAS_WEB_APP_URL}?action=cancelOrder&orderId=${encodeURIComponent(orderId)}&shopCode=${encodeURIComponent(shopCode)}&userId=${encodeURIComponent(userProfile.userId)}`;
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") throw new Error(data.message || "キャンセルに失敗しました。");
 
