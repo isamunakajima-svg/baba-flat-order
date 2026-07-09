@@ -313,11 +313,10 @@
       orderCalYear  = minDate.getFullYear();
       orderCalMonth = minDate.getMonth();
 
-      // ★変更: 初回のみ、選択可能な最短日を自動で1件選択しておく（UXを維持）
-      if (selectedDates.length === 0) {
-        selectedDates = [orderCalMin];
-        cartByDate[orderCalMin] = {};
-      }
+      // ★変更: 発注可能な最短日を「自動選択」するのはやめ、カレンダーの
+      //   表示月を合わせるだけにする。配送日は必ず手動で選んでもらう形にする
+      //   （自動選択が入っていると、最初に別の日を選ぶ際に毎回それを
+      //   消す一手間が発生していたため）
       onSelectedDatesChanged();
     }
 
@@ -352,8 +351,9 @@
 
       // ★単価は「選択中で最も早い配送日」を基準に取得する
       //  （特別価格の期限が選択期間内にまたがる場合は担当者側で確認してください）
+      //  ★変更: 配送日が1件も選ばれていない間は、単価の再取得をスキップする
       const earliest = selectedDates[0] || "";
-      if (earliest !== lastLoadedPriceDate) {
+      if (earliest && earliest !== lastLoadedPriceDate) {
         lastLoadedPriceDate = earliest;
         if (shopCode) loadProducts();
       }
