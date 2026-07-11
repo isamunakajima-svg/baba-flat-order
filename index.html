@@ -291,34 +291,33 @@
     let orderCalMonth = new Date().getMonth();
     let orderCalMin   = "";
 
-    function setupDeliveryDate() {
-      const currentHour = new Date().getHours();
-      let minOffset;
-      if (isAdmin) {
-        minOffset = currentHour >= 17 ? 2 : 1;
-      } else {
-        minOffset = currentHour >= 18 ? 4 : 3;
-      }
+function setupDeliveryDate() {
+  const currentHour = new Date().getHours();
+  let minOffset;
+  if (isAdmin) {
+    minOffset = currentHour >= 17 ? 2 : 1;
+  } else {
+    minOffset = currentHour >= 18 ? 4 : 3;
+  }
 
-      let minDate = new Date();
-      minDate.setHours(0, 0, 0, 0);
-      minDate.setDate(minDate.getDate() + minOffset);
-      // 休業ルール(blockedDates)に加え、通常は納品しない曜日(weekdayWarnDates)も
-      // 初期提案日としては避ける（手動でなら選択自体は可能）
-      while (blockedDates.includes(_toDateStr(minDate)) || weekdayWarnDates.includes(_toDateStr(minDate))) {
-        minDate.setDate(minDate.getDate() + 1);
-      }
+  let minDate = new Date();
+  minDate.setHours(0, 0, 0, 0);
+  minDate.setDate(minDate.getDate() + minOffset);
 
-      orderCalMin   = _toDateStr(minDate);
-      orderCalYear  = minDate.getFullYear();
-      orderCalMonth = minDate.getMonth();
+  // ★緊急修正: 曜日制限が厳しい店舗で休業日と重なると、最短日の探索が
+  //   何日も先まで進んでしまい、その手前の「要確認」で選べるはずの日まで
+  //   丸ごとブロックされる不具合があったため、ここでは休業日(blockedDates)
+  //   だけを避け、要確認の曜日(weekdayWarnDates)はスキップしないようにする。
+  while (blockedDates.includes(_toDateStr(minDate))) {
+    minDate.setDate(minDate.getDate() + 1);
+  }
 
-      // ★変更: 発注可能な最短日を「自動選択」するのはやめ、カレンダーの
-      //   表示月を合わせるだけにする。配送日は必ず手動で選んでもらう形にする
-      //   （自動選択が入っていると、最初に別の日を選ぶ際に毎回それを
-      //   消す一手間が発生していたため）
-      onSelectedDatesChanged();
-    }
+  orderCalMin   = _toDateStr(minDate);
+  orderCalYear  = minDate.getFullYear();
+  orderCalMonth = minDate.getMonth();
+
+  onSelectedDatesChanged();
+}
 
     // ============================================================
     //  ★追加: 配送日の選択トグル（複数選択・最大7日）
