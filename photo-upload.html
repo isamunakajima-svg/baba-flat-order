@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>商品写真登録 - FLAT発注システム</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -56,18 +59,19 @@
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <label for="camera-input"
+        <button type="button" onclick="openCamera()"
           class="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-amber-300 rounded-xl py-5 text-amber-700 text-xs font-bold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all">
           <i class="fa-solid fa-camera text-xl"></i>
           <span>写真を撮る</span>
-        </label>
+        </button>
         <label for="album-input"
           class="flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-amber-300 rounded-xl py-5 text-amber-700 text-xs font-bold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all">
           <i class="fa-solid fa-images text-xl"></i>
           <span>アルバムから選ぶ</span>
         </label>
       </div>
-      <input id="camera-input" type="file" accept="image/*" capture="environment" class="hidden">
+      <!-- ★フォールバック用: getUserMediaが使えない端末ではこちらのfile inputを使う -->
+      <input id="camera-input-fallback" type="file" accept="image/*" capture="environment" class="hidden">
       <input id="album-input" type="file" accept="image/*" class="hidden">
       <p id="selected-file-label" class="text-xs text-amber-700 font-bold hidden">
         <i class="fa-solid fa-circle-check mr-1"></i><span></span>
@@ -98,6 +102,21 @@
         class="w-full py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm">OK</button>
     </div>
   </div>
+
+  <!-- ★新規追加: カメラ撮影モーダル（getUserMediaでプレビューを表示し、その場で撮影する） -->
+  <div id="camera-modal" class="fixed inset-0 bg-black z-[60] hidden flex-col">
+    <div class="flex-1 relative overflow-hidden">
+      <video id="camera-video" autoplay playsinline muted class="w-full h-full object-cover absolute inset-0"></video>
+    </div>
+    <div class="bg-black/90 px-6 py-5 flex items-center justify-between">
+      <button type="button" onclick="closeCamera()" class="w-12 h-12 rounded-full bg-white/15 text-white flex items-center justify-center">
+        <i class="fa-solid fa-xmark text-xl"></i>
+      </button>
+      <button type="button" onclick="capturePhoto()" class="w-16 h-16 rounded-full bg-white border-4 border-amber-500 active:scale-95 transition-all"></button>
+      <div class="w-12 h-12"></div>
+    </div>
+  </div>
+  <canvas id="camera-canvas" class="hidden"></canvas>
 
   <div id="loading-spinner" class="fixed inset-0 bg-black/60 z-50 flex-col items-center justify-center text-white space-y-4 hidden">
     <div class="animate-spin rounded-full h-12 w-12 border-4 border-amber-500 border-t-transparent"></div>
@@ -206,6 +225,73 @@
       updateSubmitState();
     }
 
+    // ============================================================
+    //  ★新規追加: カメラ撮影（getUserMedia方式）
+    //  Android版LINEアプリ内ブラウザ等で、file input の capture属性だけでは
+    //  「カメラ／ファイル」の選択画面を挟んでしまい、確実にカメラへ直行できない
+    //  端末があったため、ページ内で直接カメラ映像を取得する方式に変更した。
+    //  getUserMedia自体が使えない・権限拒否された場合は、従来のfile input
+    //  （capture属性付き）にフォールバックする。
+    // ============================================================
+    let cameraStream = null;
+
+    async function openCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        document.getElementById('camera-input-fallback').click();
+        return;
+      }
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
+        document.getElementById('camera-video').srcObject = cameraStream;
+        const modal = document.getElementById('camera-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } catch (err) {
+        console.warn("カメラ起動失敗、フォールバックします:", err);
+        document.getElementById('camera-input-fallback').click();
+      }
+    }
+
+    function closeCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+      }
+      const modal = document.getElementById('camera-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function capturePhoto() {
+      const video  = document.getElementById('camera-video');
+      const canvas = document.getElementById('camera-canvas');
+
+      let width  = video.videoWidth;
+      let height = video.videoHeight;
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        if (width >= height) { height = Math.round(height * (MAX_DIMENSION / width)); width = MAX_DIMENSION; }
+        else { width = Math.round(width * (MAX_DIMENSION / height)); height = MAX_DIMENSION; }
+      }
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(video, 0, 0, width, height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+      resizedImage  = { dataUrl, mimeType: 'image/jpeg' };
+
+      document.getElementById('preview-img').src = dataUrl;
+      document.getElementById('preview-area').classList.remove('hidden');
+      const label = document.getElementById('selected-file-label');
+      label.classList.remove('hidden');
+      label.querySelector('span').innerText = "写真を撮影しました（別の写真に変更するにはもう一度タップ）";
+      updateSubmitState();
+
+      closeCamera();
+    }
+
     async function handleFileSelected(file) {
       if (!file) return;
       const label = document.getElementById('selected-file-label');
@@ -225,7 +311,7 @@
       }
     }
 
-    document.getElementById('camera-input').addEventListener('change', (e) => {
+    document.getElementById('camera-input-fallback').addEventListener('change', (e) => {
       handleFileSelected(e.target.files[0]);
     });
     document.getElementById('album-input').addEventListener('change', (e) => {
@@ -305,7 +391,7 @@
         document.getElementById('preview-area').classList.add('hidden');
         document.getElementById('selected-product-label').classList.add('hidden');
         document.getElementById('selected-file-label').classList.add('hidden');
-        document.getElementById('camera-input').value = "";
+        document.getElementById('camera-input-fallback').value = "";
         document.getElementById('album-input').value = "";
         updateSubmitState();
         loadProductList();
