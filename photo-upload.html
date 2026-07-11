@@ -58,12 +58,23 @@
         <img id="preview-img" class="w-full max-h-72 object-contain rounded-xl bg-slate-50 border border-slate-200">
       </div>
 
-      <label for="file-input"
-        class="flex items-center justify-center gap-2 border-2 border-dashed border-amber-300 rounded-xl py-7 text-amber-700 text-base font-bold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all">
-        <i class="fa-solid fa-camera text-xl"></i>
-        <span id="selected-file-label-text">タップして写真を撮る／選ぶ</span>
-      </label>
-      <input id="file-input" type="file" accept="image/*" capture="environment" class="hidden">
+      <div class="grid grid-cols-2 gap-3">
+        <label for="camera-input"
+          class="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-amber-300 rounded-xl py-6 text-amber-700 text-sm font-bold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all">
+          <i class="fa-solid fa-camera text-2xl"></i>
+          <span>写真を撮る</span>
+        </label>
+        <label for="album-input"
+          class="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-amber-300 rounded-xl py-6 text-amber-700 text-sm font-bold cursor-pointer hover:bg-amber-50 active:bg-amber-100 transition-all">
+          <i class="fa-solid fa-images text-2xl"></i>
+          <span>アルバムから選ぶ</span>
+        </label>
+      </div>
+      <input id="camera-input" type="file" accept="image/*" capture="environment" class="hidden">
+      <input id="album-input" type="file" accept="image/*" class="hidden">
+      <p id="selected-file-label" class="text-sm text-amber-700 font-bold hidden">
+        <i class="fa-solid fa-circle-check mr-1"></i><span></span>
+      </p>
       <p class="text-xs text-slate-400">
         <i class="fa-solid fa-circle-info"></i> 送信前に自動で軽量化されます（通信量の節約）
       </p>
@@ -228,23 +239,30 @@
       updateSubmitState();
     }
 
-    document.getElementById('file-input').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
+    async function handleFileSelected(file) {
       if (!file) return;
-      const labelText = document.getElementById('selected-file-label-text');
-      labelText.innerText = "リサイズしています...";
+      const label = document.getElementById('selected-file-label');
+      label.classList.remove('hidden');
+      label.querySelector('span').innerText = "リサイズしています...";
       try {
         const result = await resizeImageFile(file, MAX_DIMENSION, JPEG_QUALITY);
         resizedImage = result;
         document.getElementById('preview-img').src = result.dataUrl;
         document.getElementById('preview-area').classList.remove('hidden');
-        labelText.innerText = "別の写真に変更する";
+        label.querySelector('span').innerText = "写真を選択しました（別の写真に変更するにはもう一度タップ）";
         updateSubmitState();
       } catch (err) {
         console.error(err);
         showModal("エラー", "画像の読み込みに失敗しました。別の写真でお試しください。", "error");
-        labelText.innerText = "タップして写真を撮る／選ぶ";
+        label.classList.add('hidden');
       }
+    }
+
+    document.getElementById('camera-input').addEventListener('change', (e) => {
+      handleFileSelected(e.target.files[0]);
+    });
+    document.getElementById('album-input').addEventListener('change', (e) => {
+      handleFileSelected(e.target.files[0]);
     });
 
     function resizeImageFile(file, maxDim, quality) {
@@ -319,8 +337,9 @@
         selectedName = "";
         document.getElementById('preview-area').classList.add('hidden');
         document.getElementById('selected-product-label').classList.add('hidden');
-        document.getElementById('selected-file-label-text').innerText = "タップして写真を撮る／選ぶ";
-        document.getElementById('file-input').value = "";
+        document.getElementById('selected-file-label').classList.add('hidden');
+        document.getElementById('camera-input').value = "";
+        document.getElementById('album-input').value = "";
         updateSubmitState();
         loadProductList();
 
