@@ -222,6 +222,20 @@
     </div>
   </div>
 
+  <!-- ★新規追加: 商品写真の拡大プレビューモーダル -->
+  <div id="photo-preview-modal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-6" onclick="closePhotoPreview()">
+    <div class="max-w-sm w-full" onclick="event.stopPropagation()">
+      <div class="relative">
+        <img id="photo-preview-img" class="w-full rounded-2xl object-contain max-h-[65vh] bg-white shadow-xl" src="" alt="">
+        <button type="button" onclick="closePhotoPreview()"
+          class="absolute -top-3 -right-3 w-9 h-9 rounded-full bg-white text-slate-600 shadow-md flex items-center justify-center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <p id="photo-preview-name" class="text-center text-white text-sm font-bold mt-3"></p>
+    </div>
+  </div>
+
   <div id="loading-spinner" class="fixed inset-0 bg-black/60 z-50 flex flex-col items-center justify-center text-white space-y-4 hidden">
     <div class="animate-spin rounded-full h-12 w-12 border-4 border-amber-500 border-t-transparent"></div>
     <p class="text-sm font-bold tracking-wider">データを送信中...</p>
@@ -291,33 +305,37 @@
     let orderCalMonth = new Date().getMonth();
     let orderCalMin   = "";
 
-function setupDeliveryDate() {
-  const currentHour = new Date().getHours();
-  let minOffset;
-  if (isAdmin) {
-    minOffset = currentHour >= 17 ? 2 : 1;
-  } else {
-    minOffset = currentHour >= 18 ? 4 : 3;
-  }
+    // ★緊急修正(2026/07/11): 曜日制限が厳しい店舗で休業日と重なると、
+    //   最短日の探索が何日も先まで進んでしまい、その手前の「要確認」で
+    //   選べるはずの日まで丸ごとブロックされる不具合があったため、
+    //   ここでは休業日(blockedDates)だけを避け、要確認の曜日
+    //   (weekdayWarnDates)はスキップしないようにした。
+    function setupDeliveryDate() {
+      const currentHour = new Date().getHours();
+      let minOffset;
+      if (isAdmin) {
+        minOffset = currentHour >= 17 ? 2 : 1;
+      } else {
+        minOffset = currentHour >= 18 ? 4 : 3;
+      }
 
-  let minDate = new Date();
-  minDate.setHours(0, 0, 0, 0);
-  minDate.setDate(minDate.getDate() + minOffset);
+      let minDate = new Date();
+      minDate.setHours(0, 0, 0, 0);
+      minDate.setDate(minDate.getDate() + minOffset);
+      while (blockedDates.includes(_toDateStr(minDate))) {
+        minDate.setDate(minDate.getDate() + 1);
+      }
 
-  // ★緊急修正: 曜日制限が厳しい店舗で休業日と重なると、最短日の探索が
-  //   何日も先まで進んでしまい、その手前の「要確認」で選べるはずの日まで
-  //   丸ごとブロックされる不具合があったため、ここでは休業日(blockedDates)
-  //   だけを避け、要確認の曜日(weekdayWarnDates)はスキップしないようにする。
-  while (blockedDates.includes(_toDateStr(minDate))) {
-    minDate.setDate(minDate.getDate() + 1);
-  }
+      orderCalMin   = _toDateStr(minDate);
+      orderCalYear  = minDate.getFullYear();
+      orderCalMonth = minDate.getMonth();
 
-  orderCalMin   = _toDateStr(minDate);
-  orderCalYear  = minDate.getFullYear();
-  orderCalMonth = minDate.getMonth();
-
-  onSelectedDatesChanged();
-}
+      // ★変更: 発注可能な最短日を「自動選択」するのはやめ、カレンダーの
+      //   表示月を合わせるだけにする。配送日は必ず手動で選んでもらう形にする
+      //   （自動選択が入っていると、最初に別の日を選ぶ際に毎回それを
+      //   消す一手間が発生していたため）
+      onSelectedDatesChanged();
+    }
 
     // ============================================================
     //  ★追加: 配送日の選択トグル（複数選択・最大7日）
@@ -784,6 +802,27 @@ function setupDeliveryDate() {
     }
 
     // ============================================================
+    //  ★新規追加: 商品写真の拡大プレビュー
+    //  発注画面の商品サムネイルをタップすると、同じ画像をポップアップで
+    //  大きく表示する。画像は再ダウンロードせず、既に読み込み済みの
+    //  URLをそのまま使うため、通信量・表示速度への影響はほぼゼロ。
+    // ============================================================
+    function showPhotoPreview(url, name) {
+      if (!url) return;
+      document.getElementById('photo-preview-img').src = url;
+      document.getElementById('photo-preview-name').innerText = name || '';
+      const modal = document.getElementById('photo-preview-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closePhotoPreview() {
+      const modal = document.getElementById('photo-preview-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // ============================================================
     //  ★追加: お知らせバナーの描画
     // ============================================================
     function renderAnnouncements() {
@@ -979,8 +1018,10 @@ function setupDeliveryDate() {
             const qty = cart[p.id] || 0;
             // ★変更: imageUrlがあれば写真を表示、無ければ従来通り絵文字。
             //   写真の読み込みに失敗した場合も自動で絵文字にフォールバックする
+            //   ★新規追加: 写真タップで拡大プレビューを開けるようにする
             const iconHtml = p.imageUrl
-              ? `<div class="w-12 h-12 rounded-xl bg-amber-100 overflow-hidden shrink-0 flex items-center justify-center">
+              ? `<div class="w-12 h-12 rounded-xl bg-amber-100 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer"
+                      onclick="showPhotoPreview('${_escapeHtml(p.imageUrl)}', '${_escapeHtml(p.name)}')">
                    <img src="${_escapeHtml(p.imageUrl)}" alt="${_escapeHtml(p.name)}" class="w-full h-full object-cover" loading="lazy" decoding="async"
                         onerror="_onProductImageError(this, '${p.emoji}')">
                  </div>`
