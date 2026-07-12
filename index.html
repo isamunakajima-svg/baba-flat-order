@@ -49,7 +49,7 @@
 
   <!-- ===== 発注タブ ===== -->
   <div id="tab-content-order" class="tab-content active flex-1 max-w-lg w-full mx-auto px-4 py-6 space-y-6">
-    <!-- ★追加: お知らせバナー表示エリア -->
+    <!-- お知らせバナー表示エリア -->
     <div id="announcements-container" class="space-y-2"></div>
 
     <section class="bg-white p-4 rounded-2xl shadow-sm border border-amber-100 space-y-4">
@@ -104,7 +104,7 @@
           </div>
         </div>
 
-        <!-- ★変更: 選択結果を「複数チップ」表示に変更 -->
+        <!-- 選択結果を「複数チップ」表示 -->
         <div id="selected-dates-chips" class="flex flex-wrap gap-2 pl-1 min-h-[2rem]"></div>
 
         <p class="text-[10px] text-amber-700">
@@ -131,7 +131,7 @@
         </h2>
         <div class="text-right">
           <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-bold">単価 (税込)</span>
-          <p id="price-date-label" class="text-[10px] text-slate-400 mt-0.5"></p>
+          <p class="text-[10px] text-slate-400 mt-0.5">※各納品日ごとの単価を自動反映しています</p>
         </div>
       </div>
       <div id="product-list" class="space-y-3">
@@ -222,7 +222,7 @@
     </div>
   </div>
 
-  <!-- ★新規追加: 商品写真の拡大プレビューモーダル -->
+  <!-- 商品写真の拡大プレビューモーダル -->
   <div id="photo-preview-modal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center p-6" onclick="closePhotoPreview()">
     <div class="max-w-sm w-full" onclick="event.stopPropagation()">
       <div class="relative">
@@ -244,28 +244,29 @@
   <script>
     const LIFF_ID         = "2010516972-5xgmSHys";
     const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw6NHW70u2A6pXhwfZujIJNQw37iu4YRYMsyldSfRaHs0jHsCd4h1e5w-KzI6TKPQWFVA/exec";
-    const MAX_SELECT_DAYS = 7; // ★まとめて選択できる配送日の上限
+    const MAX_SELECT_DAYS = 7; // まとめて選択できる配送日の上限
 
     let userProfile     = { userId: "test_local_user", displayName: "テストユーザー" };
     let shopCode        = "";
     let shopName        = "";
-    let products         = [];
 
-    // ★変更: cartはシングルではなく「配送日ごと」に保持する
+    // ★変更: 商品リストは「配送日ごと」に個別保持する
+    //   productsByDate = { "2026-07-31": [...], "2026-08-01": [...] }
+    //   未取得なら undefined、取得失敗なら null
+    let productsByDate  = {};
+
     // cartByDate = { "2026-07-07": { productId: qty, ... }, ... }
     let cartByDate       = {};
-    // ★変更: 単一のdelivery-dateではなく、選択済み配送日の配列
+    // 選択済み配送日の配列
     let selectedDates    = [];
     // 商品リスト（アコーディオン）で現在開いている配送日
     let activeAccordionDate = null;
-    // 単価取得の基準にした配送日（変わったときだけ再取得する）
-    let lastLoadedPriceDate = null;
 
     let historyData       = [];
     let blockedDates     = [];
     let weekdayWarnDates = []; // 店舗別「通常は納品しない曜日」（要確認・選択自体は可能）
     let isAdmin          = false;
-    // ★追加: お知らせ関連
+    // お知らせ関連
     let currentAnnouncements     = [];
     let dismissedAnnouncementIds = new Set(); // このページ表示中だけ有効（永続化しない）
     let calYear          = new Date().getFullYear();
@@ -305,7 +306,7 @@
     let orderCalMonth = new Date().getMonth();
     let orderCalMin   = "";
 
-    // ★緊急修正(2026/07/11): 曜日制限が厳しい店舗で休業日と重なると、
+    // ★2026/07緊急修正: 曜日制限が厳しい店舗で休業日と重なると、
     //   最短日の探索が何日も先まで進んでしまい、その手前の「要確認」で
     //   選べるはずの日まで丸ごとブロックされる不具合があったため、
     //   ここでは休業日(blockedDates)だけを避け、要確認の曜日
@@ -330,15 +331,11 @@
       orderCalYear  = minDate.getFullYear();
       orderCalMonth = minDate.getMonth();
 
-      // ★変更: 発注可能な最短日を「自動選択」するのはやめ、カレンダーの
-      //   表示月を合わせるだけにする。配送日は必ず手動で選んでもらう形にする
-      //   （自動選択が入っていると、最初に別の日を選ぶ際に毎回それを
-      //   消す一手間が発生していたため）
       onSelectedDatesChanged();
     }
 
     // ============================================================
-    //  ★追加: 配送日の選択トグル（複数選択・最大7日）
+    //  配送日の選択トグル（複数選択・最大7日）
     // ============================================================
     function toggleDateSelection(dateStr) {
       const idx = selectedDates.indexOf(dateStr);
@@ -359,21 +356,24 @@
       onSelectedDatesChanged();
     }
 
-    // 配送日の選択状態が変わるたびに呼ぶ（描画・単価再取得のトリガー）
-    function onSelectedDatesChanged() {
+    // ============================================================
+    //  ★変更: 配送日の選択状態が変わるたびに呼ぶ
+    //  → まだ単価を取得していない配送日があれば、それぞれ個別に取得する
+    // ============================================================
+    async function onSelectedDatesChanged() {
       renderOrderCalendar();
       renderSelectedChips();
       renderProductAccordion();
       calculateTotal();
 
-      // ★単価は「選択中で最も早い配送日」を基準に取得する
-      //  （特別価格の期限が選択期間内にまたがる場合は担当者側で確認してください）
-      //  ★変更: 配送日が1件も選ばれていない間は、単価の再取得をスキップする
-      const earliest = selectedDates[0] || "";
-      if (earliest && earliest !== lastLoadedPriceDate) {
-        lastLoadedPriceDate = earliest;
-        if (shopCode) loadProducts();
-      }
+      if (!shopCode) return;
+
+      const datesToLoad = selectedDates.filter(d => !(d in productsByDate));
+      if (datesToLoad.length === 0) return;
+
+      await Promise.all(datesToLoad.map(d => loadProductsForDate(d)));
+      renderProductAccordion();
+      calculateTotal();
     }
 
     function renderSelectedChips() {
@@ -397,7 +397,6 @@
 
     // ============================================================
     //  「要確認」日をタップした際の確認ポップアップ
-    //  通常は納品していない曜日だが、担当者確認の上で選択自体は可能
     // ============================================================
     function _confirmWeekdayWarnDate(dateStr) {
       const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
@@ -448,7 +447,6 @@
         const dateStr    = `${orderCalYear}-${String(orderCalMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
         const isBlocked  = blockedDates.includes(dateStr) || dateStr < orderCalMin;
         const isWarn     = !isBlocked && weekdayWarnDates.includes(dateStr);
-        // ★変更: 単一選択 → 複数選択の判定に変更
         const isSelected = selectedDates.includes(dateStr);
         const isToday    = dateStr === todayStr;
         const dow        = new Date(orderCalYear, orderCalMonth, d).getDay();
@@ -474,7 +472,6 @@
           cell.className = "rounded-lg py-2 text-center text-xs text-slate-300 bg-slate-100 cursor-not-allowed select-none";
           cell.innerHTML = `<span class="block">${d}</span>`;
         } else if (isSelected) {
-          // ★選択中セルはタップで解除できるようにする
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
           cell.innerHTML = `<span class="block">${d}</span>`;
           cell.addEventListener('click', () => {
@@ -553,37 +550,50 @@
               userProfile = { userId: profile.userId, displayName: profile.displayName, pictureUrl: profile.pictureUrl || null };
               document.getElementById('user-name').innerText = profile.displayName;
               if (profile.pictureUrl) document.getElementById('user-avatar').src = profile.pictureUrl;
-              loadProducts();
+              initShopMeta();
             })
             .catch(err => {
               if (!liff.isLoggedIn()) liff.login();
-              else loadProducts();
+              else initShopMeta();
             });
         })
         .catch(err => {
           shopCode = _getShopCodeFromUrl();
-          if (shopCode) loadProducts();
+          if (shopCode) initShopMeta();
         });
     }
 
-    // ============================================================
-    //  商品リスト取得
-    //  ★変更: deliveryDateは「選択中で最も早い配送日」を基準に取得
-    // ============================================================
-    async function loadProducts() {
+    // ★新規追加: 起動時、店舗名・休業日・お知らせなど「日付に依存しない情報」だけ
+    //   先に取得しておく（商品リスト自体は配送日を選んだタイミングで別途取得する）
+    async function initShopMeta() {
       document.getElementById('product-list').innerHTML = `
         <div class="text-center py-8 text-slate-400 text-sm">
           <div class="animate-spin rounded-full h-8 w-8 border-2 border-amber-500 border-t-transparent mx-auto mb-2"></div>
-          商品情報を読み込んでいます...
+          店舗情報を読み込んでいます...
         </div>`;
-      document.getElementById('price-date-label').innerText = "";
+      const ok = await loadProductsForDate(""); // 空文字＝サーバー側で今日日付を基準に取得
+      if (ok) {
+        renderProductAccordion();
+      } else {
+        document.getElementById('product-list').innerHTML = `
+          <div class="text-center py-8 text-red-400 text-sm space-y-2">
+            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+            <p>店舗情報を読み込めませんでした。</p>
+            <button onclick="initShopMeta()" class="mt-2 px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold">再読み込み</button>
+          </div>`;
+      }
+    }
 
+    // ============================================================
+    //  ★変更: 商品リスト取得を「配送日ごと」に行う関数に変更
+    //  dateStrが空文字の場合は、店舗名・休業日等の初期情報取得のみを目的とする
+    // ============================================================
+    async function loadProductsForDate(dateStr) {
       try {
-        const deliveryDate = selectedDates[0] || "";
         const url = `${GAS_WEB_APP_URL}?action=getProducts`
           + `&shopCode=${encodeURIComponent(shopCode)}`
           + `&userId=${encodeURIComponent(userProfile.userId)}`
-          + `&deliveryDate=${encodeURIComponent(deliveryDate)}`;
+          + `&deliveryDate=${encodeURIComponent(dateStr)}`;
 
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") throw new Error(data.message || "商品データの取得に失敗しました。");
@@ -594,44 +604,33 @@
         isAdmin          = data.isAdmin || false;
         document.getElementById('shop-name').innerText = shopName + "様" + (isAdmin ? " ★" : "");
 
-        // 店舗確定後、初回のみ納品不可日を反映して日付を再セット
-        if (!orderCalMin) {
-          setupDeliveryDate();
-        }
+        if (!orderCalMin) setupDeliveryDate();
 
-        if (deliveryDate) {
-          const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-          const d = new Date(deliveryDate + "T00:00:00");
-          document.getElementById('price-date-label').innerText =
-            `※ ${deliveryDate}${DAYS_JP[d.getDay()]} 納品時点の単価（選択中で最も早い日付が基準）`;
-        }
+        currentAnnouncements = data.announcements || [];
+        renderAnnouncements();
 
-        products = data.products.map((p, i) => {
+        const mapped = data.products.map((p, i) => {
           let emoji = "🍞";
           if (p.name.includes("クロワッサン"))    { emoji = "🥐"; }
           else if (p.name.includes("塩パン"))     { emoji = "🥯"; }
           else if (p.name.includes("メロンパン")) { emoji = "🍪"; }
           const desc = p.desc || "卸専用商品";
-          // ★追加: 商品画像マスタに登録があればimageUrlを引き継ぐ（無ければ空文字＝絵文字にフォールバック）
           return { id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax), emoji, desc, imageUrl: p.imageUrl || "" };
         });
 
-        // ★追加: お知らせの取得と描画
-        currentAnnouncements = data.announcements || [];
-        renderAnnouncements();
-
-        renderProductAccordion();
-        calculateTotal();
+        if (dateStr) productsByDate[dateStr] = mapped;
+        return true;
 
       } catch (error) {
-        document.getElementById('product-list').innerHTML = `
-          <div class="text-center py-8 text-red-400 text-sm space-y-2">
-            <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
-            <p>商品情報を読み込めませんでした。</p>
-            <p class="text-xs text-slate-400">${error.message}</p>
-            <button onclick="loadProducts()" class="mt-2 px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold">再読み込み</button>
-          </div>`;
+        console.error(`商品取得エラー(${dateStr || "初期"}):`, error);
+        if (dateStr) productsByDate[dateStr] = null;
+        return false;
       }
+    }
+
+    function retryLoadDate(dateStr) {
+      delete productsByDate[dateStr];
+      onSelectedDatesChanged();
     }
 
     // ============================================================
@@ -802,10 +801,7 @@
     }
 
     // ============================================================
-    //  ★新規追加: 商品写真の拡大プレビュー
-    //  発注画面の商品サムネイルをタップすると、同じ画像をポップアップで
-    //  大きく表示する。画像は再ダウンロードせず、既に読み込み済みの
-    //  URLをそのまま使うため、通信量・表示速度への影響はほぼゼロ。
+    //  商品写真の拡大プレビュー
     // ============================================================
     function showPhotoPreview(url, name) {
       if (!url) return;
@@ -823,7 +819,7 @@
     }
 
     // ============================================================
-    //  ★追加: お知らせバナーの描画
+    //  お知らせバナーの描画
     // ============================================================
     function renderAnnouncements() {
       const container = document.getElementById('announcements-container');
@@ -834,7 +830,6 @@
         return;
       }
       container.innerHTML = visible.map(a => {
-        // ★追加: リンクURLが設定されていれば、下にリンクボタンを表示する
         const linkHtml = a.linkUrl
           ? `<a href="${_escapeHtml(a.linkUrl)}" target="_blank" rel="noopener noreferrer"
                 class="inline-flex items-center gap-1 mt-2 text-xs font-bold text-amber-800 underline decoration-amber-400 hover:text-amber-900">
@@ -855,7 +850,6 @@
       }).join('');
     }
 
-    // 「✕」で閉じる（このページを開いている間だけ非表示。次回開いたときはまた表示される）
     function dismissAnnouncement(id) {
       dismissedAnnouncementIds.add(id);
       renderAnnouncements();
@@ -870,7 +864,6 @@
         .replace(/'/g, "&#39;");
     }
 
-    // ★追加: 商品写真の読み込みに失敗した場合、その場で絵文字アイコンに差し替える
     function _onProductImageError(imgEl, emoji) {
       const parent = imgEl.parentElement;
       if (parent) {
@@ -880,9 +873,6 @@
 
     // ============================================================
     //  キャンセル可否判定
-    //  ・一般店舗: 納品日の3日前 18:00 まで
-    //  ・管理者: 納品日の前日 18:00 まで（発注のリードタイムが短いため）
-    //  GAS側の _isCancelAllowed と同じロジック（必ず両方揃えて変更すること）
     // ============================================================
     function _isCancelAllowedClient(deliveryDateStr) {
       const parts = String(deliveryDateStr).split("-");
@@ -894,7 +884,6 @@
       return new Date() <= deadline;
     }
 
-    // キャンセル期限を「7/4 18:00」のような表示用文字列に変換
     function _cancelDeadlineLabel(deliveryDateStr) {
       const parts = String(deliveryDateStr).split("-");
       const deliveryDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
@@ -905,7 +894,7 @@
     }
 
     // ============================================================
-    //  キャンセル確認 → 実行（変更なし・orderId単位のまま機能する）
+    //  キャンセル確認 → 実行
     // ============================================================
     function confirmCancel(orderId) {
       closeHistoryModal();
@@ -962,7 +951,7 @@
     }
 
     // ============================================================
-    //  ★変更: 商品カード描画 → 配送日ごとのアコーディオン形式に変更
+    //  ★変更: 商品カード描画 → 配送日ごとの単価(productsByDate)を参照
     // ============================================================
     function renderProductAccordion() {
       const container = document.getElementById('product-list');
@@ -972,10 +961,6 @@
         container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">まずカレンダーから配送希望日を選択してください。</div>';
         return;
       }
-      if (products.length === 0) {
-        container.innerHTML = '<div class="text-center py-8 text-slate-400 text-sm">この店舗の商品マスタに登録がありません。</div>';
-        return;
-      }
 
       const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
 
@@ -983,18 +968,39 @@
         if (!cartByDate[dateStr]) cartByDate[dateStr] = {};
         const cart = cartByDate[dateStr];
         const d = new Date(dateStr + "T00:00:00");
-        // デフォルトでは先頭の配送日だけ開いた状態にする
         const isOpen = activeAccordionDate === dateStr || (activeAccordionDate === null && idx === 0);
 
+        const dateProducts = productsByDate[dateStr];
+
+        const section = document.createElement('div');
+        section.className = "bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden";
+
+        if (dateProducts === undefined) {
+          section.innerHTML = `
+            <div class="px-4 py-3 bg-amber-50 flex items-center justify-between">
+              <span class="font-bold text-amber-900 text-sm">${dateStr}${DAYS_JP[d.getDay()]}</span>
+              <span class="text-xs text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-1"></i>単価を読み込み中...</span>
+            </div>`;
+          container.appendChild(section);
+          return;
+        }
+
+        if (dateProducts === null) {
+          section.innerHTML = `
+            <div class="px-4 py-3 bg-red-50 flex items-center justify-between">
+              <span class="font-bold text-red-800 text-sm">${dateStr}${DAYS_JP[d.getDay()]}</span>
+              <button onclick="retryLoadDate('${dateStr}')" class="text-xs text-red-600 underline font-bold">単価の再読み込み</button>
+            </div>`;
+          container.appendChild(section);
+          return;
+        }
+
         let dateTotalCount = 0, dateTotalExTax = 0;
-        products.forEach(p => {
+        dateProducts.forEach(p => {
           const qty = cart[p.id] || 0;
           dateTotalCount += qty;
           dateTotalExTax += qty * p.priceExTax;
         });
-
-        const section = document.createElement('div');
-        section.className = "bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden";
 
         const header = document.createElement('button');
         header.type = "button";
@@ -1014,40 +1020,42 @@
         if (isOpen) {
           const body = document.createElement('div');
           body.className = "p-3 space-y-3";
-          products.forEach(p => {
-            const qty = cart[p.id] || 0;
-            // ★変更: imageUrlがあれば写真を表示、無ければ従来通り絵文字。
-            //   写真の読み込みに失敗した場合も自動で絵文字にフォールバックする
-            //   ★新規追加: 写真タップで拡大プレビューを開けるようにする
-            const iconHtml = p.imageUrl
-              ? `<div class="w-12 h-12 rounded-xl bg-amber-100 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer"
-                      onclick="showPhotoPreview('${_escapeHtml(p.imageUrl)}', '${_escapeHtml(p.name)}')">
-                   <img src="${_escapeHtml(p.imageUrl)}" alt="${_escapeHtml(p.name)}" class="w-full h-full object-cover" loading="lazy" decoding="async"
-                        onerror="_onProductImageError(this, '${p.emoji}')">
-                 </div>`
-              : `<div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                   <span class="text-2xl">${p.emoji}</span>
-                 </div>`;
-            body.insertAdjacentHTML('beforeend', `
-              <div class="flex gap-3 items-center border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-                ${iconHtml}
-                <div class="flex-1 min-w-0">
-                  <h3 class="font-bold text-slate-800 text-xs truncate">${p.name}</h3>
-                  <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)</p>
-                </div>
-                <div class="flex items-center gap-1 shrink-0">
-                  <button onclick="changeQtyForDate('${dateStr}','${p.id}',-10)" class="h-7 px-1.5 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-[10px]">-10</button>
-                  <button onclick="changeQtyForDate('${dateStr}','${p.id}',-1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
-                    <i class="fa-solid fa-minus text-xs"></i>
-                  </button>
-                  <span id="qty-${dateStr}-${p.id}" class="w-7 text-center font-bold text-sm">${qty}</span>
-                  <button onclick="changeQtyForDate('${dateStr}','${p.id}',1)" class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-200 active:scale-95 transition-all">
-                    <i class="fa-solid fa-plus text-xs"></i>
-                  </button>
-                  <button onclick="changeQtyForDate('${dateStr}','${p.id}',10)" class="h-7 px-1.5 rounded-lg bg-amber-200 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-300 active:scale-95 transition-all text-[10px]">+10</button>
-                </div>
-              </div>`);
-          });
+
+          if (dateProducts.length === 0) {
+            body.innerHTML = '<div class="text-center py-4 text-slate-400 text-sm">この店舗の商品マスタに登録がありません。</div>';
+          } else {
+            dateProducts.forEach(p => {
+              const qty = cart[p.id] || 0;
+              const iconHtml = p.imageUrl
+                ? `<div class="w-12 h-12 rounded-xl bg-amber-100 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer"
+                        onclick="showPhotoPreview('${_escapeHtml(p.imageUrl)}', '${_escapeHtml(p.name)}')">
+                     <img src="${_escapeHtml(p.imageUrl)}" alt="${_escapeHtml(p.name)}" class="w-full h-full object-cover" loading="lazy" decoding="async"
+                          onerror="_onProductImageError(this, '${p.emoji}')">
+                   </div>`
+                : `<div class="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                     <span class="text-2xl">${p.emoji}</span>
+                   </div>`;
+              body.insertAdjacentHTML('beforeend', `
+                <div class="flex gap-3 items-center border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                  ${iconHtml}
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-bold text-slate-800 text-xs truncate">${p.name}</h3>
+                    <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)</p>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',-10)" class="h-7 px-1.5 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-[10px]">-10</button>
+                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',-1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
+                      <i class="fa-solid fa-minus text-xs"></i>
+                    </button>
+                    <span id="qty-${dateStr}-${p.id}" class="w-7 text-center font-bold text-sm">${qty}</span>
+                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',1)" class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-200 active:scale-95 transition-all">
+                      <i class="fa-solid fa-plus text-xs"></i>
+                    </button>
+                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',10)" class="h-7 px-1.5 rounded-lg bg-amber-200 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-300 active:scale-95 transition-all text-[10px]">+10</button>
+                  </div>
+                </div>`);
+            });
+          }
           section.appendChild(body);
         }
 
@@ -1055,22 +1063,23 @@
       });
     }
 
-    // ★変更: 数量変更は「配送日＋商品ID」単位で行う
+    // 数量変更は「配送日＋商品ID」単位で行う
     function changeQtyForDate(dateStr, productId, amount) {
       if (!cartByDate[dateStr]) cartByDate[dateStr] = {};
       const cart = cartByDate[dateStr];
       cart[productId] = Math.max(0, (cart[productId] || 0) + amount);
-      // 数量表示とヘッダーの小計だけ更新（全体再描画より軽い）
       renderProductAccordion();
       calculateTotal();
     }
 
-    // ★変更: 全配送日を合算して合計を計算
+    // ★変更: 各配送日ごとの単価(productsByDate)を使って合計を計算
     function calculateTotal() {
       let totalExTax = 0, totalCount = 0;
       selectedDates.forEach(dateStr => {
         const cart = cartByDate[dateStr] || {};
-        products.forEach(p => {
+        const dateProducts = productsByDate[dateStr];
+        if (!dateProducts) return; // 未取得の日はまだ合計に含めない
+        dateProducts.forEach(p => {
           const qty = cart[p.id] || 0;
           totalCount += qty;
           totalExTax += qty * p.priceExTax;
@@ -1086,7 +1095,7 @@
     }
 
     // ============================================================
-    //  モーダル（変更なし）
+    //  モーダル
     // ============================================================
     function showModal(title, message, type = "info", showCancel = false) {
       const iconMap = {
@@ -1116,7 +1125,7 @@
     }
 
     // ============================================================
-    //  ★変更: 発注処理 → 選択済みの全配送日についてまとめて処理する
+    //  ★変更: 発注処理 → 配送日ごとのproductsByDateを参照して金額計算
     // ============================================================
     function submitOrder() {
       if (selectedDates.length === 0) {
@@ -1128,14 +1137,20 @@
       const orders = [];
 
       for (const dateStr of selectedDates) {
-        // 休業ルール（ハードブロック）のみチェック。weekdayWarnDatesは選択時に確認済み
         if (blockedDates.includes(dateStr)) {
           showModal("日程エラー", `${dateStr} は納品できません。\nカレンダーから選び直してください。`, "error");
           return;
         }
+
+        const dateProducts = productsByDate[dateStr];
+        if (!dateProducts) {
+          showModal("読み込み中", `${dateStr} の単価をまだ取得できていません。少し待ってから再度お試しください。`, "error");
+          return;
+        }
+
         const cart  = cartByDate[dateStr] || {};
         const items = [];
-        products.forEach(p => {
+        dateProducts.forEach(p => {
           const qty = cart[p.id] || 0;
           if (qty > 0) {
             const subtotalExTax = p.priceExTax * qty;
@@ -1156,8 +1171,7 @@
     }
 
     // ============================================================
-    //  ★追加: 配送料が発生する日をまとめてチェックし、該当日があれば
-    //  専用の警告ポップアップを1回だけ表示してから最終確認へ進む
+    //  配送料が発生する日をまとめてチェックし、警告を1回だけ表示
     // ============================================================
     function _checkDeliveryFeeAndConfirm(orders, notes) {
       const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
@@ -1199,8 +1213,7 @@
     }
 
     // ============================================================
-    //  ★追加: 複数配送日分の発注確認モーダル
-    //  ★配送料（税抜5,000円未満で+2,000円）は「配送日ごと」に判定する
+    //  複数配送日分の発注確認モーダル
     // ============================================================
     function _showOrderConfirmMulti(orders, notes) {
       const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
@@ -1267,8 +1280,7 @@
     }
 
     // ============================================================
-    //  ★変更: GASへのデータ送信 → 複数配送日分を1回のリクエストで送る
-    //  LINE通知（グループ通知・確認Flex）も1通に集約する
+    //  GASへのデータ送信 → 複数配送日分を1回のリクエストで送る
     // ============================================================
     async function sendDataToGas(orders, notes, grandTotal) {
       const spinner = document.getElementById('loading-spinner');
@@ -1292,8 +1304,6 @@
           const DAYS_JP  = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
           const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
 
-          // ★配送日ごとのブロックを1つのFlexメッセージにまとめる
-          // ★変更: 日付ごとの税込小計を追加。複数日の場合は全体合計を表示しない
           const dateBlocks = [];
           orders.forEach(o => {
             const d = new Date(o.deliveryDate + "T00:00:00");
@@ -1314,7 +1324,6 @@
                 ]
               });
             });
-            // ★この配送日の税込小計（配送料が乗っていればそれも含めた金額）
             const dateTax       = Math.floor(dateExTax * 0.08);
             const dateTotalInTax = dateExTax + dateTax;
             dateBlocks.push({
@@ -1330,7 +1339,6 @@
             dateBlocks.push({ type: "text", text: `備考: ${notes}`, size: "xs", color: "#888888", margin: "md", wrap: true });
           }
 
-          // ★全体合計は「単日発注のときだけ」表示する（複数日は表示しない）
           const totalSummaryBlock = orders.length === 1
             ? [
                 { type: "separator", margin: "md" },
