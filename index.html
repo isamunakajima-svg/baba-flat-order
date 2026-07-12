@@ -7,7 +7,15 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <style>
+<style>
+    html, body {
+      height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch; /* ★追加: LINEアプリ内ブラウザ等で
+        スクロールが引っかかる/効かなくなる不具合の定番対策。iOSのWebViewで
+        スクロール領域を明示的に「慣性スクロール対応」にする指定 */
+    }
     body { -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", sans-serif; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
