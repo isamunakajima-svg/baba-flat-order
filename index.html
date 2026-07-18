@@ -1185,7 +1185,7 @@
         dateProducts.forEach(p => {
           const qty = cart[p.id] || 0;
           if (p.maxQty && qty > p.maxQty) {
-            overLimitList.push(`${dateStr} ${p.name}: ${qty}個（目安上限 ${p.maxQty}個）`);
+            overLimitList.push(`${dateStr} ${p.name}: ${qty}個（上限 ${p.maxQty}個）`);
           }
         });
       }
@@ -1195,7 +1195,7 @@
         document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-triangle-exclamation"></i>';
         document.getElementById('modal-title').innerText = "数量のご確認";
         document.getElementById('modal-message').innerText =
-          `以下の商品は、通常のご注文量を超えています。\n\n・${overLimitList.join("\n・")}\n\nこの数量のまま発注してよろしいですか？`;
+          `以下の商品は、通常のご注文量を超えています。\n\n・${overLimitList.join("\n・")}\n\nこの数量のまま発注する場合は担当者にご確認ください。`;
         const cancelBtn = document.getElementById('modal-cancel-btn');
         cancelBtn.classList.remove('hidden');
         cancelBtn.innerText = "数量を見直す";
