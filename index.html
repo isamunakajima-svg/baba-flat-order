@@ -906,12 +906,17 @@
     // ============================================================
     //  キャンセル確認 → 実行
     // ============================================================
-    function confirmCancel(orderId) {
+   function confirmCancel(orderId) {
       closeHistoryModal();
+      // ★新規追加: 発注番号の下に注文内容を表示する
+      const record = historyData.find(h => h.orderId === orderId);
+      const itemsText = record && record.items
+        ? record.items.map(item => `・${item.name} × ${item.quantity}個`).join("\n")
+        : "";
       document.getElementById('modal-icon').className  = "text-4xl text-red-500";
       document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-ban"></i>';
       document.getElementById('modal-title').innerText = "注文キャンセルの確認";
-      document.getElementById('modal-message').innerText = `発注番号: ${orderId}\n\nこの注文をキャンセルしますか？\n\nキャンセル後はLINEグループに通知されます。`;
+      document.getElementById('modal-message').innerText = `発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\nこの注文をキャンセルしますか？\n\nキャンセル後はLINEグループに通知されます。`;
       document.getElementById('modal-cancel-btn').classList.remove('hidden');
       document.getElementById('modal-cancel-btn').innerText = "戻る";
       const okBtn = document.getElementById('modal-ok-btn').cloneNode(true);
@@ -922,9 +927,16 @@
       document.getElementById('custom-modal').classList.remove('hidden');
     }
 
-    async function executeCancelOrder(orderId) {
+   async function executeCancelOrder(orderId) {
       const spinner = document.getElementById('loading-spinner');
       spinner.classList.remove('hidden');
+
+      // ★新規追加: historyDataがクリアされる前に、注文内容を控えておく
+      const record = historyData.find(h => h.orderId === orderId);
+      const itemsText = record && record.items
+        ? record.items.map(item => `・${item.name} × ${item.quantity}個`).join("\n")
+        : "";
+
       try {
         const url  = `${GAS_WEB_APP_URL}?action=cancelOrder&orderId=${encodeURIComponent(orderId)}&shopCode=${encodeURIComponent(shopCode)}&userId=${encodeURIComponent(userProfile.userId)}`;
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
@@ -935,7 +947,7 @@
           try {
             await liff.sendMessages([{
               type: "text",
-              text: `【注文キャンセルのご連絡】\n店舗: ${data.shopName}様\n納品希望日: ${data.deliveryDate}\n発注番号: ${orderId}\n\n上記の注文をキャンセルしました。`
+              text: `【注文キャンセルのご連絡】\n店舗: ${data.shopName}様\n納品希望日: ${data.deliveryDate}\n発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\n上記の注文をキャンセルしました。`
             }]);
             cancelLineSendSuccess = true;
           } catch (le) {
@@ -948,9 +960,9 @@
         historyData = [];
 
         if (cancelLineSendSuccess) {
-          showModal("キャンセル完了", `発注番号: ${orderId}\n\nキャンセルが完了しました。\nLINEグループに通知しました。`, "success");
+          showModal("キャンセル完了", `発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\nキャンセルが完了しました。\nLINEグループに通知しました。`, "success");
         } else {
-          showModal("キャンセル完了（グループ通知は未送信）", `発注番号: ${orderId}\n\nキャンセル自体は正常に完了しました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、担当者へキャンセルの旨をご一報ください。`, "info");
+          showModal("キャンセル完了（グループ通知は未送信）", `発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\nキャンセル自体は正常に完了しました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、担当者へキャンセルの旨をご一報ください。`, "info");
         }
         _resetOkBtn(() => { closeModal(); loadHistory(); });
 
