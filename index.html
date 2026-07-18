@@ -616,15 +616,18 @@
         currentAnnouncements = data.announcements || [];
         renderAnnouncements();
 
-        const mapped = data.products.map((p, i) => {
+       const mapped = data.products.map((p, i) => {
           let emoji = "🍞";
           if (p.name.includes("クロワッサン"))    { emoji = "🥐"; }
           else if (p.name.includes("塩パン"))     { emoji = "🥯"; }
           else if (p.name.includes("メロンパン")) { emoji = "🍪"; }
           const desc = p.desc || "卸専用商品";
-          return { id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax), emoji, desc, imageUrl: p.imageUrl || "" };
+          return {
+            id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax),
+            emoji, desc, imageUrl: p.imageUrl || "",
+            maxQty: (p.maxQty !== null && p.maxQty !== undefined) ? Number(p.maxQty) : null
+          };
         });
-
         if (dateStr) productsByDate[dateStr] = mapped;
         return true;
 
