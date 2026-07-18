@@ -1240,7 +1240,7 @@
       document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-truck"></i>';
       document.getElementById('modal-title').innerText = "配送料のご確認";
       document.getElementById('modal-message').innerText =
-        `以下の${feeDates.length}日は、ご注文合計が税抜¥5,000未満のため\n配送料 ¥2,000（税抜）が発生します。\n\n・${dateListStr}\n\nどうされますか？`;
+        `以下の${feeDates.length}日は、ご注文合計が税抜¥5,000未満のため\n配送料 ¥2,000（税抜）が発生します。\n\n・${dateListStr}\n\nよろしいですか？`;
 
       const cancelBtn = document.getElementById('modal-cancel-btn');
       cancelBtn.classList.remove('hidden');
