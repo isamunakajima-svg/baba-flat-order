@@ -1045,9 +1045,9 @@
               body.insertAdjacentHTML('beforeend', `
                 <div class="flex gap-3 items-center border-b border-slate-100 pb-3 last:border-0 last:pb-0">
                   ${iconHtml}
-                  <div class="flex-1 min-w-0">
+                 <div class="flex-1 min-w-0">
                     <h3 class="font-bold text-slate-800 text-xs truncate">${p.name}</h3>
-                    <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)</p>
+                    <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)${p.maxQty ? ` <span class="text-amber-500">・目安上限${p.maxQty}個</span>` : ''}</p>
                   </div>
                   <div class="flex items-center gap-1 shrink-0">
                     <button onclick="changeQtyForDate('${dateStr}','${p.id}',-10)" class="h-7 px-1.5 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-[10px]">-10</button>
@@ -1169,8 +1169,45 @@
         }
       }
 
-      if (orders.length === 0) {
+     if (orders.length === 0) {
         showModal("入力エラー", "いずれかの配送日に商品を1点以上入力してください。", "error");
+        return;
+      }
+
+      // ★新規追加: 目安上限を超えている商品があれば、先に警告する
+      const overLimitList = [];
+      for (const dateStr of selectedDates) {
+        const dateProducts = productsByDate[dateStr] || [];
+        const cart = cartByDate[dateStr] || {};
+        dateProducts.forEach(p => {
+          const qty = cart[p.id] || 0;
+          if (p.maxQty && qty > p.maxQty) {
+            overLimitList.push(`${dateStr} ${p.name}: ${qty}個（目安上限 ${p.maxQty}個）`);
+          }
+        });
+      }
+
+      if (overLimitList.length > 0) {
+        document.getElementById('modal-icon').className  = "text-4xl text-amber-500";
+        document.getElementById('modal-icon').innerHTML  = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        document.getElementById('modal-title').innerText = "数量のご確認";
+        document.getElementById('modal-message').innerText =
+          `以下の商品は、通常のご注文量を超えています。\n\n・${overLimitList.join("\n・")}\n\nこの数量のまま発注してよろしいですか？`;
+        const cancelBtn = document.getElementById('modal-cancel-btn');
+        cancelBtn.classList.remove('hidden');
+        cancelBtn.innerText = "数量を見直す";
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        newCancelBtn.addEventListener('click', () => closeModal());
+
+        const okBtn = document.getElementById('modal-ok-btn');
+        okBtn.innerText = "このまま進める";
+        okBtn.className = "flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 shadow-sm";
+        _resetOkBtn(() => {
+          closeModal();
+          _checkDeliveryFeeAndConfirm(orders, notes);
+        });
+        document.getElementById('custom-modal').classList.remove('hidden');
         return;
       }
 
