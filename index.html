@@ -1079,7 +1079,7 @@
                   ${iconHtml}
                  <div class="flex-1 min-w-0">
                     <h3 class="font-bold text-slate-800 text-xs truncate">${p.name}</h3>
-                    <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)${p.maxQty ? ` <span class="text-amber-500">・目安上限${p.maxQty}個</span>` : ''}</p>
+                    <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)${p.maxQty ? ` <span class="text-amber-500">・上限${p.maxQty}個</span>` : ''}</p>
                   </div>
                   <div class="flex items-center gap-1 shrink-0">
                     <button onclick="changeQtyForDate('${dateStr}','${p.id}',-10)" class="h-7 px-1.5 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-[10px]">-10</button>
