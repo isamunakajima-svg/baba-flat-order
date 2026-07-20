@@ -21,7 +21,24 @@
     .cal-day.has-order { background-color: #fef3c7; border: 2px solid #d97706; font-weight: bold; cursor: pointer; }
     .cal-day.has-order:hover { background-color: #fde68a; }
     .cal-day.today { border: 2px solid #f59e0b; }
-    .cal-day.other-month { color: #cbd5e1; }
+   .cal-day.other-month { color: #cbd5e1; }
+
+    /* ★新規追加: フッターの「発注ボタン」がLINEアプリ内ブラウザ等で
+       縦に細長く崩れる不具合の対策。TailwindのCDN版はCSSを実行時にJSで
+       生成するため、一部の古いWebViewでクラスの適用が不安定になることが
+       あるので、レイアウトに直結する部分だけは素のCSSで明示的に固定する */
+    #order-footer .flex.items-center.justify-between {
+      display: flex;
+    }
+    #order-footer .flex.items-center.justify-between > div:first-child {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    #submit-btn {
+      flex: 1 1 0%;
+      min-width: 0;
+      width: auto;
+    }
   </style>
 </head>
 <body class="bg-amber-50/40 text-slate-800 min-h-screen flex flex-col pb-24">
