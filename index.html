@@ -1381,8 +1381,23 @@
     //  GASへのデータ送信 → 複数配送日分を1回のリクエストで送る
     // ============================================================
     async function sendDataToGas(orders, notes, grandTotal) {
-      const spinner = document.getElementById('loading-spinner');
+      const spinner   = document.getElementById('loading-spinner');
+      const submitBtn = document.getElementById('submit-btn');
+
+      // ★追加: 送信中はボタンを無効化して二重送信を防ぐ
       spinner.classList.remove('hidden');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+
+      // ★送信完了・エラー時にボタンを再有効化するヘルパー
+      const _enableBtn = () => {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+      };
 
       const url = GAS_WEB_APP_URL
         + "?action=submitOrder"
@@ -1512,6 +1527,7 @@
           selectedDates = [];
           cartByDate    = {};
           spinner.classList.add('hidden');
+          _enableBtn();
 
           const orderIdsText = (data.orders || []).map(o => o.orderId).join(", ") || data.batchId;
 
@@ -1526,6 +1542,7 @@
         } catch (error) {
           if (attempt === maxRetries) {
             spinner.classList.add('hidden');
+            _enableBtn();
             showModal("送信エラー", `送信に失敗しました。\n\n${error.message}\n\n電波の良い場所で再度お試しください。`, "error");
             return;
           }
