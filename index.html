@@ -278,6 +278,8 @@
     //   productsByDate = { "2026-07-31": [...], "2026-08-01": [...] }
     //   未取得なら undefined、取得失敗なら null
     let productsByDate  = {};
+    let nextPriceRevisionDate = ""; // ★追加: 次の価格改定日（空文字なら改定なし）
+    let _baseProducts   = [];       // ★追加: 初回取得した商品データのキャッシュ
 
     // cartByDate = { "2026-07-07": { productId: qty, ... }, ... }
     let cartByDate       = {};
@@ -376,6 +378,10 @@
         selectedDates.push(dateStr);
         selectedDates.sort();
         cartByDate[dateStr] = {};
+        // ★追加: 既に商品データが取得済みなら新しい日付にも同じデータを適用
+        if (_baseProducts && _baseProducts.length > 0) {
+          productsByDate[dateStr] = _baseProducts;
+        }
       }
       onSelectedDatesChanged();
     }
@@ -389,15 +395,9 @@
       renderSelectedChips();
       renderProductAccordion();
       calculateTotal();
-
-      if (!shopCode) return;
-
-      const datesToLoad = selectedDates.filter(d => !(d in productsByDate));
-      if (datesToLoad.length === 0) return;
-
-      await Promise.all(datesToLoad.map(d => loadProductsForDate(d)));
-      renderProductAccordion();
-      calculateTotal();
+      // ★変更: 日付を選択しても追加のGASリクエストは不要
+      //   initShopMetaで取得済みの商品データをproductsByDate全日付で使い回す
+      // （価格改定日をまたぐ場合は submitOrder でブロックする）
     }
 
     function renderSelectedChips() {
@@ -626,6 +626,8 @@
         blockedDates     = data.blockedDates || [];
         weekdayWarnDates = data.weekdayWarnDates || [];
         isAdmin          = data.isAdmin || false;
+        // ★追加: 次の価格改定日を保存
+        nextPriceRevisionDate = data.nextPriceRevisionDate || "";
         document.getElementById('shop-name').innerText = shopName + "様" + (isAdmin ? " ★" : "");
 
         if (!orderCalMin) setupDeliveryDate();
@@ -645,6 +647,11 @@
             maxQty: (p.maxQty !== null && p.maxQty !== undefined) ? Number(p.maxQty) : null
           };
         });
+        // ★変更: 取得した商品データを全選択日に適用（日付ごとに個別取得しない）
+        //   productsByDateは「どの日付を選んでも同じ商品データ」として扱う
+        //   価格改定日をまたぐ発注はsubmitOrder側でブロックする
+        _baseProducts = mapped; // 基準となる商品データを保持
+        selectedDates.forEach(d => { productsByDate[d] = mapped; });
         if (dateStr) productsByDate[dateStr] = mapped;
         return true;
 
@@ -1170,6 +1177,21 @@
       if (selectedDates.length === 0) {
         showModal("入力エラー", "配送希望日を1つ以上選択してください。", "error");
         return;
+      }
+
+      // ★追加: 価格改定日をまたぐ発注をブロックする
+      //   選択した配送日の中に、価格改定日の前後が混在している場合は発注不可
+      if (nextPriceRevisionDate && selectedDates.length > 1) {
+        const beforeRevision = selectedDates.filter(d => d < nextPriceRevisionDate);
+        const afterRevision  = selectedDates.filter(d => d >= nextPriceRevisionDate);
+        if (beforeRevision.length > 0 && afterRevision.length > 0) {
+          showModal(
+            "発注日程エラー",
+            `${nextPriceRevisionDate}から一部商品の価格が改定されます。\n\n改定前（${nextPriceRevisionDate}より前）と改定後（${nextPriceRevisionDate}以降）の配送日を同時に発注することはできません。\n\n改定前・改定後を別々に発注してください。`,
+            "error"
+          );
+          return;
+        }
       }
 
       const notes = document.getElementById('notes').value;
