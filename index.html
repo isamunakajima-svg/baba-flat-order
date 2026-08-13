@@ -1520,6 +1520,27 @@
             } catch (le) {
               console.warn("LINE送信失敗:", le);
               _reportLineSendFailure(shopCode, data.batchId, "発注確認", (le && le.message) ? le.message : String(le));
+
+              // ★追加: liff.sendMessages()失敗時、店舗固有グループIDへGAS経由でフォールバック通知
+              if (data.shopGroupId) {
+                const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+                const dateLines = (data.orders || []).map(o => {
+                  const d = new Date(o.deliveryDate + "T00:00:00");
+                  return `納品希望日：${o.deliveryDate}${DAYS_JP[d.getDay()]}`;
+                }).join("\n");
+                const fallbackMsg = encodeURIComponent(
+                  `【ご注文を受け付けました】\n\n${data.shopName}様\n\n${dateLines}\n\nご注文内容は発注画面の「注文履歴」タブからご確認いただけます。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`
+                );
+                try {
+                  await fetch(
+                    `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
+                    { method: 'GET', redirect: 'follow' }
+                  );
+                  console.log("店舗グループへフォールバック通知を送信しました");
+                } catch(fe) {
+                  console.warn("フォールバック通知も失敗:", fe);
+                }
+              }
             }
           }
 
