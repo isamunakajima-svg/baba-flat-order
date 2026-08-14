@@ -391,6 +391,14 @@
     //  → まだ単価を取得していない配送日があれば、それぞれ個別に取得する
     // ============================================================
     async function onSelectedDatesChanged() {
+      // ★追加: _baseProductsが取得済みなら、productsByDateにない日付に適用する
+      if (_baseProducts && _baseProducts.length > 0) {
+        selectedDates.forEach(d => {
+          if (!(d in productsByDate)) {
+            productsByDate[d] = _baseProducts;
+          }
+        });
+      }
       renderOrderCalendar();
       renderSelectedChips();
       renderProductAccordion();
@@ -651,8 +659,14 @@
         //   productsByDateは「どの日付を選んでも同じ商品データ」として扱う
         //   価格改定日をまたぐ発注はsubmitOrder側でブロックする
         _baseProducts = mapped; // 基準となる商品データを保持
+        // ★変更: 取得完了後、選択中の全日付に適用して画面を更新
         selectedDates.forEach(d => { productsByDate[d] = mapped; });
         if (dateStr) productsByDate[dateStr] = mapped;
+
+        // ★追加: 商品データ取得完了後にアコーディオンを再描画
+        //   (取得前に日付が選択されていて「単価を読み込み中」のままになっていた場合に対応)
+        renderProductAccordion();
+        calculateTotal();
         return true;
 
       } catch (error) {
