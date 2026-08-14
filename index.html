@@ -585,8 +585,10 @@
               initShopMeta();
             })
             .catch(err => {
-              if (!liff.isLoggedIn()) liff.login();
-              else initShopMeta();
+              // ★変更: liff.login()はLINE外環境でエラーになるためフォールバック
+              //   プロフィールが取得できなくても商品表示は続行する
+              console.warn("liff.getProfile()失敗、ゲストモードで続行:", err);
+              initShopMeta();
             });
         })
         .catch(err => {
