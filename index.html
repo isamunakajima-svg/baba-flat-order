@@ -1555,14 +1555,24 @@
               _reportLineSendFailure(shopCode, data.batchId, "発注確認", (le && le.message) ? le.message : String(le));
 
               // ★追加: liff.sendMessages()失敗時、店舗固有グループIDへGAS経由でフォールバック通知
+              //   ★変更: data.orders（サーバー側の簡易情報）ではなく、ローカルのordersを使い、
+              //     通常のFlexメッセージと同じ商品明細（商品名・数量・配送料）を本文に含める
               if (data.shopGroupId) {
                 const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-                const dateLines = (data.orders || []).map(o => {
+                let orderDetailText = "";
+                orders.forEach(o => {
                   const d = new Date(o.deliveryDate + "T00:00:00");
-                  return `納品希望日：${o.deliveryDate}${DAYS_JP[d.getDay()]}`;
-                }).join("\n");
+                  orderDetailText += `\n■ ${o.deliveryDate}${DAYS_JP[d.getDay()]}\n`;
+                  o.items.forEach(item => {
+                    if (item.productId === "delivery") {
+                      orderDetailText += `　・${item.productName} ¥${item.price.toLocaleString()}（税抜）\n`;
+                    } else {
+                      orderDetailText += `　・${item.productName} × ${item.quantity}個\n`;
+                    }
+                  });
+                });
                 const fallbackMsg = encodeURIComponent(
-                  `【ご注文を受け付けました】\n\n${data.shopName}様\n\n${dateLines}\n\nご注文内容は発注画面の「注文履歴」タブからご確認いただけます。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`
+                  `【ご注文を受け付けました】\n\n${data.shopName}様\n${orderDetailText}\n税込合計: ¥${grandTotal.toLocaleString()}\n\nご注文内容は発注画面の「注文履歴」タブからもご確認いただけます。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`
                 );
                 try {
                   await fetch(
