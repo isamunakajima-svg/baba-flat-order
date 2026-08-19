@@ -993,6 +993,23 @@
           } catch (le) {
             console.warn("LINE送信スキップ:", le);
             _reportLineSendFailure(shopCode, orderId, "キャンセル確認", (le && le.message) ? le.message : String(le));
+
+            // ★新規追加: liff.sendMessages()失敗時、店舗固有グループIDへGAS経由でフォールバック通知
+            //   （submitOrder側と同じパターン）
+            if (data.shopGroupId) {
+              const fallbackMsg = encodeURIComponent(
+                `【注文キャンセルのご連絡】\n店舗: ${data.shopName}様\n納品希望日: ${data.deliveryDate}\n発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\n上記の注文をキャンセルしました。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`
+              );
+              try {
+                await fetch(
+                  `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
+                  { method: 'GET', redirect: 'follow' }
+                );
+                console.log("店舗グループへキャンセルのフォールバック通知を送信しました");
+              } catch (fe) {
+                console.warn("キャンセルのフォールバック通知も失敗:", fe);
+              }
+            }
           }
         }
 
