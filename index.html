@@ -1002,13 +1002,22 @@
                 3500
               ));
               try {
-                await fetch(
+                const fbRes = await fetch(
                   `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
                   { method: 'GET', redirect: 'follow' }
                 );
-                console.log("店舗グループへキャンセルのフォールバック通知を送信しました");
+                // ★2026/08/19修正: レスポンス本文のstatusを確認しないと、GAS側が
+                //   {status:"error"}を返すだけの失敗（HTTP自体は200）に気づけない。
+                const fbData = await fbRes.json();
+                if (fbData.status === "success") {
+                  console.log("店舗グループへキャンセルのフォールバック通知を送信しました");
+                } else {
+                  console.warn("キャンセルのフォールバック通知が失敗を返しました:", fbData.message);
+                  _reportLineSendFailure(shopCode, orderId, "キャンセル確認フォールバック", fbData.message || "不明なエラー");
+                }
               } catch (fe) {
                 console.warn("キャンセルのフォールバック通知も失敗:", fe);
+                _reportLineSendFailure(shopCode, orderId, "キャンセル確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
               }
             }
           }
@@ -1593,13 +1602,24 @@
                   3500
                 ));
                 try {
-                  await fetch(
+                  const fbRes = await fetch(
                     `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
                     { method: 'GET', redirect: 'follow' }
                   );
-                  console.log("店舗グループへフォールバック通知を送信しました");
+                  // ★2026/08/19修正: 以前はfetch自体が例外を投げない限り「成功」扱いにしていたが、
+                  //   GAS側は失敗時もHTTP 200 + {status:"error"}を返すため、レスポンス本文を
+                  //   見ていないと実際には届いていなくても気づけなかった。ここでstatusを確認し、
+                  //   失敗時は管理者への報告（_reportLineSendFailure）も行う。
+                  const fbData = await fbRes.json();
+                  if (fbData.status === "success") {
+                    console.log("店舗グループへフォールバック通知を送信しました");
+                  } else {
+                    console.warn("フォールバック通知が失敗を返しました:", fbData.message);
+                    _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", fbData.message || "不明なエラー");
+                  }
                 } catch(fe) {
                   console.warn("フォールバック通知も失敗:", fe);
+                  _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
                 }
               }
             }
