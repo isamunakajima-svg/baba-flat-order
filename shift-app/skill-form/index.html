@@ -213,6 +213,7 @@ backBtn.addEventListener('click', () => {
  * ============================================================ */
 const API_RETRY_COUNT = 2; // 失敗時の追加リトライ回数（初回+2回=最大3回試行）
 const API_RETRY_DELAY_MS = 1200;
+const API_TIMEOUT_MS = 15000; // これを超えて応答がない場合は打ち切って再試行する
 
 function _sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -220,16 +221,23 @@ function _sleep(ms) {
 
 /**
  * GASのWebアプリは、スクリプトの起動が遅い（コールドスタート）タイミングで
- * リクエストすると、JSONの代わりに中間的なHTMLページ（<!DOCTYPE...）を
- * 返してしまうことがある。一時的な現象で、少し待って再試行すれば
- * 成功することがほとんどなので、ここで自動リトライする。
+ * リクエストすると、次のいずれかの不具合が起きることがある。
+ *   (a) JSONの代わりに中間的なHTMLページ（<!DOCTYPE...）を返す
+ *   (b) 処理自体は裏側で完了しているのに、レスポンスがいつまでも
+ *       返ってこず、fetchがpendingのまま止まる
+ * どちらも一時的な現象なので、(a)は即座に、(b)はタイムアウトさせた上で
+ * 自動的に再試行する。saveStaffは同じ内容を再送しても安全（差分更新のため）。
  */
 function _callApiOnce(action, payload) {
   const body = Object.assign({ action: action, lineUserId: state.lineUserId }, payload || {});
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
   return fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // GAS doPostのCORS対策で text/plain を使う
     body: JSON.stringify(body),
+    signal: controller.signal,
   })
     .then((res) => res.text())
     .then((text) => {
@@ -241,7 +249,14 @@ function _callApiOnce(action, payload) {
       }
       if (!json.ok) throw new Error(json.error || '不明なエラーが発生しました');
       return json.data;
-    });
+    })
+    .catch((err) => {
+      if (err && err.name === 'AbortError') {
+        throw new Error('サーバーからの応答がタイムアウトしました（GASの起動待ちの可能性があります）');
+      }
+      throw err;
+    })
+    .finally(() => clearTimeout(timeoutId));
 }
 
 function callApi(action, payload, attempt) {
