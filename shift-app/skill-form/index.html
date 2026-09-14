@@ -211,18 +211,47 @@ backBtn.addEventListener('click', () => {
 /* ============================================================
  * API呼び出し
  * ============================================================ */
-function callApi(action, payload) {
+const API_RETRY_COUNT = 2; // 失敗時の追加リトライ回数（初回+2回=最大3回試行）
+const API_RETRY_DELAY_MS = 1200;
+
+function _sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * GASのWebアプリは、スクリプトの起動が遅い（コールドスタート）タイミングで
+ * リクエストすると、JSONの代わりに中間的なHTMLページ（<!DOCTYPE...）を
+ * 返してしまうことがある。一時的な現象で、少し待って再試行すれば
+ * 成功することがほとんどなので、ここで自動リトライする。
+ */
+function _callApiOnce(action, payload) {
   const body = Object.assign({ action: action, lineUserId: state.lineUserId }, payload || {});
   return fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // GAS doPostのCORS対策で text/plain を使う
     body: JSON.stringify(body),
   })
-    .then((res) => res.json())
-    .then((json) => {
+    .then((res) => res.text())
+    .then((text) => {
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (e) {
+        throw new Error('サーバーから予期しない応答がありました（GASの起動待ちの可能性があります）');
+      }
       if (!json.ok) throw new Error(json.error || '不明なエラーが発生しました');
       return json.data;
     });
+}
+
+function callApi(action, payload, attempt) {
+  attempt = attempt || 0;
+  return _callApiOnce(action, payload).catch((err) => {
+    if (attempt < API_RETRY_COUNT) {
+      return _sleep(API_RETRY_DELAY_MS).then(() => callApi(action, payload, attempt + 1));
+    }
+    throw err;
+  });
 }
 
 /* ============================================================
