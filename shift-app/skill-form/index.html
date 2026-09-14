@@ -294,16 +294,21 @@ function init() {
     });
 }
 
+/**
+ * 初回表示は「権限確認」と「スタッフ一覧取得」を1回のAPI呼び出し(action: 'init')に
+ * まとめている（以前は2回に分かれていて、その分往復の待ち時間が余計にかかっていた）。
+ */
 function loadManagerContext() {
-  return callApi('getManagerContext', {})
-    .then((ctx) => {
-      if (!ctx.authorized) {
+  return callApi('init', {})
+    .then((res) => {
+      if (!res.authorized) {
         state.screen = 'unauthorized';
         render();
         return;
       }
-      state.manager = ctx;
-      return loadStaffList();
+      state.manager = res.manager;
+      state.staffList = res.staffList;
+      goToList();
     })
     .catch((err) => showError(err.message));
 }
