@@ -211,22 +211,21 @@ backBtn.addEventListener('click', () => {
 /* ============================================================
  * API呼び出し
  * ============================================================ */
-const API_RETRY_COUNT = 2; // 失敗時の追加リトライ回数（初回+2回=最大3回試行）
-const API_RETRY_DELAY_MS = 1200;
-const API_TIMEOUT_MS = 15000; // これを超えて応答がない場合は打ち切って再試行する
+const API_RETRY_COUNT = 3; // 失敗時の追加リトライ回数（初回+3回=最大4回試行）
+const API_RETRY_DELAY_MS = 400;
+const API_TIMEOUT_MS = 8000; // これを超えて応答がない場合は打ち切って再試行する
 
 function _sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
- * GASのWebアプリは、スクリプトの起動が遅い（コールドスタート）タイミングで
- * リクエストすると、次のいずれかの不具合が起きることがある。
- *   (a) JSONの代わりに中間的なHTMLページ（<!DOCTYPE...）を返す
- *   (b) 処理自体は裏側で完了しているのに、レスポンスがいつまでも
- *       返ってこず、fetchがpendingのまま止まる
- * どちらも一時的な現象なので、(a)は即座に、(b)はタイムアウトさせた上で
- * 自動的に再試行する。saveStaffは同じ内容を再送しても安全（差分更新のため）。
+ * GASのdoPost自体は実行ログ上ほぼ常に2〜3秒台で完了しているにもかかわらず、
+ * fetchのレスポンスがブラウザまで届かず止まる、あるいはJSONの代わりに
+ * 中間的なHTMLページ（<!DOCTYPE...）が返ることがある。実行そのものは
+ * 遅くないので、長く待つより短い間隔ですばやく何度も再試行したほうが
+ * 詰まった配信経路を回避しやすい。saveStaffは同じ内容を再送しても
+ * 安全（差分更新のため）。
  */
 function _callApiOnce(action, payload) {
   const body = Object.assign({ action: action, lineUserId: state.lineUserId }, payload || {});
