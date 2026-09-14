@@ -350,7 +350,12 @@ function render() {
 
   if (state.screen === 'unauthorized') {
     pageTitleEl.textContent = 'スタッフ技能登録';
-    appEl.innerHTML = '<div class="center">このLINEアカウントには、スタッフ技能を登録する権限がありません。<br>店舗責任者権限の設定については全体管理者にご確認ください。</div>';
+    appEl.innerHTML =
+      '<div class="center">このLINEアカウントには、スタッフ技能を登録する権限がありません。<br>店舗責任者権限の設定については全体管理者にご確認ください。' +
+      '<div class="card" style="margin-top:16px;text-align:left;">' +
+      '<label class="field-label">あなたのLINE_UserID（登録依頼時にお伝えください）</label>' +
+      '<input type="text" readonly value="' + escapeAttr(state.lineUserId || '') + '" onclick="this.select()">' +
+      '</div></div>';
     return;
   }
 
