@@ -211,26 +211,32 @@ backBtn.addEventListener('click', () => {
 /* ============================================================
  * API呼び出し
  * ============================================================ */
-const API_RETRY_COUNT = 3; // 失敗時の追加リトライ回数（初回+3回=最大4回試行）
-const API_RETRY_DELAY_MS = 400;
-const API_TIMEOUT_MS = 8000; // これを超えて応答がない場合は打ち切って再試行する
+/**
+ * リトライ設定はactionごとに変える。
+ * 実行ログを確認したところ、GASの応答が来ない原因は「配信経路が詰まる」
+ * だけでなく、書き込み系(saveStaff)がスプレッドシートへの同時アクセスで
+ * 詰まって「実行中」のまま長く止まることがあると分かった。
+ * クライアント側でタイムアウトさせて中断しても、GAS側の実行そのものは
+ * 止まらず裏で動き続けるため、書き込み系を短い間隔で何度もリトライすると
+ * 同時実行が積み重なって余計に詰まりやすくなる。
+ * そのため、読み取り系(init/listStaff/getStaffDetail)は短いタイムアウトで
+ * 素早く何度もリトライし、書き込み系(saveStaff)は長めに1回だけ待って、
+ * リトライするにしても間隔を大きく空ける。
+ * （saveStaff自体はCode.gs側でLockServiceによる排他制御を追加済み）
+ */
+const API_CONFIG = {
+  default: { timeoutMs: 8000, retryCount: 3, retryDelayMs: 400 },
+  saveStaff: { timeoutMs: 25000, retryCount: 1, retryDelayMs: 4000 },
+};
 
 function _sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * GASのdoPost自体は実行ログ上ほぼ常に2〜3秒台で完了しているにもかかわらず、
- * fetchのレスポンスがブラウザまで届かず止まる、あるいはJSONの代わりに
- * 中間的なHTMLページ（<!DOCTYPE...）が返ることがある。実行そのものは
- * 遅くないので、長く待つより短い間隔ですばやく何度も再試行したほうが
- * 詰まった配信経路を回避しやすい。saveStaffは同じ内容を再送しても
- * 安全（差分更新のため）。
- */
-function _callApiOnce(action, payload) {
+function _callApiOnce(action, payload, timeoutMs) {
   const body = Object.assign({ action: action, lineUserId: state.lineUserId }, payload || {});
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   return fetch(API_URL, {
     method: 'POST',
@@ -251,7 +257,7 @@ function _callApiOnce(action, payload) {
     })
     .catch((err) => {
       if (err && err.name === 'AbortError') {
-        throw new Error('サーバーからの応答がタイムアウトしました（GASの起動待ちの可能性があります）');
+        throw new Error('サーバーからの応答がタイムアウトしました（GASが混み合っている可能性があります。少し待ってからもう一度お試しください）');
       }
       throw err;
     })
@@ -260,9 +266,10 @@ function _callApiOnce(action, payload) {
 
 function callApi(action, payload, attempt) {
   attempt = attempt || 0;
-  return _callApiOnce(action, payload).catch((err) => {
-    if (attempt < API_RETRY_COUNT) {
-      return _sleep(API_RETRY_DELAY_MS).then(() => callApi(action, payload, attempt + 1));
+  const cfg = API_CONFIG[action] || API_CONFIG.default;
+  return _callApiOnce(action, payload, cfg.timeoutMs).catch((err) => {
+    if (attempt < cfg.retryCount) {
+      return _sleep(cfg.retryDelayMs).then(() => callApi(action, payload, attempt + 1));
     }
     throw err;
   });
