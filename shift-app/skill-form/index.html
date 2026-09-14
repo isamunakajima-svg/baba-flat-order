@@ -1,1 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>スタッフ技能登録</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root {
+    --brand: #2f5233;
+    --brand-light: #e8f0e9;
+    --border: #dcdcdc;
+    --text: #222;
+    --muted: #888;
+    --danger: #c0392b;
+    --bg: #fafafa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 80px;
+  }
+  header {
+    background: var(--brand);
+    color: #fff;
+    padding: 14px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  header .back {
+    cursor: pointer;
+    font-size: 20px;
+    padding: 0 6px;
+    visibility: hidden;
+  }
+  header .back.show { visibility: visible; }
+  header h1 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 600;
+  }
+  main { padding: 16px; max-width: 480px; margin: 0 auto; }
+  .card {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .center { text-align: center; color: var(--muted); padding: 40px 16px; }
+  .staff-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+  .staff-row + .staff-row { margin-top: 8px; }
+  .staff-name { font-weight: 600; font-size: 15px; }
+  .staff-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #fdecea;
+    color: var(--danger);
+    white-space: nowrap;
+  }
+  .badge.ok {
+    background: var(--brand-light);
+    color: var(--brand);
+  }
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin: 14px 0 4px;
+  }
+  input[type="month"], input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 15px;
+  }
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .chip {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    background: #fff;
+  }
+  .chip.selected { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .position-row {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 8px;
+  }
+  .position-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .position-head input { width: 18px; height: 18px; }
+  .position-name { font-weight: 600; font-size: 14px; flex: 1; }
+  .level-group {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    padding-left: 28px;
+  }
+  .level-btn {
+    flex: 1;
+    text-align: center;
+    padding: 7px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    background: #fff;
+  }
+  .level-btn.selected { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .save-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #fff;
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    justify-content: center;
+  }
+  button.primary {
+    width: 100%;
+    max-width: 480px;
+    padding: 13px;
+    background: var(--brand);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  button.primary:disabled { background: #aaa; }
+  .error { color: var(--danger); font-size: 13px; margin-top: 10px; }
+  .toast {
+    position: fixed;
+    top: 60px; left: 50%; transform: translateX(-50%);
+    background: var(--brand);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    z-index: 20;
+  }
+</style>
+</head>
+<body>
 
+<header>
+  <span class="back" id="backBtn">&#8592;</span>
+  <h1 id="pageTitle">スタッフ技能登録</h1>
+</header>
+
+<main id="app">
+  <div class="center">読み込み中…</div>
+</main>
+
+<script>
+/* ============================================================
+ * 設定（デプロイ後に書き換えてください）
+ * ============================================================ */
+const LIFF_ID = '2011586009-0t8WD3cZ'; // LINE Developersコンソールで発行したLIFF ID
+const API_URL = 'https://script.google.com/macros/s/AKfycbyh7FGimf-hrFRNXDm90gpLaCZb-IGP6EaAQDlBbQ9_oXYL6OEll0eUiv89CQ7Y3VZ0qg/exec'; // GASをWebアプリとしてデプロイしたときのURL
+
+const POSITION_LEVELS = ['初級', '中級', '上級'];
+
+/* ============================================================
+ * 状態
+ * ============================================================ */
+const state = {
+  lineUserId: null,
+  manager: null,
+  staffList: [],
+  currentDetail: null, // 編集中のスタッフ詳細（フォーム状態を保持）
+  screen: 'loading', // loading | unauthorized | error | list | detail | saved
+  errorMessage: '',
+};
+
+const appEl = document.getElementById('app');
+const pageTitleEl = document.getElementById('pageTitle');
+const backBtn = document.getElementById('backBtn');
+
+backBtn.addEventListener('click', () => {
+  if (state.screen === 'detail') {
+    goToList();
+  }
+});
+
+/* ============================================================
+ * API呼び出し
+ * ============================================================ */
+function callApi(action, payload) {
+  const body = Object.assign({ action: action, lineUserId: state.lineUserId }, payload || {});
+  return fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // GAS doPostのCORS対策で text/plain を使う
+    body: JSON.stringify(body),
+  })
+    .then((res) => res.json())
+    .then((json) => {
+      if (!json.ok) throw new Error(json.error || '不明なエラーが発生しました');
+      return json.data;
+    });
+}
+
+/* ============================================================
+ * 初期化
+ * ============================================================ */
+function init() {
+  if (!window.liff) {
+    showError('LIFF SDKの読み込みに失敗しました。通信環境を確認して再度お試しください。');
+    return;
+  }
+  liff
+    .init({ liffId: LIFF_ID })
+    .then(() => {
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+      return liff.getProfile().then((profile) => {
+        state.lineUserId = profile.userId;
+        return loadManagerContext();
+      });
+    })
+    .catch((err) => {
+      showError('LIFFの初期化に失敗しました: ' + err.message);
+    });
+}
+
+function loadManagerContext() {
+  return callApi('getManagerContext', {})
+    .then((ctx) => {
+      if (!ctx.authorized) {
+        state.screen = 'unauthorized';
+        render();
+        return;
+      }
+      state.manager = ctx;
+      return loadStaffList();
+    })
+    .catch((err) => showError(err.message));
+}
+
+function loadStaffList() {
+  return callApi('listStaff', {})
+    .then((data) => {
+      state.staffList = data.staffList;
+      state.manager = data.manager;
+      goToList();
+    })
+    .catch((err) => showError(err.message));
+}
+
+/* ============================================================
+ * 画面遷移
+ * ============================================================ */
+function goToList() {
+  state.screen = 'list';
+  state.currentDetail = null;
+  render();
+}
+
+function openStaff(staffId) {
+  state.screen = 'loading';
+  render();
+  callApi('getStaffDetail', { staffId: staffId })
+    .then((detail) => {
+      state.currentDetail = detail;
+      state.screen = 'detail';
+      render();
+    })
+    .catch((err) => showError(err.message));
+}
+
+function showError(message) {
+  state.screen = 'error';
+  state.errorMessage = message;
+  render();
+}
+
+/* ============================================================
+ * 保存
+ * ============================================================ */
+function submitSave() {
+  const d = state.currentDetail;
+  const payload = {
+    staffId: d.staffId,
+    data: {
+      joinedYm: d.joinedYm,
+      employmentType: d.employmentType,
+      helpStoreCodes: d.helpStoreCodes,
+      positions: d.positions.map((p) => ({ skillCode: p.skillCode, selected: p.selected, level: p.level })),
+    },
+  };
+  const btn = document.getElementById('saveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
+
+  callApi('saveStaff', payload)
+    .then(() => {
+      showToast(d.displayName + ' さんの技能を保存しました');
+      return loadStaffList();
+    })
+    .catch((err) => {
+      showError(err.message);
+    });
+}
+
+function showToast(text) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+/* ============================================================
+ * 描画
+ * ============================================================ */
+function render() {
+  backBtn.classList.toggle('show', state.screen === 'detail');
+
+  if (state.screen === 'loading') {
+    pageTitleEl.textContent = 'スタッフ技能登録';
+    appEl.innerHTML = '<div class="center">読み込み中…</div>';
+    return;
+  }
+
+  if (state.screen === 'unauthorized') {
+    pageTitleEl.textContent = 'スタッフ技能登録';
+    appEl.innerHTML = '<div class="center">このLINEアカウントには、スタッフ技能を登録する権限がありません。<br>店舗責任者権限の設定については全体管理者にご確認ください。</div>';
+    return;
+  }
+
+  if (state.screen === 'error') {
+    pageTitleEl.textContent = 'エラー';
+    appEl.innerHTML = '<div class="card"><div class="error">' + escapeHtml(state.errorMessage) + '</div></div>';
+    return;
+  }
+
+  if (state.screen === 'list') {
+    renderList();
+    return;
+  }
+
+  if (state.screen === 'detail') {
+    renderDetail();
+    return;
+  }
+}
+
+function renderList() {
+  pageTitleEl.textContent = (state.manager ? state.manager.displayName + 'さんの担当店舗' : 'スタッフ技能登録');
+
+  if (state.staffList.length === 0) {
+    appEl.innerHTML = '<div class="center">担当店舗に対象のスタッフがいません。</div>';
+    return;
+  }
+
+  const rows = state.staffList
+    .map((s) => {
+      const badge = s.hasNoSkills
+        ? '<span class="badge">未登録</span>'
+        : '<span class="badge ok">' + s.skillCount + 'ポジション</span>';
+      return (
+        '<div class="staff-row" data-staff-id="' + escapeHtml(s.staffId) + '">' +
+        '<div><div class="staff-name">' + escapeHtml(s.displayName) + '</div>' +
+        '<div class="staff-sub">' + escapeHtml(s.storeCode) + '</div></div>' +
+        badge +
+        '</div>'
+      );
+    })
+    .join('');
+
+  appEl.innerHTML = '<div class="card">' + rows + '</div>';
+
+  appEl.querySelectorAll('.staff-row').forEach((el) => {
+    el.addEventListener('click', () => openStaff(el.getAttribute('data-staff-id')));
+  });
+}
+
+function renderDetail() {
+  const d = state.currentDetail;
+  pageTitleEl.textContent = d.displayName;
+
+  const helpChips = d.allStores
+    .filter((st) => st.code !== d.storeCode)
+    .map((st) => {
+      const selected = d.helpStoreCodes.indexOf(st.code) !== -1;
+      return (
+        '<span class="chip' + (selected ? ' selected' : '') + '" data-store-code="' + escapeHtml(st.code) + '">' +
+        escapeHtml(st.name) + '</span>'
+      );
+    })
+    .join('');
+
+  const positionRows = d.positions
+    .map((p, idx) => {
+      const levelBtns = POSITION_LEVELS
+        .map((lv) => {
+          const selected = p.level === lv;
+          return (
+            '<span class="level-btn' + (selected ? ' selected' : '') + '" data-idx="' + idx + '" data-level="' + lv + '">' +
+            lv + '</span>'
+          );
+        })
+        .join('');
+      return (
+        '<div class="position-row">' +
+        '<div class="position-head" data-idx="' + idx + '">' +
+        '<input type="checkbox" data-idx="' + idx + '" ' + (p.selected ? 'checked' : '') + '>' +
+        '<span class="position-name">' + escapeHtml(p.skillName) + '</span>' +
+        '</div>' +
+        (p.selected ? '<div class="level-group">' + levelBtns + '</div>' : '') +
+        '</div>'
+      );
+    })
+    .join('');
+
+  appEl.innerHTML =
+    '<div class="card">' +
+    '<label class="field-label">入社年月</label>' +
+    '<input type="month" id="joinedYm" value="' + escapeAttr(monthInputValue(d.joinedYm)) + '">' +
+
+    '<label class="field-label">雇用形態</label>' +
+    '<input type="text" id="employmentType" value="' + escapeAttr(d.employmentType || '') + '" placeholder="例: アルバイト、社員">' +
+
+    '<label class="field-label">応援可能店舗（複数選択可）</label>' +
+    '<div class="chip-group" id="helpStoreChips">' + (helpChips || '<span class="staff-sub">他に選べる店舗がありません</span>') + '</div>' +
+
+    '<label class="field-label">できるポジション（習熟レベルもあわせて選択）</label>' +
+    '<div id="positionList">' + positionRows + '</div>' +
+    '</div>' +
+
+    '<div class="save-bar"><button class="primary" id="saveBtn">保存する</button></div>';
+
+  // 応援可能店舗チップ
+  appEl.querySelectorAll('#helpStoreChips .chip').forEach((el) => {
+    el.addEventListener('click', () => {
+      const code = el.getAttribute('data-store-code');
+      const idx = d.helpStoreCodes.indexOf(code);
+      if (idx === -1) d.helpStoreCodes.push(code);
+      else d.helpStoreCodes.splice(idx, 1);
+      renderDetail();
+    });
+  });
+
+  // ポジションのチェックボックス
+  appEl.querySelectorAll('#positionList input[type="checkbox"]').forEach((el) => {
+    el.addEventListener('change', () => {
+      const idx = Number(el.getAttribute('data-idx'));
+      d.positions[idx].selected = el.checked;
+      if (el.checked && !d.positions[idx].level) {
+        d.positions[idx].level = '初級'; // 初回選択時のデフォルト
+      }
+      renderDetail();
+    });
+  });
+
+  // 習熟レベルボタン
+  appEl.querySelectorAll('.level-btn').forEach((el) => {
+    el.addEventListener('click', () => {
+      const idx = Number(el.getAttribute('data-idx'));
+      d.positions[idx].level = el.getAttribute('data-level');
+      renderDetail();
+    });
+  });
+
+  document.getElementById('joinedYm').addEventListener('change', (e) => { d.joinedYm = e.target.value; });
+  document.getElementById('employmentType').addEventListener('input', (e) => { d.employmentType = e.target.value; });
+
+  document.getElementById('saveBtn').addEventListener('click', submitSave);
+}
+
+/* ============================================================
+ * ユーティリティ
+ * ============================================================ */
+function monthInputValue(joinedYm) {
+  // '2024-04' や '2024/04' などを <input type="month"> が読める 'YYYY-MM' に正規化
+  if (!joinedYm) return '';
+  const m = String(joinedYm).match(/(\d{4})[^\d]?(\d{1,2})/);
+  if (!m) return '';
+  return m[1] + '-' + ('0' + m[2]).slice(-2);
+}
+
+function escapeHtml(str) {
+  return String(str == null ? '' : str).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+function escapeAttr(str) { return escapeHtml(str); }
+
+init();
+</script>
+</body>
+</html>
