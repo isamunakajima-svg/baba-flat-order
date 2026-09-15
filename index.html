@@ -288,6 +288,7 @@
     // 商品リスト（アコーディオン）で現在開いている配送日
     let activeAccordionDate = null;
 
+    let _isSubmittingOrder = false; // ★2026/09/15追加: 二重タップ等でsendDataToGasが多重に呼ばれるのを防ぐガード
     let historyData       = [];
     let blockedDates     = [];
     let weekdayWarnDates = []; // 店舗別「通常は納品しない曜日」（要確認・選択自体は可能）
@@ -1440,217 +1441,231 @@
     //  GASへのデータ送信 → 複数配送日分を1回のリクエストで送る
     // ============================================================
     async function sendDataToGas(orders, notes, grandTotal) {
-      const spinner   = document.getElementById('loading-spinner');
-      const submitBtn = document.getElementById('submit-btn');
-
-      // ★追加: 送信中はボタンを無効化して二重送信を防ぐ
-      spinner.classList.remove('hidden');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      if (_isSubmittingOrder) {
+        console.warn("送信処理が既に実行中のため、二重送信をブロックしました。");
+        return;
       }
+      _isSubmittingOrder = true;
+      try {
+        const spinner   = document.getElementById('loading-spinner');
+        const submitBtn = document.getElementById('submit-btn');
 
-      // ★送信完了・エラー時にボタンを再有効化するヘルパー
-      const _enableBtn = () => {
+        // ★追加: 送信中はボタンを無効化して二重送信を防ぐ
+        spinner.classList.remove('hidden');
         if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          submitBtn.disabled = true;
+          submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
         }
-      };
 
-      const url = GAS_WEB_APP_URL
-        + "?action=submitOrder"
-        + "&shopCode=" + encodeURIComponent(shopCode)
-        + "&userId="   + encodeURIComponent(userProfile.userId)
-        + "&notes="    + encodeURIComponent(notes)
-        + "&orders="   + encodeURIComponent(JSON.stringify(orders));
+        // ★送信完了・エラー時にボタンを再有効化するヘルパー
+        const _enableBtn = () => {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+          }
+        };
 
-      const maxRetries = 3;
-      let delay = 1500;
+        const requestId = (window.crypto && window.crypto.randomUUID)
+          ? window.crypto.randomUUID()
+          : ("req-" + Date.now() + "-" + Math.random().toString(36).slice(2));
 
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
-          if (data.status !== "success") throw new Error(data.message || "サーバーエラーが発生しました。");
+        const url = GAS_WEB_APP_URL
+          + "?action=submitOrder"
+          + "&shopCode=" + encodeURIComponent(shopCode)
+          + "&userId="   + encodeURIComponent(userProfile.userId)
+          + "&notes="    + encodeURIComponent(notes)
+          + "&requestId=" + encodeURIComponent(requestId)
+          + "&orders="   + encodeURIComponent(JSON.stringify(orders));
 
-          const DAYS_JP  = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-          const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
+        const maxRetries = 3;
+        let delay = 1500;
 
-          const dateBlocks = [];
-          orders.forEach(o => {
-            const d = new Date(o.deliveryDate + "T00:00:00");
-            dateBlocks.push({
-              type: "text",
-              text: `📅 ${o.deliveryDate}${DAYS_JP[d.getDay()]}`,
-              size: "sm", weight: "bold", color: "#92400e", margin: "md"
-            });
-            let dateExTax = 0;
-            o.items.forEach(item => {
-              dateExTax += Number(item.subtotal || 0);
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
+            if (data.status !== "success") throw new Error(data.message || "サーバーエラーが発生しました。");
+
+            const DAYS_JP  = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+            const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
+
+            const dateBlocks = [];
+            orders.forEach(o => {
+              const d = new Date(o.deliveryDate + "T00:00:00");
               dateBlocks.push({
-                type: "box", layout: "baseline", margin: "xs",
+                type: "text",
+                text: `📅 ${o.deliveryDate}${DAYS_JP[d.getDay()]}`,
+                size: "sm", weight: "bold", color: "#92400e", margin: "md"
+              });
+              let dateExTax = 0;
+              o.items.forEach(item => {
+                dateExTax += Number(item.subtotal || 0);
+                dateBlocks.push({
+                  type: "box", layout: "baseline", margin: "xs",
+                  contents: [
+                    { type: "text", text: `・${item.productName}`, size: "xs", color: "#333333", flex: 4, wrap: true },
+                    { type: "text", text: `× ${item.quantity}個`, size: "xs", color: "#333333", flex: 2, align: "end" },
+                    { type: "text", text: `¥${item.subtotal.toLocaleString()}`, size: "xs", color: "#666666", flex: 2, align: "end" }
+                  ]
+                });
+              });
+              const dateTax       = Math.floor(dateExTax * 0.08);
+              const dateTotalInTax = dateExTax + dateTax;
+              dateBlocks.push({
+                type: "box", layout: "baseline", margin: "sm",
                 contents: [
-                  { type: "text", text: `・${item.productName}`, size: "xs", color: "#333333", flex: 4, wrap: true },
-                  { type: "text", text: `× ${item.quantity}個`, size: "xs", color: "#333333", flex: 2, align: "end" },
-                  { type: "text", text: `¥${item.subtotal.toLocaleString()}`, size: "xs", color: "#666666", flex: 2, align: "end" }
+                  { type: "text", text: "この日の税込合計", size: "xs", color: "#888888", flex: 3 },
+                  { type: "text", text: `¥${dateTotalInTax.toLocaleString()}`, size: "xs", color: "#b45309", flex: 3, align: "end", weight: "bold" }
                 ]
               });
             });
-            const dateTax       = Math.floor(dateExTax * 0.08);
-            const dateTotalInTax = dateExTax + dateTax;
-            dateBlocks.push({
-              type: "box", layout: "baseline", margin: "sm",
-              contents: [
-                { type: "text", text: "この日の税込合計", size: "xs", color: "#888888", flex: 3 },
-                { type: "text", text: `¥${dateTotalInTax.toLocaleString()}`, size: "xs", color: "#b45309", flex: 3, align: "end", weight: "bold" }
-              ]
-            });
-          });
 
-          if (notes) {
-            dateBlocks.push({ type: "text", text: `備考: ${notes}`, size: "xs", color: "#888888", margin: "md", wrap: true });
-          }
+            if (notes) {
+              dateBlocks.push({ type: "text", text: `備考: ${notes}`, size: "xs", color: "#888888", margin: "md", wrap: true });
+            }
 
-          const totalSummaryBlock = orders.length === 1
-            ? [
-                { type: "separator", margin: "md" },
-                {
-                  type: "box", layout: "baseline", margin: "md",
+            const totalSummaryBlock = orders.length === 1
+              ? [
+                  { type: "separator", margin: "md" },
+                  {
+                    type: "box", layout: "baseline", margin: "md",
+                    contents: [
+                      { type: "text", text: "税込合計", size: "sm", color: "#333333", flex: 3, weight: "bold" },
+                      { type: "text", text: `¥${grandTotal.toLocaleString()}`, size: "sm", color: "#b45309", flex: 3, align: "end", weight: "bold" }
+                    ]
+                  }
+                ]
+              : [];
+
+            const confirmFlex = {
+              type: "flex",
+              altText: `【ご注文ありがとうございます】${data.shopName}様 / ${orders.length}日分`,
+              contents: {
+                type: "bubble",
+                styles: { header: { backgroundColor: "#92400e" } },
+                header: {
+                  type: "box",
+                  layout: "vertical",
                   contents: [
-                    { type: "text", text: "税込合計", size: "sm", color: "#333333", flex: 3, weight: "bold" },
-                    { type: "text", text: `¥${grandTotal.toLocaleString()}`, size: "sm", color: "#b45309", flex: 3, align: "end", weight: "bold" }
+                    { type: "text", text: "🍞 ご注文ありがとうございます", color: "#ffffff", size: "sm", weight: "bold" }
+                  ]
+                },
+                body: {
+                  type: "box",
+                  layout: "vertical",
+                  spacing: "sm",
+                  contents: [
+                    {
+                      type: "box", layout: "baseline",
+                      contents: [
+                        { type: "text", text: "店舗名", size: "xs", color: "#888888", flex: 2 },
+                        { type: "text", text: `${data.shopName}様`, size: "sm", color: "#333333", flex: 5, weight: "bold", wrap: true }
+                      ]
+                    },
+                    { type: "separator", margin: "md" },
+                    ...dateBlocks,
+                    ...totalSummaryBlock
+                  ]
+                },
+                footer: {
+                  type: "box",
+                  layout: "vertical",
+                  contents: [
+                    {
+                      type: "button",
+                      style: "primary",
+                      color: "#b45309",
+                      height: "sm",
+                      action: { type: "uri", label: "📋 次回の発注はこちら", uri: orderUrl }
+                    }
                   ]
                 }
-              ]
-            : [];
-
-          const confirmFlex = {
-            type: "flex",
-            altText: `【ご注文ありがとうございます】${data.shopName}様 / ${orders.length}日分`,
-            contents: {
-              type: "bubble",
-              styles: { header: { backgroundColor: "#92400e" } },
-              header: {
-                type: "box",
-                layout: "vertical",
-                contents: [
-                  { type: "text", text: "🍞 ご注文ありがとうございます", color: "#ffffff", size: "sm", weight: "bold" }
-                ]
-              },
-              body: {
-                type: "box",
-                layout: "vertical",
-                spacing: "sm",
-                contents: [
-                  {
-                    type: "box", layout: "baseline",
-                    contents: [
-                      { type: "text", text: "店舗名", size: "xs", color: "#888888", flex: 2 },
-                      { type: "text", text: `${data.shopName}様`, size: "sm", color: "#333333", flex: 5, weight: "bold", wrap: true }
-                    ]
-                  },
-                  { type: "separator", margin: "md" },
-                  ...dateBlocks,
-                  ...totalSummaryBlock
-                ]
-              },
-              footer: {
-                type: "box",
-                layout: "vertical",
-                contents: [
-                  {
-                    type: "button",
-                    style: "primary",
-                    color: "#b45309",
-                    height: "sm",
-                    action: { type: "uri", label: "📋 次回の発注はこちら", uri: orderUrl }
-                  }
-                ]
               }
-            }
-          };
+            };
 
-          let lineSendSuccess = false;
-          if (liff.isInClient()) {
-            try {
-              await liff.sendMessages([confirmFlex]);
-              console.log("LINE送信成功");
-              lineSendSuccess = true;
-            } catch (le) {
-              console.warn("LINE送信失敗:", le);
-              _reportLineSendFailure(shopCode, data.batchId, "発注確認", (le && le.message) ? le.message : String(le));
+            let lineSendSuccess = false;
+            if (liff.isInClient()) {
+              try {
+                await liff.sendMessages([confirmFlex]);
+                console.log("LINE送信成功");
+                lineSendSuccess = true;
+              } catch (le) {
+                console.warn("LINE送信失敗:", le);
+                _reportLineSendFailure(shopCode, data.batchId, "発注確認", (le && le.message) ? le.message : String(le));
 
-              // ★追加: liff.sendMessages()失敗時、店舗固有グループIDへGAS経由でフォールバック通知
-              //   ★変更: data.orders（サーバー側の簡易情報）ではなく、ローカルのordersを使い、
-              //     通常のFlexメッセージと同じ商品明細（商品名・数量・配送料）を本文に含める
-              if (data.shopGroupId) {
-                const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-                let orderDetailText = "";
-                orders.forEach(o => {
-                  const d = new Date(o.deliveryDate + "T00:00:00");
-                  orderDetailText += `\n■ ${o.deliveryDate}${DAYS_JP[d.getDay()]}\n`;
-                  o.items.forEach(item => {
-                    if (item.productId === "delivery") {
-                      orderDetailText += `　・${item.productName} ¥${item.price.toLocaleString()}（税抜）\n`;
-                    } else {
-                      orderDetailText += `　・${item.productName} × ${item.quantity}個\n`;
-                    }
+                // ★追加: liff.sendMessages()失敗時、店舗固有グループIDへGAS経由でフォールバック通知
+                //   ★変更: data.orders（サーバー側の簡易情報）ではなく、ローカルのordersを使い、
+                //     通常のFlexメッセージと同じ商品明細（商品名・数量・配送料）を本文に含める
+                if (data.shopGroupId) {
+                  const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+                  let orderDetailText = "";
+                  orders.forEach(o => {
+                    const d = new Date(o.deliveryDate + "T00:00:00");
+                    orderDetailText += `\n■ ${o.deliveryDate}${DAYS_JP[d.getDay()]}\n`;
+                    o.items.forEach(item => {
+                      if (item.productId === "delivery") {
+                        orderDetailText += `　・${item.productName} ¥${item.price.toLocaleString()}（税抜）\n`;
+                      } else {
+                        orderDetailText += `　・${item.productName} × ${item.quantity}個\n`;
+                      }
+                    });
                   });
-                });
-                const fallbackMsg = encodeURIComponent(_capMessageForUrlFallback(
-                  `【ご注文を受け付けました】\n\n${data.shopName}様\n${orderDetailText}\n税込合計: ¥${grandTotal.toLocaleString()}\n\nご注文内容は発注画面の「注文履歴」タブからもご確認いただけます。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`,
-                  3500
-                ));
-                try {
-                  const fbRes = await fetch(
-                    `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
-                    { method: 'GET', redirect: 'follow' }
-                  );
-                  // ★2026/08/19修正: 以前はfetch自体が例外を投げない限り「成功」扱いにしていたが、
-                  //   GAS側は失敗時もHTTP 200 + {status:"error"}を返すため、レスポンス本文を
-                  //   見ていないと実際には届いていなくても気づけなかった。ここでstatusを確認し、
-                  //   失敗時は管理者への報告（_reportLineSendFailure）も行う。
-                  const fbData = await fbRes.json();
-                  if (fbData.status === "success") {
-                    console.log("店舗グループへフォールバック通知を送信しました");
-                  } else {
-                    console.warn("フォールバック通知が失敗を返しました:", fbData.message);
-                    _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", fbData.message || "不明なエラー");
+                  const fallbackMsg = encodeURIComponent(_capMessageForUrlFallback(
+                    `【ご注文を受け付けました】\n\n${data.shopName}様\n${orderDetailText}\n税込合計: ¥${grandTotal.toLocaleString()}\n\nご注文内容は発注画面の「注文履歴」タブからもご確認いただけます。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`,
+                    3500
+                  ));
+                  try {
+                    const fbRes = await fetch(
+                      `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
+                      { method: 'GET', redirect: 'follow' }
+                    );
+                    // ★2026/08/19修正: 以前はfetch自体が例外を投げない限り「成功」扱いにしていたが、
+                    //   GAS側は失敗時もHTTP 200 + {status:"error"}を返すため、レスポンス本文を
+                    //   見ていないと実際には届いていなくても気づけなかった。ここでstatusを確認し、
+                    //   失敗時は管理者への報告（_reportLineSendFailure）も行う。
+                    const fbData = await fbRes.json();
+                    if (fbData.status === "success") {
+                      console.log("店舗グループへフォールバック通知を送信しました");
+                    } else {
+                      console.warn("フォールバック通知が失敗を返しました:", fbData.message);
+                      _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", fbData.message || "不明なエラー");
+                    }
+                  } catch(fe) {
+                    console.warn("フォールバック通知も失敗:", fe);
+                    _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
                   }
-                } catch(fe) {
-                  console.warn("フォールバック通知も失敗:", fe);
-                  _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
                 }
               }
             }
-          }
 
-          historyData   = [];
-          selectedDates = [];
-          cartByDate    = {};
-          spinner.classList.add('hidden');
-          _enableBtn();
-
-          const orderIdsText = (data.orders || []).map(o => o.orderId).join(", ") || data.batchId;
-
-          if (lineSendSuccess) {
-            showModal("発注完了 ✅", `発注番号: ${orderIdsText}\n店舗名: ${data.shopName}様\n\n${orders.length}日分のご注文を受け付けました！\nLINEグループに明細を投稿しました。`, "success");
-          } else {
-            showModal("発注完了（グループ通知は未送信）", `発注番号: ${orderIdsText}\n店舗名: ${data.shopName}様\n\nご注文自体は正常に受け付けられました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、この画面をLINEグループのトーク内から開き直してご確認いただくか、担当者へ発注内容をご一報ください。`, "info");
-          }
-          _resetOkBtn(() => { closeModal(); location.reload(); });
-          return;
-
-        } catch (error) {
-          if (attempt === maxRetries) {
+            historyData   = [];
+            selectedDates = [];
+            cartByDate    = {};
             spinner.classList.add('hidden');
             _enableBtn();
-            showModal("送信エラー", `送信に失敗しました。\n\n${error.message}\n\n電波の良い場所で再度お試しください。`, "error");
+
+            const orderIdsText = (data.orders || []).map(o => o.orderId).join(", ") || data.batchId;
+
+            if (lineSendSuccess) {
+              showModal("発注完了 ✅", `発注番号: ${orderIdsText}\n店舗名: ${data.shopName}様\n\n${orders.length}日分のご注文を受け付けました！\nLINEグループに明細を投稿しました。`, "success");
+            } else {
+              showModal("発注完了（グループ通知は未送信）", `発注番号: ${orderIdsText}\n店舗名: ${data.shopName}様\n\nご注文自体は正常に受け付けられました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、この画面をLINEグループのトーク内から開き直してご確認いただくか、担当者へ発注内容をご一報ください。`, "info");
+            }
+            _resetOkBtn(() => { closeModal(); location.reload(); });
             return;
+
+          } catch (error) {
+            if (attempt === maxRetries) {
+              spinner.classList.add('hidden');
+              _enableBtn();
+              showModal("送信エラー", `送信に失敗しました。\n\n${error.message}\n\n電波の良い場所で再度お試しください。`, "error");
+              return;
+            }
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
           }
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2;
         }
+      } finally {
+        _isSubmittingOrder = false;
       }
     }
   </script>
