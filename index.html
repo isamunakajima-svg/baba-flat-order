@@ -994,33 +994,33 @@
           } catch (le) {
             console.warn("LINE送信スキップ:", le);
             _reportLineSendFailure(shopCode, orderId, "キャンセル確認", (le && le.message) ? le.message : String(le));
+          }
+        } else {
+          console.warn("LIFFがLINEアプリ内で開かれていないため、通常のLINE送信をスキップしました。フォールバック通知を試みます。");
+        }
 
-            // ★新規追加: liff.sendMessages()失敗時、店舗固有グループIDへGAS経由でフォールバック通知
-            //   （submitOrder側と同じパターン）
-            if (data.shopGroupId) {
-              const fallbackMsg = encodeURIComponent(_capMessageForUrlFallback(
-                `【注文キャンセルのご連絡】\n店舗: ${data.shopName}様\n納品希望日: ${data.deliveryDate}\n発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\n上記の注文をキャンセルしました。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`,
-                3500
-              ));
-              try {
-                const fbRes = await fetch(
-                  `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
-                  { method: 'GET', redirect: 'follow' }
-                );
-                // ★2026/08/19修正: レスポンス本文のstatusを確認しないと、GAS側が
-                //   {status:"error"}を返すだけの失敗（HTTP自体は200）に気づけない。
-                const fbData = await fbRes.json();
-                if (fbData.status === "success") {
-                  console.log("店舗グループへキャンセルのフォールバック通知を送信しました");
-                } else {
-                  console.warn("キャンセルのフォールバック通知が失敗を返しました:", fbData.message);
-                  _reportLineSendFailure(shopCode, orderId, "キャンセル確認フォールバック", fbData.message || "不明なエラー");
-                }
-              } catch (fe) {
-                console.warn("キャンセルのフォールバック通知も失敗:", fe);
-                _reportLineSendFailure(shopCode, orderId, "キャンセル確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
-              }
+        // ★2026/09/15修正: submitOrder側と同様、「LINEアプリ内で送信を試みて失敗した場合」だけでなく
+        //   「そもそもLINEアプリ内と判定されなかった場合」も同じフォールバック通知を試みるように統一。
+        if (!cancelLineSendSuccess && data.shopGroupId) {
+          const fallbackMsg = encodeURIComponent(_capMessageForUrlFallback(
+            `【注文キャンセルのご連絡】\n店舗: ${data.shopName}様\n納品希望日: ${data.deliveryDate}\n発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\n上記の注文をキャンセルしました。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`,
+            3500
+          ));
+          try {
+            const fbRes = await fetch(
+              `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
+              { method: 'GET', redirect: 'follow' }
+            );
+            const fbData = await fbRes.json();
+            if (fbData.status === "success") {
+              console.log("店舗グループへキャンセルのフォールバック通知を送信しました");
+            } else {
+              console.warn("キャンセルのフォールバック通知が失敗を返しました:", fbData.message);
+              _reportLineSendFailure(shopCode, orderId, "キャンセル確認フォールバック", fbData.message || "不明なエラー");
             }
+          } catch (fe) {
+            console.warn("キャンセルのフォールバック通知も失敗:", fe);
+            _reportLineSendFailure(shopCode, orderId, "キャンセル確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
           }
         }
 
@@ -1591,49 +1591,51 @@
               } catch (le) {
                 console.warn("LINE送信失敗:", le);
                 _reportLineSendFailure(shopCode, data.batchId, "発注確認", (le && le.message) ? le.message : String(le));
+              }
+            } else {
+              console.warn("LIFFがLINEアプリ内で開かれていないため、通常のLINE送信をスキップしました。フォールバック通知を試みます。");
+            }
 
-                // ★追加: liff.sendMessages()失敗時、店舗固有グループIDへGAS経由でフォールバック通知
-                //   ★変更: data.orders（サーバー側の簡易情報）ではなく、ローカルのordersを使い、
-                //     通常のFlexメッセージと同じ商品明細（商品名・数量・配送料）を本文に含める
-                if (data.shopGroupId) {
-                  const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-                  let orderDetailText = "";
-                  orders.forEach(o => {
-                    const d = new Date(o.deliveryDate + "T00:00:00");
-                    orderDetailText += `\n■ ${o.deliveryDate}${DAYS_JP[d.getDay()]}\n`;
-                    o.items.forEach(item => {
-                      if (item.productId === "delivery") {
-                        orderDetailText += `　・${item.productName} ¥${item.price.toLocaleString()}（税抜）\n`;
-                      } else {
-                        orderDetailText += `　・${item.productName} × ${item.quantity}個\n`;
-                      }
-                    });
-                  });
-                  const fallbackMsg = encodeURIComponent(_capMessageForUrlFallback(
-                    `【ご注文を受け付けました】\n\n${data.shopName}様\n${orderDetailText}\n税込合計: ¥${grandTotal.toLocaleString()}\n\nご注文内容は発注画面の「注文履歴」タブからもご確認いただけます。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`,
-                    3500
-                  ));
-                  try {
-                    const fbRes = await fetch(
-                      `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
-                      { method: 'GET', redirect: 'follow' }
-                    );
-                    // ★2026/08/19修正: 以前はfetch自体が例外を投げない限り「成功」扱いにしていたが、
-                    //   GAS側は失敗時もHTTP 200 + {status:"error"}を返すため、レスポンス本文を
-                    //   見ていないと実際には届いていなくても気づけなかった。ここでstatusを確認し、
-                    //   失敗時は管理者への報告（_reportLineSendFailure）も行う。
-                    const fbData = await fbRes.json();
-                    if (fbData.status === "success") {
-                      console.log("店舗グループへフォールバック通知を送信しました");
-                    } else {
-                      console.warn("フォールバック通知が失敗を返しました:", fbData.message);
-                      _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", fbData.message || "不明なエラー");
-                    }
-                  } catch(fe) {
-                    console.warn("フォールバック通知も失敗:", fe);
-                    _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
+            // ★2026/09/15修正: 以前は「LINEアプリ内で送信を試みて失敗した場合」しかフォールバック通知
+            //   （notifyShopGroup経由のテキスト送信）を行っていなかった。そのため、LINEアプリ内と
+            //   判定されなかったケース（ブックマークやホーム画面への追加など、LINEのトークの
+            //   「次回の発注はこちらから」ボタンを経由せずに開かれた場合）は、通常送信もフォール
+            //   バックも一切試みられず、グループへの通知が完全に無音でスキップされてしまっていた
+            //   （実際に原宿店でこの症状が発生し、常に「グループ通知は未送信」になっていた）。
+            //   ここを「通常送信が成功しなかった場合は理由を問わず必ずフォールバックを試みる」形に統一する。
+            if (!lineSendSuccess && data.shopGroupId) {
+              const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
+              let orderDetailText = "";
+              orders.forEach(o => {
+                const d = new Date(o.deliveryDate + "T00:00:00");
+                orderDetailText += `\n■ ${o.deliveryDate}${DAYS_JP[d.getDay()]}\n`;
+                o.items.forEach(item => {
+                  if (item.productId === "delivery") {
+                    orderDetailText += `　・${item.productName} ¥${item.price.toLocaleString()}（税抜）\n`;
+                  } else {
+                    orderDetailText += `　・${item.productName} × ${item.quantity}個\n`;
                   }
+                });
+              });
+              const fallbackMsg = encodeURIComponent(_capMessageForUrlFallback(
+                `【ご注文を受け付けました】\n\n${data.shopName}様\n${orderDetailText}\n税込合計: ¥${grandTotal.toLocaleString()}\n\nご注文内容は発注画面の「注文履歴」タブからもご確認いただけます。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`,
+                3500
+              ));
+              try {
+                const fbRes = await fetch(
+                  `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
+                  { method: 'GET', redirect: 'follow' }
+                );
+                const fbData = await fbRes.json();
+                if (fbData.status === "success") {
+                  console.log("店舗グループへフォールバック通知を送信しました");
+                } else {
+                  console.warn("フォールバック通知が失敗を返しました:", fbData.message);
+                  _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", fbData.message || "不明なエラー");
                 }
+              } catch(fe) {
+                console.warn("フォールバック通知も失敗:", fe);
+                _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
               }
             }
 
