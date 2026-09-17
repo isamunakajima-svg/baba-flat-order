@@ -1132,16 +1132,16 @@
                     <h3 class="font-bold text-slate-800 text-xs truncate">${p.name}</h3>
                     <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)${p.maxQty ? ` <span class="text-amber-500">・上限${p.maxQty}個</span>` : ''}</p>
                   </div>
-                  <div class="flex items-center gap-1 shrink-0">
-                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',-10)" class="h-7 px-1.5 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-[10px]">-10</button>
-                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',-1)" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
-                      <i class="fa-solid fa-minus text-xs"></i>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',-10)" class="h-9 px-2 rounded-lg bg-slate-200 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-300 active:scale-95 transition-all text-xs">-10</button>
+                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',-1)" class="w-10 h-10 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center hover:bg-slate-200 active:scale-95 transition-all">
+                      <i class="fa-solid fa-minus text-sm"></i>
                     </button>
-                    <span id="qty-${dateStr}-${p.id}" class="w-7 text-center font-bold text-sm">${qty}</span>
-                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',1)" class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-200 active:scale-95 transition-all">
-                      <i class="fa-solid fa-plus text-xs"></i>
+                    <span id="qty-${dateStr}-${p.id}" class="w-8 text-center font-bold text-base">${qty}</span>
+                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',1)" class="w-10 h-10 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-200 active:scale-95 transition-all">
+                      <i class="fa-solid fa-plus text-sm"></i>
                     </button>
-                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',10)" class="h-7 px-1.5 rounded-lg bg-amber-200 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-300 active:scale-95 transition-all text-[10px]">+10</button>
+                    <button onclick="changeQtyForDate('${dateStr}','${p.id}',10)" class="h-9 px-2 rounded-lg bg-amber-200 text-amber-800 font-bold flex items-center justify-center hover:bg-amber-300 active:scale-95 transition-all text-xs">+10</button>
                   </div>
                 </div>`);
             });
