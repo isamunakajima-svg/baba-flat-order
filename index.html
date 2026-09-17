@@ -290,6 +290,10 @@
 
     let _isSubmittingOrder = false; // ★2026/09/15追加: 二重タップ等でsendDataToGasが多重に呼ばれるのを防ぐガード
     let historyData       = [];
+    // ★2026/09/17追加: 発注カレンダー（order-cal-grid）に「発注済み」マークを付けるための、
+    //   すでに注文済み（キャンセル以外）の配送日一覧。注文履歴タブのhistoryDataとは別に保持し、
+    //   注文履歴タブを開いていなくても発注タブ表示時点でマークが出るようにする。
+    let orderedDates      = new Set();
     let blockedDates     = [];
     let weekdayWarnDates = []; // 店舗別「通常は納品しない曜日」（要確認・選択自体は可能）
     let isAdmin          = false;
@@ -483,6 +487,9 @@
         const isSelected = selectedDates.includes(dateStr);
         const isToday    = dateStr === todayStr;
         const dow        = new Date(orderCalYear, orderCalMonth, d).getDay();
+        // ★2026/09/17追加: この配送日にすでに（キャンセル以外の）注文が入っているか
+        const hasOrder   = orderedDates.has(dateStr);
+        const orderMark  = hasOrder ? '<span class="block text-[9px] leading-none mt-0.5">🍞</span>' : "";
 
         const cell = document.createElement('div');
 
@@ -497,16 +504,16 @@
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
           const isHoliday   = blockedDates.includes(dateStr);
           cell.className = `rounded-lg py-2 text-center text-xs font-semibold cursor-pointer hover:bg-red-50 transition-all ${textColor} ${todayBorder} opacity-50 ${isHoliday ? "bg-slate-100" : "bg-white"}`;
-          cell.innerHTML = `<span class="block">${d}</span>`;
+          cell.innerHTML = `<span class="block">${d}</span>${orderMark}`;
           cell.addEventListener('click', () => {
             showModal("注文期間外", "15日以降はご注文できません。", "error");
           });
         } else if (isBlocked) {
           cell.className = "rounded-lg py-2 text-center text-xs text-slate-300 bg-slate-100 cursor-not-allowed select-none";
-          cell.innerHTML = `<span class="block">${d}</span>`;
+          cell.innerHTML = `<span class="block">${d}</span>${orderMark}`;
         } else if (isSelected) {
           cell.className = "rounded-lg py-2 text-center text-xs bg-amber-500 text-white font-bold cursor-pointer";
-          cell.innerHTML = `<span class="block">${d}</span>`;
+          cell.innerHTML = `<span class="block">${d}</span>${orderMark}`;
           cell.addEventListener('click', () => {
             toggleDateSelection(dateStr);
           });
@@ -514,7 +521,7 @@
           const textColor   = dow === 0 ? "text-red-300" : dow === 6 ? "text-blue-300" : "text-slate-500";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
           cell.className = `rounded-lg py-2 text-center text-xs bg-slate-200 font-semibold cursor-pointer hover:bg-slate-300 active:bg-slate-300 transition-all ${textColor} ${todayBorder}`;
-          cell.innerHTML = `<span class="block">${d}</span>`;
+          cell.innerHTML = `<span class="block">${d}</span>${orderMark}`;
           cell.addEventListener('click', () => {
             _confirmWeekdayWarnDate(dateStr);
           });
@@ -522,7 +529,7 @@
           const textColor   = dow === 0 ? "text-red-500" : dow === 6 ? "text-blue-500" : "text-slate-800";
           const todayBorder = isToday ? "ring-2 ring-amber-400" : "";
           cell.className = `rounded-lg py-2 text-center text-xs bg-white shadow-sm font-bold cursor-pointer hover:bg-amber-50 hover:shadow active:bg-amber-100 transition-all ${textColor} ${todayBorder}`;
-          cell.innerHTML = `<span class="block">${d}</span>`;
+          cell.innerHTML = `<span class="block">${d}</span>${orderMark}`;
           cell.addEventListener('click', () => {
             toggleDateSelection(dateStr);
           });
@@ -606,6 +613,7 @@
           <div class="animate-spin rounded-full h-8 w-8 border-2 border-amber-500 border-t-transparent mx-auto mb-2"></div>
           店舗情報を読み込んでいます...
         </div>`;
+      refreshOrderedDates(); // ★2026/09/17追加: 発注カレンダーの「発注済み」マーク用データを並行して取得（結果を待たず進める）
       const ok = await loadProductsForDate(""); // 空文字＝サーバー側で今日日付を基準に取得
       if (ok) {
         renderProductAccordion();
@@ -616,6 +624,26 @@
             <p>店舗情報を読み込めませんでした。</p>
             <button onclick="initShopMeta()" class="mt-2 px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold">再読み込み</button>
           </div>`;
+      }
+    }
+
+    // ★2026/09/17追加: 発注カレンダーに「発注済み」マークを付けるため、
+    //   店舗の注文履歴から「キャンセルされていない配送日」の一覧だけを取得する。
+    //   注文履歴タブのloadHistory/historyDataとは独立して動かし、発注タブを開いている間も
+    //   常に最新の「発注済み日」がカレンダーに反映されるようにする。
+    //   （このリクエスト自体が失敗しても、発注済みマークが表示されないだけで発注自体は可能。）
+    async function refreshOrderedDates() {
+      if (!shopCode || !userProfile || !userProfile.userId) return;
+      try {
+        const url  = `${GAS_WEB_APP_URL}?action=getHistory&shopCode=${encodeURIComponent(shopCode)}&userId=${encodeURIComponent(userProfile.userId)}`;
+        const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
+        if (data.status !== "success") return;
+        orderedDates = new Set(
+          (data.history || []).filter(h => h.status !== "キャンセル").map(h => h.deliveryDate)
+        );
+        renderOrderCalendar();
+      } catch (error) {
+        console.warn("発注済み日付の取得に失敗しました（発注カレンダーのマーク表示のみに影響、発注自体は可能です）:", error);
       }
     }
 
@@ -1026,6 +1054,9 @@
 
         spinner.classList.add('hidden');
         historyData = [];
+        // ★2026/09/17追加: キャンセルによって発注カレンダーの「発注済み」マークも変わりうるため、
+        //   最新の注文状況をサーバーから再取得してマークを更新する。
+        refreshOrderedDates();
 
         if (cancelLineSendSuccess) {
           showModal("キャンセル完了", `発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\nキャンセルが完了しました。\nLINEグループに通知しました。`, "success");
@@ -1642,6 +1673,9 @@
             historyData   = [];
             selectedDates = [];
             cartByDate    = {};
+            // ★2026/09/17追加: 発注カレンダーの「発注済み」マークを、再取得を待たず今回の注文分だけ即座に反映
+            orders.forEach(o => orderedDates.add(o.deliveryDate));
+            renderOrderCalendar();
             spinner.classList.add('hidden');
             _enableBtn();
 
