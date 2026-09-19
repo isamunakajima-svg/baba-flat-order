@@ -27,6 +27,10 @@
     .warn { color: #c05621; }
     .err { color: #c53030; }
     .ok { color: #2f855a; }
+    #completeBanner { display: none; margin-top: 16px; padding: 16px; background: #f0fff4; border: 2px solid #2f855a; border-radius: 10px; text-align: center; }
+    #completeBanner .icon { font-size: 32px; }
+    #completeBanner .msg { font-size: 16px; font-weight: bold; color: #2f855a; margin-top: 4px; }
+    #completeBanner button { margin-top: 12px; width: 100%; padding: 12px; font-size: 15px; background: #2f855a; color: #fff; border: none; border-radius: 8px; }
     .row-card { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-top: 10px; background: #f7f7f7; }
     .row-card.excluded { opacity: .5; }
     .row-guess { font-size: 12px; color: #888; margin-bottom: 2px; }
@@ -68,6 +72,11 @@
     <h3>読み取り結果（<span id="rowCount">0</span>件・確認・修正してください）</h3>
     <div id="rowsContainer"></div>
     <button class="primary-btn" id="commitAllBtn">この内容ですべて入力する</button>
+    <div id="completeBanner">
+      <div class="icon">✅</div>
+      <div class="msg">入力が完了しました</div>
+      <button type="button" id="nextBtn">続けて次の納品書を読み取る</button>
+    </div>
   </div>
 
   <div id="dupModal">
@@ -213,6 +222,8 @@
     function onExtracted(res) {
       document.getElementById('readBtn').disabled = false;
       setStatus('', '');
+      document.getElementById('completeBanner').style.display = 'none';
+      document.getElementById('commitAllBtn').style.display = 'block';
 
       candidateHeadersGlobal = res.candidateHeaders;
       previewRows = res.rows.map(function (r, i) {
@@ -366,12 +377,26 @@
 
       var remaining = previewRows.filter(function (r) { return !r.done && !r.excluded; }).length;
       if (remaining === 0) {
-        setStatus('すべての行の入力が完了しました。', 'ok');
+        setStatus('', '');
         selectedFiles = [];
         renderThumbs();
+        document.getElementById('commitAllBtn').style.display = 'none';
+        var banner = document.getElementById('completeBanner');
+        banner.style.display = 'block';
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else {
-        setStatus(remaining + '件、まだ入力されていません。', 'warn');
+        setStatus(remaining + '件、まだ入力されていません。上の内容を確認し、もう一度「この内容ですべて入力する」を押してください。', 'warn');
       }
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', function () {
+      previewRows = [];
+      candidateHeadersGlobal = [];
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('completeBanner').style.display = 'none';
+      document.getElementById('commitAllBtn').style.display = 'block';
+      setStatus('', '');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   </script>
 </body>
