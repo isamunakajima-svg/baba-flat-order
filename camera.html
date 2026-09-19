@@ -296,18 +296,30 @@
       // 枚数が多いほど1枚あたりのデータ量を絞り、AIに渡す合計サイズが膨らみすぎないようにする
       var maxSide = selectedFiles.length >= 4 ? 1280 : 1600;
 
-      // 一度に全部デコードすると（特に高解像度のアルバム写真で）端末に負荷がかかり固まりやすいため、
-      // 1枚ずつ順番に圧縮し、進捗を画面に表示する。
-      var images = [];
-      var chain = Promise.resolve();
-      selectedFiles.forEach(function (f, i) {
-        chain = chain.then(function () {
-          setStatus('画像を処理中…（' + (i + 1) + '/' + selectedFiles.length + '）', '');
-          return compressImage(f, maxSide);
-        }).then(function (img) {
-          images.push(img);
+      // 全部同時にデコードすると（特に高解像度のアルバム写真で）端末に負荷がかかり固まりやすいが、
+      // 完全に1枚ずつだと枚数が多いときに遅い。同時に2枚まで、という制限つきで並行処理して
+      // 安全さと速さのバランスを取る。
+      var images = new Array(selectedFiles.length);
+      var concurrency = 2;
+      var nextIndex = 0;
+      var doneCount = 0;
+
+      function runNext() {
+        var i = nextIndex++;
+        if (i >= selectedFiles.length) return Promise.resolve();
+        return compressImage(selectedFiles[i], maxSide).then(function (img) {
+          images[i] = img;
+          doneCount++;
+          setStatus('画像を処理中…（' + doneCount + '/' + selectedFiles.length + '）', '');
+          return runNext();
         });
-      });
+      }
+
+      var workers = [];
+      for (var w = 0; w < Math.min(concurrency, selectedFiles.length); w++) {
+        workers.push(runNext());
+      }
+      var chain = Promise.all(workers);
 
       chain.then(function () {
         setStatus('AIが読み取り中…お待ちください', '');
