@@ -31,6 +31,7 @@
     #completeBanner .icon { font-size: 32px; }
     #completeBanner .msg { font-size: 16px; font-weight: bold; color: #2f855a; margin-top: 4px; }
     #completeBanner button { margin-top: 12px; width: 100%; padding: 12px; font-size: 15px; background: #2f855a; color: #fff; border: none; border-radius: 8px; }
+    #openSheetBtn { display: block; margin-top: 10px; padding: 12px; font-size: 15px; background: #fff; color: #2f855a; border: 1px solid #2f855a; border-radius: 8px; text-decoration: none; box-sizing: border-box; }
     .row-card { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-top: 10px; background: #f7f7f7; }
     .row-card.excluded { opacity: .5; }
     .row-guess { font-size: 12px; color: #888; margin-bottom: 2px; }
@@ -76,6 +77,7 @@
       <div class="icon">✅</div>
       <div class="msg">入力が完了しました</div>
       <button type="button" id="nextBtn">続けて次の納品書を読み取る</button>
+      <a id="openSheetBtn" href="#" target="_blank" rel="noopener">入力したスプレッドシートを開く</a>
     </div>
   </div>
 
@@ -437,11 +439,13 @@
         return needsConfirm;
       }
 
+      var lastSheetUrl = null;
       try {
         var payload = targets.map(function (row) {
           return { headerName: row.matchedHeader, amount: row.amount, force: false };
         });
         var res1 = await runServer('commitEntries', { section: selectedSection, dateStr: dateStr, entries: payload });
+        if (res1.sheetUrl) lastSheetUrl = res1.sheetUrl;
         var needsConfirm = applyResults(res1.results, false);
 
         // 重複の疑いがある行だけ、1件ずつ確認してから改めてまとめて送信する
@@ -464,6 +468,7 @@
             var savedTargets = targets;
             targets = confirmedTargets;
             var res2 = await runServer('commitEntries', { section: selectedSection, dateStr: dateStr, entries: confirmedPayload });
+            if (res2.sheetUrl) lastSheetUrl = res2.sheetUrl;
             applyResults(res2.results, true);
             targets = savedTargets;
           }
@@ -481,6 +486,13 @@
         selectedFiles = [];
         renderThumbs();
         document.getElementById('commitAllBtn').style.display = 'none';
+        var openSheetBtn = document.getElementById('openSheetBtn');
+        if (lastSheetUrl) {
+          openSheetBtn.href = lastSheetUrl;
+          openSheetBtn.style.display = 'block';
+        } else {
+          openSheetBtn.style.display = 'none';
+        }
         var banner = document.getElementById('completeBanner');
         banner.style.display = 'block';
         banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
