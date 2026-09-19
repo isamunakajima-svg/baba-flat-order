@@ -8,7 +8,8 @@
     h1 { font-size: 18px; margin-bottom: 4px; }
     .sub { color: #666; font-size: 13px; margin-bottom: 16px; }
     label { display: block; margin-top: 14px; font-weight: bold; font-size: 14px; }
-    select, input[type=date], input[type=number] { width: 100%; padding: 10px; font-size: 16px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
+    select, input[type=date], input[type=number], input.amount-input { width: 100%; padding: 10px; font-size: 16px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
+    input.amount-input { text-align: right; font-variant-numeric: tabular-nums; }
     .section-buttons { display: flex; gap: 8px; margin-top: 6px; }
     .section-buttons button { flex: 1; padding: 12px 4px; border: 1px solid #ccc; background: #f5f5f5; border-radius: 6px; font-size: 14px; }
     .section-buttons button.selected { background: #2b6cb0; color: #fff; border-color: #2b6cb0; }
@@ -308,6 +309,7 @@
           existingValue: r.existingValue,
           taxNote: r.extracted.tax_note || '',
           supplierGuess: r.extracted.supplier_name || '(不明)',
+          rawSupplierName: r.extracted.supplier_name || '', // AIが読み取った仕入先名の生テキスト（列の学習に使う。表示用のsupplierGuessとは別に保持）
           excluded: false,
           done: false
         };
@@ -348,11 +350,24 @@
         sel.addEventListener('change', function () { row.matchedHeader = sel.value; });
         card.appendChild(sel);
 
+        // 金額はカンマ区切り表示にして目視確認しやすくする（type=numberだとカンマが表示できないためtextにしている）
         var amt = document.createElement('input');
-        amt.type = 'number';
-        amt.value = row.amount;
+        amt.type = 'text';
+        amt.inputMode = 'numeric';
+        amt.className = 'amount-input';
+        amt.value = row.amount ? row.amount.toLocaleString() : '';
         amt.disabled = row.excluded || row.done;
-        amt.addEventListener('input', function () { row.amount = Number(amt.value); });
+        amt.addEventListener('input', function () {
+          var digits = amt.value.replace(/[^0-9]/g, '');
+          var n = digits ? parseInt(digits, 10) : 0;
+          row.amount = n;
+          var formatted = digits ? n.toLocaleString() : '';
+          if (amt.value !== formatted) {
+            amt.value = formatted;
+            // 桁区切りを入れ直すとカーソルが先頭に飛んでしまうため、末尾に戻しておく
+            if (amt.setSelectionRange) amt.setSelectionRange(formatted.length, formatted.length);
+          }
+        });
         card.appendChild(amt);
 
         if (row.taxNote) {
@@ -442,7 +457,7 @@
       var lastSheetUrl = null;
       try {
         var payload = targets.map(function (row) {
-          return { headerName: row.matchedHeader, amount: row.amount, force: false };
+          return { headerName: row.matchedHeader, amount: row.amount, force: false, rawSupplierName: row.rawSupplierName };
         });
         var res1 = await runServer('commitEntries', { section: selectedSection, dateStr: dateStr, entries: payload });
         if (res1.sheetUrl) lastSheetUrl = res1.sheetUrl;
@@ -458,7 +473,7 @@
             var proceed = await confirmDuplicate(item.existingValue);
             if (proceed) {
               confirmedTargets.push(item.row);
-              confirmedPayload.push({ headerName: item.row.matchedHeader, amount: item.row.amount, force: true });
+              confirmedPayload.push({ headerName: item.row.matchedHeader, amount: item.row.amount, force: true, rawSupplierName: item.row.rawSupplierName });
             } else {
               statusEl.textContent = 'スキップしました（重複の可能性）';
               statusEl.className = 'row-status warn';
