@@ -196,6 +196,35 @@
       });
     }
 
+    // スマホのカメラ写真はそのままだと数MB～十数MBになることがあり、送信・AI処理に時間がかかる原因になる。
+    // 文字が読み取れる程度の解像度（長辺1600px）まで縮小してJPEG圧縮してから送ることで、
+    // アップロードとAIの読み取りの両方を速くする。
+    function compressImage(file) {
+      return new Promise(function (resolve, reject) {
+        var img = new Image();
+        img.onload = function () {
+          var maxSide = 1600;
+          var w = img.width, h = img.height;
+          var scale = Math.min(1, maxSide / Math.max(w, h));
+          var canvas = document.createElement('canvas');
+          canvas.width = Math.round(w * scale);
+          canvas.height = Math.round(h * scale);
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(img.src);
+          var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+          resolve({ data: dataUrl.substring(dataUrl.indexOf(',') + 1), mimeType: 'image/jpeg' });
+        };
+        img.onerror = function () {
+          // 万一デコードに失敗した場合は、圧縮せず元ファイルをそのまま使う
+          fileToBase64(file).then(function (data) {
+            resolve({ data: data, mimeType: file.type || 'image/jpeg' });
+          }).catch(reject);
+        };
+        img.src = URL.createObjectURL(file);
+      });
+    }
+
     // ===== 読み取り =====
 
     document.getElementById('readBtn').addEventListener('click', function () {
@@ -206,11 +235,7 @@
       document.getElementById('result').style.display = 'none';
       document.getElementById('readBtn').disabled = true;
 
-      Promise.all(selectedFiles.map(function (f) {
-        return fileToBase64(f).then(function (data) {
-          return { data: data, mimeType: f.type || 'image/jpeg' };
-        });
-      })).then(function (images) {
+      Promise.all(selectedFiles.map(compressImage)).then(function (images) {
         var dateStr = document.getElementById('dateInput').value;
         return runServer('extractAndPreview', { images: images, section: selectedSection, dateStr: dateStr });
       }).then(onExtracted).catch(function (err) {
@@ -332,44 +357,72 @@
       });
     }
 
+    // 行ごとに1回ずつサーバーへ送ると通信の往復回数ぶん遅くなるため、
+    // 対象の行をまとめて1回のリクエストで送信する（1行ずつの確認ダイアログは、
+    // 重複の疑いがある行が返ってきた場合にのみ表示する）。
     document.getElementById('commitAllBtn').addEventListener('click', async function () {
       var dateStr = document.getElementById('dateInput').value;
       document.getElementById('commitAllBtn').disabled = true;
 
-      for (var i = 0; i < previewRows.length; i++) {
-        var row = previewRows[i];
-        if (row.excluded || row.done) continue;
-
+      var targets = previewRows.filter(function (r) { return !r.excluded && !r.done; });
+      targets.forEach(function (row) {
         var statusEl = document.getElementById(row.id + '_status');
         statusEl.textContent = '入力中…';
         statusEl.className = 'row-status';
+      });
 
-        try {
-          var res = await runServer('commitEntry', {
-            section: selectedSection, dateStr: dateStr,
-            headerName: row.matchedHeader, amount: row.amount, force: false
-          });
+      function applyResults(results, forced) {
+        var needsConfirm = [];
+        results.forEach(function (res, i) {
+          var row = targets[i];
+          var statusEl = document.getElementById(row.id + '_status');
+          if (res.error) {
+            statusEl.textContent = 'エラー: ' + res.error;
+            statusEl.className = 'row-status err';
+          } else if (res.needsConfirmation) {
+            needsConfirm.push({ row: row, existingValue: res.existingValue });
+          } else {
+            statusEl.textContent = '✓ ' + res.sheetName + ' ' + res.cell + ' = ¥' + res.finalValue.toLocaleString();
+            statusEl.className = 'row-status ok';
+            row.done = true;
+          }
+        });
+        return needsConfirm;
+      }
 
-          if (res.needsConfirmation) {
-            var proceed = await confirmDuplicate(res.existingValue);
-            if (!proceed) {
+      try {
+        var payload = targets.map(function (row) {
+          return { headerName: row.matchedHeader, amount: row.amount, force: false };
+        });
+        var res1 = await runServer('commitEntries', { section: selectedSection, dateStr: dateStr, entries: payload });
+        var needsConfirm = applyResults(res1.results, false);
+
+        // 重複の疑いがある行だけ、1件ずつ確認してから改めてまとめて送信する
+        if (needsConfirm.length > 0) {
+          var confirmedTargets = [];
+          var confirmedPayload = [];
+          for (var i = 0; i < needsConfirm.length; i++) {
+            var item = needsConfirm[i];
+            var statusEl = document.getElementById(item.row.id + '_status');
+            var proceed = await confirmDuplicate(item.existingValue);
+            if (proceed) {
+              confirmedTargets.push(item.row);
+              confirmedPayload.push({ headerName: item.row.matchedHeader, amount: item.row.amount, force: true });
+            } else {
               statusEl.textContent = 'スキップしました（重複の可能性）';
               statusEl.className = 'row-status warn';
-              continue;
             }
-            res = await runServer('commitEntry', {
-              section: selectedSection, dateStr: dateStr,
-              headerName: row.matchedHeader, amount: row.amount, force: true
-            });
           }
-
-          statusEl.textContent = '✓ ' + res.sheetName + ' ' + res.cell + ' = ¥' + res.finalValue.toLocaleString();
-          statusEl.className = 'row-status ok';
-          row.done = true;
-        } catch (err) {
-          statusEl.textContent = 'エラー: ' + err.message;
-          statusEl.className = 'row-status err';
+          if (confirmedPayload.length > 0) {
+            var savedTargets = targets;
+            targets = confirmedTargets;
+            var res2 = await runServer('commitEntries', { section: selectedSection, dateStr: dateStr, entries: confirmedPayload });
+            applyResults(res2.results, true);
+            targets = savedTargets;
+          }
         }
+      } catch (err) {
+        setStatus('エラー: ' + err.message, 'err');
       }
 
       renderRows();
