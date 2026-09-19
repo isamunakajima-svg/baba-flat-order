@@ -241,8 +241,27 @@
     // 文字が読み取れる程度の解像度（長辺maxSide px）まで縮小してJPEG圧縮してから送る。
     // createImageBitmapの縮小オプションが使える場合はそちらを使う方が、巨大な画像を扱うときに
     // 通常の<img>読み込みよりメモリ効率が良く速い（対応していない古いブラウザ向けに<img>方式もフォールバックで残す）。
+    // ファイル名の拡張子からおおよそのMIMEタイプを推測する（file.typeが空の端末があるため）
+    function guessMimeType_(file) {
+      if (file.type) return file.type;
+      var name = (file.name || '').toLowerCase();
+      if (name.endsWith('.png')) return 'image/png';
+      if (name.endsWith('.webp')) return 'image/webp';
+      if (name.endsWith('.heic')) return 'image/heic';
+      if (name.endsWith('.heif')) return 'image/heif';
+      return 'image/jpeg';
+    }
+
     function compressImage(file, maxSide) {
       maxSide = maxSide || 1600;
+
+      // 圧縮を試みて、元ファイルをそのまま使う形にフォールバックする（圧縮そのものは失敗しても、
+      // 元の写真自体は読み取りに使えることが多いため、ここで諦めずに済ませる）
+      function useOriginal() {
+        return fileToBase64(file).then(function (data) {
+          return { data: data, mimeType: guessMimeType_(file) };
+        });
+      }
 
       function drawToJpeg(bitmapOrImg, w, h) {
         var scale = Math.min(1, maxSide / Math.max(w, h));
@@ -260,26 +279,45 @@
         return new Promise(function (resolve, reject) {
           var img = new Image();
           img.onload = function () {
-            var result = drawToJpeg(img, img.width, img.height);
-            URL.revokeObjectURL(img.src);
-            resolve(result);
+            // img.onload はPromiseの外側で発火するイベントなので、ここで例外が起きてもcatchされず
+            // Promiseが一生解決しない（＝画面が固まって見える）ことがあったため、必ずtry/catchする。
+            try {
+              var result = drawToJpeg(img, img.width, img.height);
+              URL.revokeObjectURL(img.src);
+              resolve(result);
+            } catch (e) {
+              URL.revokeObjectURL(img.src);
+              useOriginal().then(resolve, reject);
+            }
           };
           img.onerror = function () {
-            // 万一デコードに失敗した場合は、圧縮せず元ファイルをそのまま使う
-            fileToBase64(file).then(function (data) {
-              resolve({ data: data, mimeType: file.type || 'image/jpeg' });
-            }).catch(reject);
+            // デコードに失敗した場合は、圧縮せず元ファイルをそのまま使う
+            useOriginal().then(resolve, reject);
           };
           img.src = URL.createObjectURL(file);
         });
       }
 
-      if (typeof createImageBitmap === 'function') {
-        return createImageBitmap(file).then(function (bitmap) {
-          return drawToJpeg(bitmap, bitmap.width, bitmap.height);
-        }).catch(viaImgTag); // 非対応・デコード失敗時は<img>方式にフォールバック
-      }
-      return viaImgTag();
+      var attempt = (typeof createImageBitmap === 'function')
+        ? createImageBitmap(file).then(function (bitmap) {
+            try {
+              return drawToJpeg(bitmap, bitmap.width, bitmap.height);
+            } catch (e) {
+              return viaImgTag();
+            }
+          }).catch(viaImgTag) // 非対応・デコード失敗時は<img>方式にフォールバック
+        : viaImgTag();
+
+      // どの経路でも極端に時間がかかる・固まる場合に備えて、1枚あたりの上限時間を設ける。
+      // 超過した場合は圧縮をあきらめて元ファイルをそのまま使う（読み取り自体は続行できるようにする）。
+      return Promise.race([
+        attempt,
+        new Promise(function (resolve) {
+          setTimeout(function () { resolve(null); }, 20000);
+        })
+      ]).then(function (result) {
+        return result || useOriginal();
+      });
     }
 
     // ===== 読み取り =====
