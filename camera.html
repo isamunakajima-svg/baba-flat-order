@@ -10,9 +10,14 @@
     label { display: block; margin-top: 14px; font-weight: bold; font-size: 14px; }
     select, input[type=date], input[type=number], input.amount-input { width: 100%; padding: 10px; font-size: 16px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
     input.amount-input { text-align: right; font-variant-numeric: tabular-nums; }
-    .section-buttons { display: flex; gap: 8px; margin-top: 6px; }
-    .section-buttons button { flex: 1; padding: 12px 4px; border: 1px solid #ccc; background: #f5f5f5; border-radius: 6px; font-size: 14px; }
+    .section-buttons { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .section-buttons button { flex: 1; min-width: 70px; padding: 12px 4px; border: 1px solid #ccc; background: #f5f5f5; border-radius: 6px; font-size: 14px; }
     .section-buttons button.selected { background: #2b6cb0; color: #fff; border-color: #2b6cb0; }
+    .section-buttons button.auto-btn { border-style: dashed; }
+    .checkbox-label { font-weight: normal; font-size: 13px; color: #555; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+    #detectedInfo { display: none; margin-top: 4px; padding: 10px 12px; background: #eef4fb; border-radius: 8px; font-size: 13px; color: #333; }
+    #detectedInfo.warn { background: #fff5eb; color: #c05621; }
+    #rematchBtn { display: none; margin-top: 8px; width: 100%; padding: 10px; background: #fff; color: #2b6cb0; border: 1px solid #2b6cb0; border-radius: 6px; font-size: 14px; }
     .photo-buttons { display: flex; gap: 8px; margin-top: 8px; }
     .photo-buttons button { flex: 1; padding: 12px 4px; border: 1px solid #2b6cb0; background: #fff; color: #2b6cb0; border-radius: 6px; font-size: 14px; }
     #thumbs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
@@ -52,9 +57,12 @@
 
   <label>日付</label>
   <input type="date" id="dateInput">
+  <label class="checkbox-label"><input type="checkbox" id="autoDateCheckbox" checked> 納品書に書かれた日付を自動で読み取る（オフにすると上の日付を使用）</label>
 
   <label>宛先</label>
+  <div class="sub" style="margin-top:0;">「自動判定」のままでOKです。納品書に書かれた納入先の記載から判定します。うまく判定できない・違う場合だけ手動で選んでください。</div>
   <div class="section-buttons" id="sectionButtons"></div>
+  <button type="button" id="rematchBtn">この宛先・日付で読み取り結果に反映する</button>
 
   <label>納品書の写真</label>
   <div class="sub" style="margin-top:0;">1枚の写真に複数件の納品書が写っていても、複数枚に分けて撮っても大丈夫です（同じ仕入先が複数枚あっても、違う仕入先が混ざっていても自動で読み分けます）。1件の納品書が複数ページに分かれる場合は、その複数ページを含めて渡してください。宛先（馬場FLAT／サンド室／はなれ）が違う納品書は、宛先ごとに分けて読み取ってください。</div>
@@ -72,6 +80,7 @@
 
   <div id="result">
     <h3>読み取り結果（<span id="rowCount">0</span>件・確認・修正してください）</h3>
+    <div id="detectedInfo"></div>
     <div id="rowsContainer"></div>
     <button class="primary-btn" id="commitAllBtn">この内容ですべて入力する</button>
     <div id="completeBanner">
@@ -98,6 +107,7 @@
     var selectedFiles = [];
     var previewRows = [];       // 読み取り結果（1件ごとの行データ）
     var candidateHeadersGlobal = [];
+    var lastEntries = null;     // Geminiが読み取った生のentries（宛先・日付を選び直すときにAIを呼び直さず使う）
 
     function setStatus(msg, cls) {
       var el = document.getElementById('status');
@@ -137,17 +147,30 @@
     runServer('getInitialData').then(function (data) {
       document.getElementById('dateInput').value = data.today;
       var wrap = document.getElementById('sectionButtons');
+
+      function selectSectionButton(btn, section) {
+        selectedSection = section;
+        Array.prototype.forEach.call(wrap.children, function (c) { c.classList.remove('selected'); });
+        btn.classList.add('selected');
+      }
+
+      // 「自動判定」＝納品書の記載から宛先を判定させる（selectedSection = null）。既定で選択済みにしておく。
+      var autoBtn = document.createElement('button');
+      autoBtn.type = 'button';
+      autoBtn.className = 'auto-btn';
+      autoBtn.textContent = '自動判定';
+      autoBtn.onclick = function () { selectSectionButton(autoBtn, null); };
+      wrap.appendChild(autoBtn);
+
       data.sections.forEach(function (s) {
         var b = document.createElement('button');
         b.type = 'button';
         b.textContent = s;
-        b.onclick = function () {
-          selectedSection = s;
-          Array.prototype.forEach.call(wrap.children, function (c) { c.classList.remove('selected'); });
-          b.classList.add('selected');
-        };
+        b.onclick = function () { selectSectionButton(b, s); };
         wrap.appendChild(b);
       });
+
+      selectSectionButton(autoBtn, null);
     }).catch(function (err) {
       setStatus('初期化エラー: ' + err.message + '（GAS_WEB_APP_URLが正しく設定されているか確認してください）', 'err');
     });
@@ -262,10 +285,12 @@
     // ===== 読み取り =====
 
     document.getElementById('readBtn').addEventListener('click', function () {
-      if (!selectedSection) { setStatus('宛先を選択してください。', 'err'); return; }
       if (selectedFiles.length === 0) { setStatus('写真を選択してください。', 'err'); return; }
 
       document.getElementById('result').style.display = 'none';
+      document.getElementById('detectedInfo').style.display = 'none';
+      document.getElementById('rematchBtn').style.display = 'none';
+      lastEntries = null;
       document.getElementById('readBtn').disabled = true;
 
       // 枚数が多いほど1枚あたりのデータ量を絞り、AIに渡す合計サイズが膨らみすぎないようにする
@@ -286,11 +311,80 @@
 
       chain.then(function () {
         setStatus('AIが読み取り中…お待ちください', '');
-        var dateStr = document.getElementById('dateInput').value;
+        var autoDate = document.getElementById('autoDateCheckbox').checked;
+        var dateStr = autoDate ? null : document.getElementById('dateInput').value;
         return runServer('extractAndPreview', { images: images, section: selectedSection, dateStr: dateStr }, 90000);
-      }).then(onExtracted).catch(function (err) {
+      }).then(handleExtractResult).catch(function (err) {
         setStatus('エラー: ' + err.message, 'err');
         document.getElementById('readBtn').disabled = false;
+      });
+    });
+
+    // extractAndPreview / matchEntries の結果を受け取り、宛先が自動判定できていれば読み取り結果を表示し、
+    // できていなければ宛先を選んでもらう案内を出す（どちらの場合もentriesはlastEntriesに保持しておき、
+    // あとで宛先・日付を選び直すときにAIを呼び直さず反映できるようにする）。
+    function handleExtractResult(res) {
+      document.getElementById('readBtn').disabled = false;
+      lastEntries = res.entries || lastEntries;
+
+      var info = document.getElementById('detectedInfo');
+
+      if (res.needsSectionSelection) {
+        setStatus('', '');
+        document.getElementById('dateInput').value = res.dateStr;
+        info.className = 'warn';
+        info.textContent = '宛先を自動で判定できませんでした。上の「宛先」で正しいものを選んでから「この宛先・日付で読み取り結果に反映する」を押してください。';
+        info.style.display = 'block';
+        document.getElementById('rematchBtn').style.display = 'block';
+        document.getElementById('result').style.display = 'none';
+        info.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // 宛先・日付が決まったので、上のコントロールにも反映し（次回の「反映する」でもそのまま使えるように）、
+      // 検出結果を案内表示する。
+      document.getElementById('dateInput').value = res.dateStr;
+      selectDetectedSection_(res.section);
+
+      info.className = '';
+      info.textContent = '宛先: ' + res.section + (res.sectionAutoDetected ? '（自動判定）' : '（手動指定）') +
+        '　日付: ' + res.dateStr + (res.dateAutoDetected ? '（自動判定）' : (document.getElementById('autoDateCheckbox').checked ? '（判定できず今日の日付）' : '（手動指定）')) +
+        '　違う場合は上で選び直して「反映する」を押してください。';
+      info.style.display = 'block';
+      document.getElementById('rematchBtn').style.display = 'block';
+
+      onExtracted(res);
+    }
+
+    // 上部の宛先ボタンのうち、指定したセクションを選択状態にする（自動判定結果の反映用）
+    function selectDetectedSection_(section) {
+      var wrap = document.getElementById('sectionButtons');
+      Array.prototype.forEach.call(wrap.children, function (btn) {
+        var isMatch = btn.textContent === section;
+        btn.classList.toggle('selected', isMatch);
+      });
+      selectedSection = section;
+    }
+
+    // 宛先・日付を選び直して、すでに読み取り済みのentriesに反映する（Gemini呼び直しなし）
+    document.getElementById('rematchBtn').addEventListener('click', function () {
+      if (!selectedSection) { setStatus('宛先を選択してください。', 'err'); return; }
+      if (!lastEntries) { setStatus('先に写真を読み取ってください。', 'err'); return; }
+
+      var dateStr = document.getElementById('dateInput').value;
+      document.getElementById('rematchBtn').disabled = true;
+      setStatus('反映中…', '');
+
+      runServer('matchEntries', { entries: lastEntries, section: selectedSection, dateStr: dateStr }).then(function (res) {
+        document.getElementById('rematchBtn').disabled = false;
+        var info = document.getElementById('detectedInfo');
+        info.className = '';
+        info.textContent = '宛先: ' + res.section + '（手動指定）　日付: ' + res.dateStr + '（手動指定）';
+        info.style.display = 'block';
+        onExtracted(res);
+      }).catch(function (err) {
+        document.getElementById('rematchBtn').disabled = false;
+        setStatus('エラー: ' + err.message, 'err');
       });
     });
 
@@ -519,9 +613,12 @@
     document.getElementById('nextBtn').addEventListener('click', function () {
       previewRows = [];
       candidateHeadersGlobal = [];
+      lastEntries = null;
       document.getElementById('result').style.display = 'none';
       document.getElementById('completeBanner').style.display = 'none';
       document.getElementById('commitAllBtn').style.display = 'block';
+      document.getElementById('detectedInfo').style.display = 'none';
+      document.getElementById('rematchBtn').style.display = 'none';
       setStatus('', '');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
