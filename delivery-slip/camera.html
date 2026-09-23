@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="納品書入力">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#2b6cb0">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <title>納品書入力</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; max-width: 480px; margin: 0 auto; padding: 16px; color: #222; }
+    h1 { font-size: 18px; margin-bottom: 4px; }
+    .sub { color: #666; font-size: 13px; margin-bottom: 16px; }
+    label { display: block; margin-top: 14px; font-weight: bold; font-size: 14px; }
+    select, input[type=date], input[type=number], input.amount-input { width: 100%; padding: 10px; font-size: 16px; margin-top: 4px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; }
+    input.amount-input { text-align: right; font-variant-numeric: tabular-nums; }
+    .section-buttons { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .section-buttons button { flex: 1; min-width: 70px; padding: 12px 4px; border: 1px solid #ccc; background: #f5f5f5; border-radius: 6px; font-size: 14px; }
+    .section-buttons button.selected { background: #2b6cb0; color: #fff; border-color: #2b6cb0; }
+    .section-buttons button.auto-btn { border-style: dashed; }
+    .checkbox-label { font-weight: normal; font-size: 13px; color: #555; margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+    #detectedInfo { display: none; margin-top: 4px; padding: 10px 12px; background: #eef4fb; border-radius: 8px; font-size: 13px; color: #333; }
+    #detectedInfo.warn { background: #fff5eb; color: #c05621; }
+    #rematchBtn { display: none; margin-top: 8px; width: 100%; padding: 10px; background: #fff; color: #2b6cb0; border: 1px solid #2b6cb0; border-radius: 6px; font-size: 14px; }
+    .photo-buttons { display: flex; gap: 8px; margin-top: 8px; }
+    .photo-buttons button { flex: 1; padding: 12px 4px; border: 1px solid #2b6cb0; background: #fff; color: #2b6cb0; border-radius: 6px; font-size: 14px; }
+    #thumbs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    #thumbs .thumb { position: relative; width: 64px; height: 64px; }
+    #thumbs img { width: 64px; height: 64px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; display: block; }
+    #thumbs .remove { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #c53030; color: #fff; border: none; font-size: 12px; line-height: 20px; padding: 0; }
+    #clearPhotosBtn { margin-top: 6px; background: none; border: none; color: #888; font-size: 13px; text-decoration: underline; padding: 0; display: none; }
+    .primary-btn { width: 100%; padding: 14px; font-size: 16px; margin-top: 18px; background: #2b6cb0; color: #fff; border: none; border-radius: 8px; }
+    .primary-btn:disabled { background: #aaa; }
+    #result { margin-top: 22px; display: none; }
+    #result h3 { margin-top: 0; font-size: 15px; }
+    #status { margin-top: 14px; font-size: 14px; min-height: 20px; }
+    .warn { color: #c05621; }
+    .err { color: #c53030; }
+    .ok { color: #2f855a; }
+    #completeBanner { display: none; margin-top: 16px; padding: 16px; background: #f0fff4; border: 2px solid #2f855a; border-radius: 10px; text-align: center; }
+    #completeBanner .icon { font-size: 32px; }
+    #completeBanner .msg { font-size: 16px; font-weight: bold; color: #2f855a; margin-top: 4px; }
+    #completeBanner button { margin-top: 12px; width: 100%; padding: 12px; font-size: 15px; background: #2f855a; color: #fff; border: none; border-radius: 8px; }
+    #openSheetBtn { display: block; margin-top: 10px; padding: 12px; font-size: 15px; background: #fff; color: #2f855a; border: 1px solid #2f855a; border-radius: 8px; text-decoration: none; box-sizing: border-box; }
+    .row-card { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-top: 10px; background: #f7f7f7; }
+    .row-card.excluded { opacity: .5; }
+    .row-guess { font-size: 12px; color: #888; margin-bottom: 2px; }
+    .row-existing { font-size: 12px; color: #666; margin-top: 6px; }
+    .row-status { font-size: 13px; margin-top: 6px; min-height: 18px; }
+    .row-actions { margin-top: 8px; text-align: right; }
+    .row-actions button { background: none; border: none; color: #888; font-size: 12px; text-decoration: underline; padding: 0; }
+    #dupModal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); align-items: center; justify-content: center; z-index: 10; }
+    #dupModal .box { background: #fff; padding: 20px; border-radius: 10px; max-width: 320px; margin: 16px; }
+    #dupModal button { margin-top: 14px; padding: 10px 16px; margin-right: 8px; border-radius: 6px; border: 1px solid #ccc; }
+    #dupModal button#dupConfirm { background: #c05621; color: #fff; border-color: #c05621; }
+  </style>
+</head>
+<body>
+  <h1>納品書 自動入力（馬場）</h1>
+  <div class="sub">納品書を撮影すると、仕入先と税抜き合計金額を読み取って原価シートに入力します。1回の読み取りで複数件の納品書（同じ仕入先・別の仕入先どちらも可）をまとめて処理できます。</div>
+
+  <label>日付</label>
+  <input type="date" id="dateInput">
+  <label class="checkbox-label"><input type="checkbox" id="autoDateCheckbox" checked> 納品書に書かれた日付を自動で読み取る（オフにすると上の日付を使用）</label>
+
+  <label>宛先</label>
+  <div class="sub" style="margin-top:0;">「自動判定」のままでOKです。納品書に書かれた納入先の記載から判定します。うまく判定できない・違う場合だけ手動で選んでください。</div>
+  <div class="section-buttons" id="sectionButtons"></div>
+  <button type="button" id="rematchBtn">この宛先・日付で読み取り結果に反映する</button>
+
+  <label>納品書の写真</label>
+  <div class="sub" style="margin-top:0;">1枚の写真に複数件の納品書が写っていても、複数枚に分けて撮っても大丈夫です（同じ仕入先が複数枚あっても、違う仕入先が混ざっていても自動で読み分けます）。1件の納品書が複数ページに分かれる場合は、その複数ページを含めて渡してください。宛先（馬場FLAT／サンド室／はなれ）が違う納品書は、宛先ごとに分けて読み取ってください。</div>
+  <div class="photo-buttons">
+    <button type="button" id="cameraBtn">📷 写真を撮る</button>
+    <button type="button" id="galleryBtn">🖼 アルバムから選ぶ</button>
+  </div>
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
+  <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
+  <div id="thumbs"></div>
+  <button type="button" id="clearPhotosBtn">すべて削除</button>
+
+  <button class="primary-btn" id="readBtn">読み取る</button>
+  <div id="status"></div>
+
+  <div id="result">
+    <h3>読み取り結果（<span id="rowCount">0</span>件・確認・修正してください）</h3>
+    <div id="detectedInfo"></div>
+    <div id="rowsContainer"></div>
+    <button class="primary-btn" id="commitAllBtn">この内容ですべて入力する</button>
+    <div id="completeBanner">
+      <div class="icon">✅</div>
+      <div class="msg">入力が完了しました</div>
+      <button type="button" id="nextBtn">続けて次の納品書を読み取る</button>
+      <a id="openSheetBtn" href="#" target="_blank" rel="noopener">入力したスプレッドシートを開く</a>
+    </div>
+  </div>
+
+  <div id="dupModal">
+    <div class="box">
+      <p>すでに同じ金額（<b><span id="dupAmount"></span>円</b>）がこの列に入力済みです。<br>誤って同じ納品書をもう一度読み込んだ可能性があります。<br>本当にこの金額を追加してよいですか？</p>
+      <button id="dupCancel">キャンセル（この行はスキップ）</button>
+      <button id="dupConfirm">はい、追加する</button>
+    </div>
+  </div>
+
+  <script>
+    // Apps Scriptで「デプロイ」した際に発行されたウェブアプリURL（.../exec）
+    var GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx08HMG5Mazb50pdcbon23zFMMUnE8XdvQYZ--tFUhE1kUrQNKgchnZgpE2l6SnSZF5sw/exec';
+
+    var selectedSection = null;
+    var selectedFiles = [];
+    var previewRows = [];       // 読み取り結果（1件ごとの行データ）
+    var candidateHeadersGlobal = [];
+    var lastEntries = null;     // Geminiが読み取った生のentries（宛先・日付を選び直すときにAIを呼び直さず使う）
+
+    function setStatus(msg, cls) {
+      var el = document.getElementById('status');
+      el.textContent = msg || '';
+      el.className = cls || '';
+    }
+
+    // Apps ScriptのdoPost(e)をAPIとして呼び出す。
+    // CORSのプリフライトを避けるため text/plain で送り、中身はJSON文字列にしている。
+    // 画像が大きい・枚数が多い場合はAI側の処理に時間がかかることがあるため、
+    // 「固まって見える」状態を避けるためタイムアウト（既定90秒）を設け、
+    // 超過した場合は分かりやすいエラーメッセージを出す。
+    function runServer(action, params, timeoutMs) {
+      var controller = (typeof AbortController === 'function') ? new AbortController() : null;
+      var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 90000) : null;
+
+      return fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: action, params: params }),
+        signal: controller ? controller.signal : undefined
+      }).then(function (res) {
+        return res.json();
+      }).then(function (json) {
+        if (!json.ok) throw new Error(json.error || '不明なエラーが発生しました。');
+        return json.result;
+      }).catch(function (err) {
+        if (err && err.name === 'AbortError') {
+          throw new Error('時間がかかりすぎたため中断しました。電波状況を確認するか、枚数を減らして再度お試しください。');
+        }
+        throw err;
+      }).finally(function () {
+        if (timer) clearTimeout(timer);
+      });
+    }
+
+    runServer('getInitialData').then(function (data) {
+      document.getElementById('dateInput').value = data.today;
+      var wrap = document.getElementById('sectionButtons');
+
+      function selectSectionButton(btn, section) {
+        selectedSection = section;
+        Array.prototype.forEach.call(wrap.children, function (c) { c.classList.remove('selected'); });
+        btn.classList.add('selected');
+      }
+
+      // 「自動判定」＝納品書の記載から宛先を判定させる（selectedSection = null）。既定で選択済みにしておく。
+      var autoBtn = document.createElement('button');
+      autoBtn.type = 'button';
+      autoBtn.className = 'auto-btn';
+      autoBtn.textContent = '自動判定';
+      autoBtn.onclick = function () { selectSectionButton(autoBtn, null); };
+      wrap.appendChild(autoBtn);
+
+      data.sections.forEach(function (s) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = s;
+        b.onclick = function () { selectSectionButton(b, s); };
+        wrap.appendChild(b);
+      });
+
+      selectSectionButton(autoBtn, null);
+    }).catch(function (err) {
+      setStatus('初期化エラー: ' + err.message + '（GAS_WEB_APP_URLが正しく設定されているか確認してください）', 'err');
+    });
+
+    // ===== 写真の選択 =====
+
+    function renderThumbs() {
+      var thumbs = document.getElementById('thumbs');
+      thumbs.innerHTML = '';
+      selectedFiles.forEach(function (f, i) {
+        var wrap = document.createElement('div');
+        wrap.className = 'thumb';
+        var img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        wrap.appendChild(img);
+        var rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'remove';
+        rm.textContent = '×';
+        rm.onclick = function () {
+          selectedFiles.splice(i, 1);
+          renderThumbs();
+        };
+        wrap.appendChild(rm);
+        thumbs.appendChild(wrap);
+      });
+      document.getElementById('clearPhotosBtn').style.display = selectedFiles.length > 0 ? 'block' : 'none';
+    }
+
+    function addFiles(fileList) {
+      selectedFiles = selectedFiles.concat(Array.prototype.slice.call(fileList));
+      renderThumbs();
+    }
+
+    document.getElementById('cameraBtn').addEventListener('click', function () {
+      document.getElementById('cameraInput').click();
+    });
+    document.getElementById('galleryBtn').addEventListener('click', function () {
+      document.getElementById('galleryInput').click();
+    });
+    document.getElementById('cameraInput').addEventListener('change', function (e) {
+      addFiles(e.target.files);
+      e.target.value = ''; // 同じ写真を撮っても次回のchangeイベントが発火するようにリセット
+    });
+    document.getElementById('galleryInput').addEventListener('change', function (e) {
+      addFiles(e.target.files);
+      e.target.value = '';
+    });
+    document.getElementById('clearPhotosBtn').addEventListener('click', function () {
+      selectedFiles = [];
+      renderThumbs();
+    });
+
+    function fileToBase64(file) {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          var result = reader.result;
+          resolve(result.substring(result.indexOf(',') + 1));
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // スマホのカメラ写真、特にアルバムに前から保存されている写真は数MB～数十MB・数千万画素に
+    // なっていることがあり、そのまま送ると通信にもAIの読み取りにも時間がかかる（失敗の原因にもなる）。
+    // 文字が読み取れる程度の解像度（長辺maxSide px）まで縮小してJPEG圧縮してから送る。
+    // createImageBitmapの縮小オプションが使える場合はそちらを使う方が、巨大な画像を扱うときに
+    // 通常の<img>読み込みよりメモリ効率が良く速い（対応していない古いブラウザ向けに<img>方式もフォールバックで残す）。
+    // ファイル名の拡張子からおおよそのMIMEタイプを推測する（file.typeが空の端末があるため）
+    function guessMimeType_(file) {
+      if (file.type) return file.type;
+      var name = (file.name || '').toLowerCase();
+      if (name.endsWith('.png')) return 'image/png';
+      if (name.endsWith('.webp')) return 'image/webp';
+      if (name.endsWith('.heic')) return 'image/heic';
+      if (name.endsWith('.heif')) return 'image/heif';
+      return 'image/jpeg';
+    }
+
+    function compressImage(file, maxSide) {
+      maxSide = maxSide || 1600;
+
+      // 圧縮を試みて、元ファイルをそのまま使う形にフォールバックする（圧縮そのものは失敗しても、
+      // 元の写真自体は読み取りに使えることが多いため、ここで諦めずに済ませる）
+      function useOriginal() {
+        return fileToBase64(file).then(function (data) {
+          return { data: data, mimeType: guessMimeType_(file) };
+        });
+      }
+
+      function drawToJpeg(bitmapOrImg, w, h) {
+        var scale = Math.min(1, maxSide / Math.max(w, h));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(w * scale));
+        canvas.height = Math.max(1, Math.round(h * scale));
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmapOrImg, 0, 0, canvas.width, canvas.height);
+        if (bitmapOrImg.close) bitmapOrImg.close(); // ImageBitmapのメモリを早めに解放
+        var dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        return { data: dataUrl.substring(dataUrl.indexOf(',') + 1), mimeType: 'image/jpeg' };
+      }
+
+      function viaImgTag() {
+        return new Promise(function (resolve, reject) {
+          var img = new Image();
+          img.onload = function () {
+            // img.onload はPromiseの外側で発火するイベントなので、ここで例外が起きてもcatchされず
+            // Promiseが一生解決しない（＝画面が固まって見える）ことがあったため、必ずtry/catchする。
+            try {
+              var result = drawToJpeg(img, img.width, img.height);
+              URL.revokeObjectURL(img.src);
+              resolve(result);
+            } catch (e) {
+              URL.revokeObjectURL(img.src);
+              useOriginal().then(resolve, reject);
+            }
+          };
+          img.onerror = function () {
+            // デコードに失敗した場合は、圧縮せず元ファイルをそのまま使う
+            useOriginal().then(resolve, reject);
+          };
+          img.src = URL.createObjectURL(file);
+        });
+      }
+
+      var attempt = (typeof createImageBitmap === 'function')
+        ? createImageBitmap(file).then(function (bitmap) {
+            try {
+              return drawToJpeg(bitmap, bitmap.width, bitmap.height);
+            } catch (e) {
+              return viaImgTag();
+            }
+          }).catch(viaImgTag) // 非対応・デコード失敗時は<img>方式にフォールバック
+        : viaImgTag();
+
+      // どの経路でも極端に時間がかかる・固まる場合に備えて、1枚あたりの上限時間を設ける。
+      // 超過した場合は圧縮をあきらめて元ファイルをそのまま使う（読み取り自体は続行できるようにする）。
+      return Promise.race([
+        attempt,
+        new Promise(function (resolve) {
+          setTimeout(function () { resolve(null); }, 20000);
+        })
+      ]).then(function (result) {
+        return result || useOriginal();
+      });
+    }
+
+    // ===== 読み取り =====
+
+    document.getElementById('readBtn').addEventListener('click', function () {
+      if (selectedFiles.length === 0) { setStatus('写真を選択してください。', 'err'); return; }
+
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('detectedInfo').style.display = 'none';
+      document.getElementById('rematchBtn').style.display = 'none';
+      lastEntries = null;
+      document.getElementById('readBtn').disabled = true;
+
+      // 枚数が多いほど1枚あたりのデータ量を絞り、AIに渡す合計サイズが膨らみすぎないようにする
+      var maxSide = selectedFiles.length >= 4 ? 1280 : 1600;
+
+      // 全部同時にデコードすると（特に高解像度のアルバム写真で）端末に負荷がかかり固まりやすいが、
+      // 完全に1枚ずつだと枚数が多いときに遅い。同時に2枚まで、という制限つきで並行処理して
+      // 安全さと速さのバランスを取る。
+      var images = new Array(selectedFiles.length);
+      var concurrency = 2;
+      var nextIndex = 0;
+      var doneCount = 0;
+
+      function runNext() {
+        var i = nextIndex++;
+        if (i >= selectedFiles.length) return Promise.resolve();
+        return compressImage(selectedFiles[i], maxSide).then(function (img) {
+          images[i] = img;
+          doneCount++;
+          setStatus('画像を処理中…（' + doneCount + '/' + selectedFiles.length + '）', '');
+          return runNext();
+        });
+      }
+
+      var workers = [];
+      for (var w = 0; w < Math.min(concurrency, selectedFiles.length); w++) {
+        workers.push(runNext());
+      }
+      var chain = Promise.all(workers);
+
+      chain.then(function () {
+        setStatus('AIが読み取り中…お待ちください', '');
+        var autoDate = document.getElementById('autoDateCheckbox').checked;
+        var dateStr = autoDate ? null : document.getElementById('dateInput').value;
+        return runServer('extractAndPreview', { images: images, section: selectedSection, dateStr: dateStr }, 90000);
+      }).then(handleExtractResult).catch(function (err) {
+        setStatus('エラー: ' + err.message, 'err');
+        document.getElementById('readBtn').disabled = false;
+      });
+    });
+
+    // extractAndPreview / matchEntries の結果を受け取り、宛先が自動判定できていれば読み取り結果を表示し、
+    // できていなければ宛先を選んでもらう案内を出す（どちらの場合もentriesはlastEntriesに保持しておき、
+    // あとで宛先・日付を選び直すときにAIを呼び直さず反映できるようにする）。
+    function handleExtractResult(res) {
+      document.getElementById('readBtn').disabled = false;
+      lastEntries = res.entries || lastEntries;
+
+      var info = document.getElementById('detectedInfo');
+
+      if (res.needsSectionSelection) {
+        setStatus('', '');
+        document.getElementById('dateInput').value = res.dateStr;
+        info.className = 'warn';
+        info.textContent = '宛先を自動で判定できませんでした。上の「宛先」で正しいものを選んでから「この宛先・日付で読み取り結果に反映する」を押してください。';
+        info.style.display = 'block';
+        document.getElementById('rematchBtn').style.display = 'block';
+        document.getElementById('result').style.display = 'none';
+        info.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // 宛先・日付が決まったので、上のコントロールにも反映し（次回の「反映する」でもそのまま使えるように）、
+      // 検出結果を案内表示する。
+      document.getElementById('dateInput').value = res.dateStr;
+      selectDetectedSection_(res.section);
+
+      info.className = '';
+      info.textContent = '宛先: ' + res.section + (res.sectionAutoDetected ? '（自動判定）' : '（手動指定）') +
+        '　日付: ' + res.dateStr + (res.dateAutoDetected ? '（自動判定）' : (document.getElementById('autoDateCheckbox').checked ? '（判定できず今日の日付）' : '（手動指定）')) +
+        '　違う場合は上で選び直して「反映する」を押してください。';
+      info.style.display = 'block';
+      document.getElementById('rematchBtn').style.display = 'block';
+
+      onExtracted(res);
+    }
+
+    // 上部の宛先ボタンのうち、指定したセクションを選択状態にする（自動判定結果の反映用）
+    function selectDetectedSection_(section) {
+      var wrap = document.getElementById('sectionButtons');
+      Array.prototype.forEach.call(wrap.children, function (btn) {
+        var isMatch = btn.textContent === section;
+        btn.classList.toggle('selected', isMatch);
+      });
+      selectedSection = section;
+    }
+
+    // 宛先・日付を選び直して、すでに読み取り済みのentriesに反映する（Gemini呼び直しなし）
+    document.getElementById('rematchBtn').addEventListener('click', function () {
+      if (!selectedSection) { setStatus('宛先を選択してください。', 'err'); return; }
+      if (!lastEntries) { setStatus('先に写真を読み取ってください。', 'err'); return; }
+
+      var dateStr = document.getElementById('dateInput').value;
+      document.getElementById('rematchBtn').disabled = true;
+      setStatus('反映中…', '');
+
+      runServer('matchEntries', { entries: lastEntries, section: selectedSection, dateStr: dateStr }).then(function (res) {
+        document.getElementById('rematchBtn').disabled = false;
+        var info = document.getElementById('detectedInfo');
+        info.className = '';
+        info.textContent = '宛先: ' + res.section + '（手動指定）　日付: ' + res.dateStr + '（手動指定）';
+        info.style.display = 'block';
+        onExtracted(res);
+      }).catch(function (err) {
+        document.getElementById('rematchBtn').disabled = false;
+        setStatus('エラー: ' + err.message, 'err');
+      });
+    });
+
+    function onExtracted(res) {
+      document.getElementById('readBtn').disabled = false;
+      setStatus('', '');
+      document.getElementById('completeBanner').style.display = 'none';
+      document.getElementById('commitAllBtn').style.display = 'block';
+
+      candidateHeadersGlobal = res.candidateHeaders;
+      previewRows = res.rows.map(function (r, i) {
+        return {
+          id: 'row_' + i,
+          matchedHeader: r.matchedHeader,
+          amount: Math.round(r.extracted.amount_tax_excluded || 0),
+          existingValue: r.existingValue,
+          taxNote: r.extracted.tax_note || '',
+          supplierGuess: r.extracted.supplier_name || '(不明)',
+          rawSupplierName: r.extracted.supplier_name || '', // AIが読み取った仕入先名の生テキスト（列の学習に使う。表示用のsupplierGuessとは別に保持）
+          excluded: false,
+          done: false
+        };
+      });
+
+      var unmatched = previewRows.filter(function (r) { return !r.matchedHeader; }).length;
+      if (unmatched > 0) {
+        setStatus(unmatched + '件、仕入先を自動判定できませんでした。手動で選択してください。', 'warn');
+      }
+
+      renderRows();
+      document.getElementById('result').style.display = 'block';
+    }
+
+    function renderRows() {
+      var container = document.getElementById('rowsContainer');
+      container.innerHTML = '';
+      document.getElementById('rowCount').textContent = previewRows.length;
+
+      previewRows.forEach(function (row) {
+        var card = document.createElement('div');
+        card.className = 'row-card' + (row.excluded ? ' excluded' : '');
+
+        var guess = document.createElement('div');
+        guess.className = 'row-guess';
+        guess.textContent = '読み取り: 「' + row.supplierGuess + '」';
+        card.appendChild(guess);
+
+        var sel = document.createElement('select');
+        candidateHeadersGlobal.forEach(function (h) {
+          var opt = document.createElement('option');
+          opt.value = h;
+          opt.textContent = h;
+          if (h === row.matchedHeader) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.disabled = row.excluded || row.done;
+        sel.addEventListener('change', function () { row.matchedHeader = sel.value; });
+        card.appendChild(sel);
+
+        // 金額はカンマ区切り表示にして目視確認しやすくする（type=numberだとカンマが表示できないためtextにしている）
+        var amt = document.createElement('input');
+        amt.type = 'text';
+        amt.inputMode = 'numeric';
+        amt.className = 'amount-input';
+        amt.value = row.amount ? row.amount.toLocaleString() : '';
+        amt.disabled = row.excluded || row.done;
+        amt.addEventListener('input', function () {
+          var digits = amt.value.replace(/[^0-9]/g, '');
+          var n = digits ? parseInt(digits, 10) : 0;
+          row.amount = n;
+          var formatted = digits ? n.toLocaleString() : '';
+          if (amt.value !== formatted) {
+            amt.value = formatted;
+            // 桁区切りを入れ直すとカーソルが先頭に飛んでしまうため、末尾に戻しておく
+            if (amt.setSelectionRange) amt.setSelectionRange(formatted.length, formatted.length);
+          }
+        });
+        card.appendChild(amt);
+
+        if (row.taxNote) {
+          var note = document.createElement('div');
+          note.className = 'row-existing';
+          note.textContent = row.taxNote;
+          card.appendChild(note);
+        }
+
+        var info = document.createElement('div');
+        info.className = 'row-existing';
+        info.textContent = row.existingValue > 0
+          ? 'この列には既に ¥' + row.existingValue.toLocaleString() + ' が入力済み（追加すると合計 ¥' + (row.existingValue + row.amount).toLocaleString() + '）'
+          : 'この列はまだ未入力です。';
+        card.appendChild(info);
+
+        var status = document.createElement('div');
+        status.className = 'row-status';
+        status.id = row.id + '_status';
+        card.appendChild(status);
+
+        if (!row.done) {
+          var actions = document.createElement('div');
+          actions.className = 'row-actions';
+          var excludeBtn = document.createElement('button');
+          excludeBtn.type = 'button';
+          excludeBtn.textContent = row.excluded ? 'この行を戻す' : 'この行を無視する';
+          excludeBtn.onclick = function () { row.excluded = !row.excluded; renderRows(); };
+          actions.appendChild(excludeBtn);
+          card.appendChild(actions);
+        }
+
+        container.appendChild(card);
+      });
+    }
+
+    // ===== 確定（すべての行を順番に書き込み） =====
+
+    function confirmDuplicate(existingValue) {
+      return new Promise(function (resolve) {
+        document.getElementById('dupAmount').textContent = existingValue.toLocaleString();
+        document.getElementById('dupModal').style.display = 'flex';
+        document.getElementById('dupConfirm').onclick = function () {
+          document.getElementById('dupModal').style.display = 'none';
+          resolve(true);
+        };
+        document.getElementById('dupCancel').onclick = function () {
+          document.getElementById('dupModal').style.display = 'none';
+          resolve(false);
+        };
+      });
+    }
+
+    // 行ごとに1回ずつサーバーへ送ると通信の往復回数ぶん遅くなるため、
+    // 対象の行をまとめて1回のリクエストで送信する（1行ずつの確認ダイアログは、
+    // 重複の疑いがある行が返ってきた場合にのみ表示する）。
+    document.getElementById('commitAllBtn').addEventListener('click', async function () {
+      var dateStr = document.getElementById('dateInput').value;
+      document.getElementById('commitAllBtn').disabled = true;
+
+      var targets = previewRows.filter(function (r) { return !r.excluded && !r.done; });
+      targets.forEach(function (row) {
+        var statusEl = document.getElementById(row.id + '_status');
+        statusEl.textContent = '入力中…';
+        statusEl.className = 'row-status';
+      });
+
+      function applyResults(results, forced) {
+        var needsConfirm = [];
+        results.forEach(function (res, i) {
+          var row = targets[i];
+          var statusEl = document.getElementById(row.id + '_status');
+          if (res.error) {
+            statusEl.textContent = 'エラー: ' + res.error;
+            statusEl.className = 'row-status err';
+          } else if (res.needsConfirmation) {
+            needsConfirm.push({ row: row, existingValue: res.existingValue });
+          } else {
+            statusEl.textContent = '✓ ' + res.sheetName + ' ' + res.cell + ' = ¥' + res.finalValue.toLocaleString();
+            statusEl.className = 'row-status ok';
+            row.done = true;
+          }
+        });
+        return needsConfirm;
+      }
+
+      var lastSheetUrl = null;
+      try {
+        var payload = targets.map(function (row) {
+          return { headerName: row.matchedHeader, amount: row.amount, force: false, rawSupplierName: row.rawSupplierName };
+        });
+        var res1 = await runServer('commitEntries', { section: selectedSection, dateStr: dateStr, entries: payload });
+        if (res1.sheetUrl) lastSheetUrl = res1.sheetUrl;
+        var needsConfirm = applyResults(res1.results, false);
+
+        // 重複の疑いがある行だけ、1件ずつ確認してから改めてまとめて送信する
+        if (needsConfirm.length > 0) {
+          var confirmedTargets = [];
+          var confirmedPayload = [];
+          for (var i = 0; i < needsConfirm.length; i++) {
+            var item = needsConfirm[i];
+            var statusEl = document.getElementById(item.row.id + '_status');
+            var proceed = await confirmDuplicate(item.existingValue);
+            if (proceed) {
+              confirmedTargets.push(item.row);
+              confirmedPayload.push({ headerName: item.row.matchedHeader, amount: item.row.amount, force: true, rawSupplierName: item.row.rawSupplierName });
+            } else {
+              statusEl.textContent = 'スキップしました（重複の可能性）';
+              statusEl.className = 'row-status warn';
+            }
+          }
+          if (confirmedPayload.length > 0) {
+            var savedTargets = targets;
+            targets = confirmedTargets;
+            var res2 = await runServer('commitEntries', { section: selectedSection, dateStr: dateStr, entries: confirmedPayload });
+            if (res2.sheetUrl) lastSheetUrl = res2.sheetUrl;
+            applyResults(res2.results, true);
+            targets = savedTargets;
+          }
+        }
+      } catch (err) {
+        setStatus('エラー: ' + err.message, 'err');
+      }
+
+      renderRows();
+      document.getElementById('commitAllBtn').disabled = false;
+
+      var remaining = previewRows.filter(function (r) { return !r.done && !r.excluded; }).length;
+      if (remaining === 0) {
+        setStatus('', '');
+        selectedFiles = [];
+        renderThumbs();
+        document.getElementById('commitAllBtn').style.display = 'none';
+        var openSheetBtn = document.getElementById('openSheetBtn');
+        if (lastSheetUrl) {
+          openSheetBtn.href = lastSheetUrl;
+          openSheetBtn.style.display = 'block';
+        } else {
+          openSheetBtn.style.display = 'none';
+        }
+        var banner = document.getElementById('completeBanner');
+        banner.style.display = 'block';
+        banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        setStatus(remaining + '件、まだ入力されていません。上の内容を確認し、もう一度「この内容ですべて入力する」を押してください。', 'warn');
+      }
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', function () {
+      previewRows = [];
+      candidateHeadersGlobal = [];
+      lastEntries = null;
+      document.getElementById('result').style.display = 'none';
+      document.getElementById('completeBanner').style.display = 'none';
+      document.getElementById('commitAllBtn').style.display = 'block';
+      document.getElementById('detectedInfo').style.display = 'none';
+      document.getElementById('rematchBtn').style.display = 'none';
+      setStatus('', '');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  </script>
+</body>
+</html>

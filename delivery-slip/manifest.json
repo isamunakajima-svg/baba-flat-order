@@ -1,0 +1,12 @@
+{
+  "name": "納品書入力",
+  "short_name": "納品書入力",
+  "start_url": "./camera.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2b6cb0",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
