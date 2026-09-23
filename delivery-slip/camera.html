@@ -28,7 +28,9 @@
     #detectedInfo.warn { background: #fff5eb; color: #c05621; }
     #rematchBtn { display: none; margin-top: 8px; width: 100%; padding: 10px; background: #fff; color: #2b6cb0; border: 1px solid #2b6cb0; border-radius: 6px; font-size: 14px; }
     .photo-buttons { display: flex; gap: 8px; margin-top: 8px; }
-    .photo-buttons button { flex: 1; padding: 12px 4px; border: 1px solid #2b6cb0; background: #fff; color: #2b6cb0; border-radius: 6px; font-size: 14px; }
+    .photo-buttons button { padding: 12px 4px; border: 1px solid #2b6cb0; background: #fff; color: #2b6cb0; border-radius: 6px; font-size: 14px; }
+    .photo-buttons #cameraBtn { flex: 2; }
+    .photo-buttons #galleryBtn { flex: 1; }
     #thumbs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     #thumbs .thumb { position: relative; width: 64px; height: 64px; }
     #thumbs img { width: 64px; height: 64px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; display: block; }
@@ -118,6 +120,24 @@
     var candidateHeadersGlobal = [];
     var lastEntries = null;     // Geminiが読み取った生のentries（宛先・日付を選び直すときにAIを呼び直さず使う）
 
+    // ===== 写真を追加したら即座に自動で読み取りを開始する =====
+    // ただし前回の読み取り結果をまだ確認・入力していない場合は、誤って上書きしてしまわないよう
+    // 自動開始しない（その場合は手動で「読み取る」を押してもらう）。
+    var awaitingReview = false; // 直前の読み取り結果がまだ確認・入力(コミット)されていない間はtrue
+
+    function cancelAutoRead() {
+      // 現在は即時実行のため予約タイマーはないが、他箇所からの呼び出しに備えて残してある
+    }
+
+    function scheduleAutoRead() {
+      if (selectedFiles.length === 0) { setStatus('', ''); return; }
+      if (awaitingReview) {
+        setStatus('先に読み取り結果を確認・入力してください（自動読み取りは一時停止中。手動で「読み取る」も押せます）', '');
+        return;
+      }
+      startRead();
+    }
+
     function setStatus(msg, cls) {
       var el = document.getElementById('status');
       el.textContent = msg || '';
@@ -202,6 +222,7 @@
         rm.onclick = function () {
           selectedFiles.splice(i, 1);
           renderThumbs();
+          scheduleAutoRead();
         };
         wrap.appendChild(rm);
         thumbs.appendChild(wrap);
@@ -212,6 +233,7 @@
     function addFiles(fileList) {
       selectedFiles = selectedFiles.concat(Array.prototype.slice.call(fileList));
       renderThumbs();
+      scheduleAutoRead();
     }
 
     document.getElementById('cameraBtn').addEventListener('click', function () {
@@ -229,8 +251,10 @@
       e.target.value = '';
     });
     document.getElementById('clearPhotosBtn').addEventListener('click', function () {
+      cancelAutoRead();
       selectedFiles = [];
       renderThumbs();
+      setStatus('', '');
     });
 
     function fileToBase64(file) {
@@ -332,6 +356,12 @@
     // ===== 読み取り =====
 
     document.getElementById('readBtn').addEventListener('click', function () {
+      cancelAutoRead();
+      startRead();
+    });
+
+    function startRead() {
+      cancelAutoRead();
       if (selectedFiles.length === 0) { setStatus('写真を選択してください。', 'err'); return; }
 
       document.getElementById('result').style.display = 'none';
@@ -377,7 +407,7 @@
         setStatus('エラー: ' + err.message, 'err');
         document.getElementById('readBtn').disabled = false;
       });
-    });
+    }
 
     // extractAndPreview / matchEntries の結果を受け取り、宛先が自動判定できていれば読み取り結果を表示し、
     // できていなければ宛先を選んでもらう案内を出す（どちらの場合もentriesはlastEntriesに保持しておき、
@@ -450,6 +480,7 @@
     function onExtracted(res) {
       document.getElementById('readBtn').disabled = false;
       setStatus('', '');
+      awaitingReview = true;
       document.getElementById('completeBanner').style.display = 'none';
       document.getElementById('commitAllBtn').style.display = 'block';
 
@@ -651,6 +682,7 @@
       var remaining = previewRows.filter(function (r) { return !r.done && !r.excluded; }).length;
       if (remaining === 0) {
         setStatus('', '');
+        awaitingReview = false;
         selectedFiles = [];
         renderThumbs();
         document.getElementById('commitAllBtn').style.display = 'none';
@@ -670,6 +702,7 @@
     });
 
     document.getElementById('nextBtn').addEventListener('click', function () {
+      awaitingReview = false;
       previewRows = [];
       candidateHeadersGlobal = [];
       lastEntries = null;
