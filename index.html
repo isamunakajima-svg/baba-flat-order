@@ -613,8 +613,15 @@
           <div class="animate-spin rounded-full h-8 w-8 border-2 border-amber-500 border-t-transparent mx-auto mb-2"></div>
           店舗情報を読み込んでいます...
         </div>`;
-      refreshOrderedDates(); // ★2026/09/17追加: 発注カレンダーの「発注済み」マーク用データを並行して取得（結果を待たず進める）
       const ok = await loadProductsForDate(""); // 空文字＝サーバー側で今日日付を基準に取得
+      // ★2026/09/18修正: 以前はここより前（loadProductsForDateと同時並行）でrefreshOrderedDates()を
+      //   呼んでいたが、発注済みマーク（項目21）追加後に「発注タブの表示が遅くなった、時にはタイム
+      //   アウトエラーになる」との報告があった。発注タブを開くたびに商品取得（getProducts）と
+      //   発注済み日取得（getHistory系）の重いリクエストが同時に発生し、GAS側の実行が競合して
+      //   両方とも遅くなっていたことが原因と考えられる。肝心の商品一覧（getProductsの結果）が
+      //   表示されるまでの体感速度を優先し、発注済みマークの取得は商品一覧の表示が終わった後に
+      //   （結果を待たず）追いかけて行うよう順序を変更した。
+      refreshOrderedDates();
       if (ok) {
         renderProductAccordion();
       } else {
@@ -635,12 +642,14 @@
     async function refreshOrderedDates() {
       if (!shopCode || !userProfile || !userProfile.userId) return;
       try {
-        const url  = `${GAS_WEB_APP_URL}?action=getHistory&shopCode=${encodeURIComponent(shopCode)}&userId=${encodeURIComponent(userProfile.userId)}`;
+        // ★2026/09/18修正: 以前はここで`getHistory`（注文履歴タブ表示用の商品明細つきフル情報）を
+        //   そのまま呼んでいたが、カレンダーに印を付けるためだけなら「配送日」の一覧さえ分かれば
+        //   十分なため、専用の軽量エンドポイント`getOrderedDates`（配送日の一覧だけを返す）に変更。
+        //   レスポンスが小さくなり、取得・パース双方が速くなる。
+        const url  = `${GAS_WEB_APP_URL}?action=getOrderedDates&shopCode=${encodeURIComponent(shopCode)}&userId=${encodeURIComponent(userProfile.userId)}`;
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") return;
-        orderedDates = new Set(
-          (data.history || []).filter(h => h.status !== "キャンセル").map(h => h.deliveryDate)
-        );
+        orderedDates = new Set(data.dates || []);
         renderOrderCalendar();
       } catch (error) {
         console.warn("発注済み日付の取得に失敗しました（発注カレンダーのマーク表示のみに影響、発注自体は可能です）:", error);
@@ -679,7 +688,11 @@
           if (p.name.includes("クロワッサン"))    { emoji = "🥐"; }
           else if (p.name.includes("塩パン"))     { emoji = "🥯"; }
           else if (p.name.includes("メロンパン")) { emoji = "🍪"; }
-          const desc = p.desc || "卸専用商品";
+          // ★2026/09/28修正: 以前はここで備考が空欄の場合に「卸専用商品」という
+          //   代替文言を補っていたが、備考は「実際に入力されている商品だけ商品名の
+          //   下に小さく表示し、空欄の商品には何も表示しない」という仕様にするため、
+          //   代替文言は廃止し、備考をそのまま（空欄なら空文字のまま）保持する。
+          const desc = String(p.desc || "").trim();
           return {
             id: p.code || "p"+i, name: p.name, priceExTax: Number(p.priceExTax), priceInTax: Number(p.priceInTax),
             emoji, desc, imageUrl: p.imageUrl || "",
@@ -1161,6 +1174,7 @@
                   ${iconHtml}
                  <div class="flex-1 min-w-0">
                     <h3 class="font-bold text-slate-800 text-xs truncate">${p.name}</h3>
+                    ${p.desc ? `<p class="text-[10px] text-slate-400 truncate">${_escapeHtml(p.desc)}</p>` : ''}
                     <p class="text-[10px] text-slate-400">¥${p.priceInTax.toLocaleString()} / 個 (税込)${p.maxQty ? ` <span class="text-amber-500">・上限${p.maxQty}個</span>` : ''}</p>
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
