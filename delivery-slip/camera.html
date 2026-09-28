@@ -5,27 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="納品書入力">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#2b6cb0">
-  <link rel="apple-touch-icon" href="icon-180.png">
-  <link rel="icon" href="icon-192.png">
   <script>
     // camera.htmlは各店舗の入口ファイル（baba.html等）から一瞬で転送されてくるページ。
-    // ここで汎用のmanifest.jsonを固定でリンクしてしまうと、Androidで「ホーム画面に追加」した際に
-    // 転送先のこのページ自身のマニフェスト（storeを含まないstart_url）が使われてしまい、
-    // 次回起動時に店舗情報が失われる不具合が起きる。そのため、URLの?store=から
-    // 店舗専用のマニフェスト（manifest-<store>.json）を動的に選んでリンクする。
-    document.write(
-      '<link rel="manifest" href="' +
-      (function () {
-        var store = new URLSearchParams(location.search).get('store');
-        return store ? ('manifest-' + store + '.json') : 'manifest.json';
-      })() +
-      '">'
-    );
+    // apple-mobile-web-app-title・theme-color・アイコン・manifest・titleは、いずれも
+    // 下記スクリプトがURLの?store=を見て動的に出力する（固定値はここでは書かない）。
+    // 「ホーム画面に追加」操作は、この転送後のcamera.html自身が表示されているタイミングで
+    // 行われることが多いため（転送が一瞬なので）、manifest・アイコン・アプリ名・テーマカラーは
+    // すべて元の入口ファイル側の値をあてにせず、URLの?store=からこのページ自身が動的に
+    // 決定し直す（そうしないと、店舗名や店舗ごとの色・アイコンが反映されないまま
+    // 汎用のものでホーム画面に登録されてしまう）。
+    (function () {
+      var STORE_META_ = {
+        baba:         { label: '馬場',   color: '#2b6cb0', icon: 'icon-baba-v2' },
+        koenji:       { label: '高円寺', color: '#dd6b20', icon: 'icon-koenji-v2' },
+        meguro:       { label: '目黒',   color: '#c53030', icon: 'icon-meguro-v2' },
+        kunitachi:    { label: '国立',   color: '#f2705f', icon: 'icon-kunitachi-v2' },
+        kasumigaseki: { label: '霞が関', color: '#6b7280', icon: 'icon-kasumigaseki-v2' }
+      };
+      var store = new URLSearchParams(location.search).get('store');
+      var meta = STORE_META_[store];
+      var manifestHref = store ? ('manifest-' + store + '.json') : 'manifest.json';
+      var iconPrefix = meta ? meta.icon : 'icon';
+      var themeColor = meta ? meta.color : '#2b6cb0';
+      var titleText = meta ? ('納品書入力（' + meta.label + '）') : '納品書入力';
+      document.write('<link rel="manifest" href="' + manifestHref + '">');
+      document.write('<link rel="apple-touch-icon" href="' + iconPrefix + '-180.png">');
+      document.write('<link rel="icon" href="' + iconPrefix + '-192.png">');
+      document.write('<meta name="theme-color" content="' + themeColor + '">');
+      document.write('<meta name="apple-mobile-web-app-title" content="' + titleText + '">');
+      document.write('<title>' + titleText + '</title>');
+    })();
   </script>
-  <title>納品書入力</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; max-width: 480px; margin: 0 auto; padding: 16px; color: #222; }
     h1 { font-size: 18px; margin-bottom: 4px; }
