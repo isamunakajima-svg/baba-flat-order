@@ -10,7 +10,21 @@
   <meta name="theme-color" content="#2b6cb0">
   <link rel="apple-touch-icon" href="icon-180.png">
   <link rel="icon" href="icon-192.png">
-  <link rel="manifest" href="manifest.json">
+  <script>
+    // camera.htmlは各店舗の入口ファイル（baba.html等）から一瞬で転送されてくるページ。
+    // ここで汎用のmanifest.jsonを固定でリンクしてしまうと、Androidで「ホーム画面に追加」した際に
+    // 転送先のこのページ自身のマニフェスト（storeを含まないstart_url）が使われてしまい、
+    // 次回起動時に店舗情報が失われる不具合が起きる。そのため、URLの?store=から
+    // 店舗専用のマニフェスト（manifest-<store>.json）を動的に選んでリンクする。
+    document.write(
+      '<link rel="manifest" href="' +
+      (function () {
+        var store = new URLSearchParams(location.search).get('store');
+        return store ? ('manifest-' + store + '.json') : 'manifest.json';
+      })() +
+      '">'
+    );
+  </script>
   <title>納品書入力</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif; max-width: 480px; margin: 0 auto; padding: 16px; color: #222; }
