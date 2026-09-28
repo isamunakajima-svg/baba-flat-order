@@ -63,20 +63,22 @@
   </style>
 </head>
 <body>
-  <h1>納品書 自動入力（馬場）</h1>
+  <h1 id="pageTitle">納品書 自動入力</h1>
   <div class="sub">納品書を撮影すると、仕入先と税抜き合計金額を読み取って原価シートに入力します。1回の読み取りで複数件の納品書（同じ仕入先・別の仕入先どちらも可）をまとめて処理できます。</div>
 
   <label>日付</label>
   <input type="date" id="dateInput">
   <label class="checkbox-label"><input type="checkbox" id="autoDateCheckbox" checked> 納品書に書かれた日付を自動で読み取る（オフにすると上の日付を使用）</label>
 
-  <label>宛先</label>
-  <div class="sub" style="margin-top:0;">「自動判定」のままでOKです。納品書に書かれた納入先の記載から判定します。うまく判定できない・違う場合だけ手動で選んでください。</div>
-  <div class="section-buttons" id="sectionButtons"></div>
-  <button type="button" id="rematchBtn">この宛先・日付で読み取り結果に反映する</button>
+  <div id="destinationBlock">
+    <label>宛先</label>
+    <div class="sub" style="margin-top:0;">「自動判定」のままでOKです。納品書に書かれた納入先の記載から判定します。うまく判定できない・違う場合だけ手動で選んでください。</div>
+    <div class="section-buttons" id="sectionButtons"></div>
+  </div>
+  <button type="button" id="rematchBtn">この内容（宛先・日付）を読み取り結果に反映する</button>
 
   <label>納品書の写真</label>
-  <div class="sub" style="margin-top:0;">1枚の写真に複数件の納品書が写っていても、複数枚に分けて撮っても大丈夫です（同じ仕入先が複数枚あっても、違う仕入先が混ざっていても自動で読み分けます）。1件の納品書が複数ページに分かれる場合は、その複数ページを含めて渡してください。宛先（馬場FLAT／サンド室／はなれ）が違う納品書は、宛先ごとに分けて読み取ってください。</div>
+  <div class="sub" style="margin-top:0;">1枚の写真に複数件の納品書が写っていても、複数枚に分けて撮っても大丈夫です（同じ仕入先が複数枚あっても、違う仕入先が混ざっていても自動で読み分けます）。1件の納品書が複数ページに分かれる場合は、その複数ページを含めて渡してください。宛先が複数ある店舗では、宛先が違う納品書は宛先ごとに分けて読み取ってください。</div>
   <div class="photo-buttons">
     <button type="button" id="cameraBtn">📷 写真を撮る</button>
     <button type="button" id="galleryBtn">🖼 アルバムから選ぶ</button>
@@ -111,10 +113,15 @@
   </div>
 
   <script>
-    // Apps Scriptで「デプロイ」した際に発行されたウェブアプリURL（.../exec）
+    // Apps Scriptで「デプロイ」した際に発行されたウェブアプリURL（.../exec）。全店舗共通。
     var GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx08HMG5Mazb50pdcbon23zFMMUnE8XdvQYZ--tFUhE1kUrQNKgchnZgpE2l6SnSZF5sw/exec';
 
+    // どの店舗のデータを扱うかは、このページを開いたURLの ?store=xxx から決まる
+    // （店舗ごとの起動用ファイル（例: koenji.html）が、正しいstoreを付けてこのページを開く）。
+    var STORE_KEY = new URLSearchParams(location.search).get('store');
+
     var selectedSection = null;
+    var hasSections = false;    // この店舗に宛先（セクション）選択があるかどうか（getInitialData後に確定）
     var selectedFiles = [];
     var previewRows = [];       // 読み取り結果（1件ごとの行データ）
     var candidateHeadersGlobal = [];
@@ -173,36 +180,55 @@
       });
     }
 
-    runServer('getInitialData').then(function (data) {
-      document.getElementById('dateInput').value = data.today;
-      var wrap = document.getElementById('sectionButtons');
+    if (!STORE_KEY) {
+      setStatus('店舗が指定されていません。正しいホーム画面のアイコンから開き直してください。', 'err');
+      document.getElementById('readBtn').disabled = true;
+      document.getElementById('cameraBtn').disabled = true;
+      document.getElementById('galleryBtn').disabled = true;
+    } else {
+      runServer('getInitialData', { store: STORE_KEY }).then(function (data) {
+        document.getElementById('pageTitle').textContent = '納品書 自動入力（' + data.storeLabel + '）';
+        document.title = '納品書入力（' + data.storeLabel + '）';
+        // iOSでこのページを直接「ホーム画面に追加」した場合のアイコン名にも反映されるよう試みる
+        // （店舗ごとの起動用ファイルを使っていれば、そちら側の固定タイトルが優先して使われる）
+        var appTitleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+        if (appTitleMeta) appTitleMeta.setAttribute('content', '納品書入力（' + data.storeLabel + '）');
 
-      function selectSectionButton(btn, section) {
-        selectedSection = section;
-        Array.prototype.forEach.call(wrap.children, function (c) { c.classList.remove('selected'); });
-        btn.classList.add('selected');
-      }
+        document.getElementById('dateInput').value = data.today;
+        hasSections = data.sections && data.sections.length > 0;
+        document.getElementById('destinationBlock').style.display = hasSections ? 'block' : 'none';
 
-      // 「自動判定」＝納品書の記載から宛先を判定させる（selectedSection = null）。既定で選択済みにしておく。
-      var autoBtn = document.createElement('button');
-      autoBtn.type = 'button';
-      autoBtn.className = 'auto-btn';
-      autoBtn.textContent = '自動判定';
-      autoBtn.onclick = function () { selectSectionButton(autoBtn, null); };
-      wrap.appendChild(autoBtn);
+        var wrap = document.getElementById('sectionButtons');
 
-      data.sections.forEach(function (s) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.textContent = s;
-        b.onclick = function () { selectSectionButton(b, s); };
-        wrap.appendChild(b);
+        function selectSectionButton(btn, section) {
+          selectedSection = section;
+          Array.prototype.forEach.call(wrap.children, function (c) { c.classList.remove('selected'); });
+          if (btn) btn.classList.add('selected');
+        }
+
+        if (hasSections) {
+          // 「自動判定」＝納品書の記載から宛先を判定させる（selectedSection = null）。既定で選択済みにしておく。
+          var autoBtn = document.createElement('button');
+          autoBtn.type = 'button';
+          autoBtn.className = 'auto-btn';
+          autoBtn.textContent = '自動判定';
+          autoBtn.onclick = function () { selectSectionButton(autoBtn, null); };
+          wrap.appendChild(autoBtn);
+
+          data.sections.forEach(function (s) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = s;
+            b.onclick = function () { selectSectionButton(b, s); };
+            wrap.appendChild(b);
+          });
+
+          selectSectionButton(autoBtn, null);
+        }
+      }).catch(function (err) {
+        setStatus('初期化エラー: ' + err.message + '（GAS_WEB_APP_URLが正しく設定されているか確認してください）', 'err');
       });
-
-      selectSectionButton(autoBtn, null);
-    }).catch(function (err) {
-      setStatus('初期化エラー: ' + err.message + '（GAS_WEB_APP_URLが正しく設定されているか確認してください）', 'err');
-    });
+    }
 
     // ===== 写真の選択 =====
 
@@ -402,7 +428,7 @@
         setStatus('AIが読み取り中…お待ちください', '');
         var autoDate = document.getElementById('autoDateCheckbox').checked;
         var dateStr = autoDate ? null : document.getElementById('dateInput').value;
-        return runServer('extractAndPreview', { images: images, section: selectedSection, dateStr: dateStr }, 90000);
+        return runServer('extractAndPreview', { store: STORE_KEY, images: images, section: selectedSection, dateStr: dateStr }, 90000);
       }).then(handleExtractResult).catch(function (err) {
         setStatus('エラー: ' + err.message, 'err');
         document.getElementById('readBtn').disabled = false;
@@ -433,12 +459,12 @@
       // 宛先・日付が決まったので、上のコントロールにも反映し（次回の「反映する」でもそのまま使えるように）、
       // 検出結果を案内表示する。
       document.getElementById('dateInput').value = res.dateStr;
-      selectDetectedSection_(res.section);
+      if (hasSections) selectDetectedSection_(res.section);
 
       info.className = '';
-      info.textContent = '宛先: ' + res.section + (res.sectionAutoDetected ? '（自動判定）' : '（手動指定）') +
-        '　日付: ' + res.dateStr + (res.dateAutoDetected ? '（自動判定）' : (document.getElementById('autoDateCheckbox').checked ? '（判定できず今日の日付）' : '（手動指定）')) +
-        '　違う場合は上で選び直して「反映する」を押してください。';
+      info.textContent = (hasSections ? ('宛先: ' + res.section + (res.sectionAutoDetected ? '（自動判定）' : '（手動指定）') + '　') : '') +
+        '日付: ' + res.dateStr + (res.dateAutoDetected ? '（自動判定）' : (document.getElementById('autoDateCheckbox').checked ? '（判定できず今日の日付）' : '（手動指定）')) +
+        '　違う場合は' + (hasSections ? '上で選び直して' : '日付を修正して') + '「反映する」を押してください。';
       info.style.display = 'block';
       document.getElementById('rematchBtn').style.display = 'block';
 
@@ -457,18 +483,18 @@
 
     // 宛先・日付を選び直して、すでに読み取り済みのentriesに反映する（Gemini呼び直しなし）
     document.getElementById('rematchBtn').addEventListener('click', function () {
-      if (!selectedSection) { setStatus('宛先を選択してください。', 'err'); return; }
+      if (hasSections && !selectedSection) { setStatus('宛先を選択してください。', 'err'); return; }
       if (!lastEntries) { setStatus('先に写真を読み取ってください。', 'err'); return; }
 
       var dateStr = document.getElementById('dateInput').value;
       document.getElementById('rematchBtn').disabled = true;
       setStatus('反映中…', '');
 
-      runServer('matchEntries', { entries: lastEntries, section: selectedSection, dateStr: dateStr }).then(function (res) {
+      runServer('matchEntries', { store: STORE_KEY, entries: lastEntries, section: selectedSection, dateStr: dateStr }).then(function (res) {
         document.getElementById('rematchBtn').disabled = false;
         var info = document.getElementById('detectedInfo');
         info.className = '';
-        info.textContent = '宛先: ' + res.section + '（手動指定）　日付: ' + res.dateStr + '（手動指定）';
+        info.textContent = (hasSections ? ('宛先: ' + res.section + '（手動指定）　') : '') + '日付: ' + res.dateStr + '（手動指定）';
         info.style.display = 'block';
         onExtracted(res);
       }).catch(function (err) {
@@ -643,7 +669,7 @@
         var payload = targets.map(function (row) {
           return { headerName: row.matchedHeader, amount: row.amount, force: false, rawSupplierName: row.rawSupplierName };
         });
-        var res1 = await runServer('commitEntries', { section: selectedSection, dateStr: dateStr, entries: payload });
+        var res1 = await runServer('commitEntries', { store: STORE_KEY, section: selectedSection, dateStr: dateStr, entries: payload });
         if (res1.sheetUrl) lastSheetUrl = res1.sheetUrl;
         var needsConfirm = applyResults(res1.results, false);
 
@@ -666,7 +692,7 @@
           if (confirmedPayload.length > 0) {
             var savedTargets = targets;
             targets = confirmedTargets;
-            var res2 = await runServer('commitEntries', { section: selectedSection, dateStr: dateStr, entries: confirmedPayload });
+            var res2 = await runServer('commitEntries', { store: STORE_KEY, section: selectedSection, dateStr: dateStr, entries: confirmedPayload });
             if (res2.sheetUrl) lastSheetUrl = res2.sheetUrl;
             applyResults(res2.results, true);
             targets = savedTargets;
