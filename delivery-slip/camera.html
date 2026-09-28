@@ -25,7 +25,7 @@
       };
       var store = new URLSearchParams(location.search).get('store');
       var meta = STORE_META_[store];
-      var manifestHref = store ? ('manifest-' + store + '.json') : 'manifest.json';
+      var manifestHref = store ? ('manifest-' + store + '-v2.json') : 'manifest.json';
       var iconPrefix = meta ? meta.icon : 'icon';
       var themeColor = meta ? meta.color : '#2b6cb0';
       var titleText = meta ? ('納品書入力（' + meta.label + '）') : '納品書入力';
