@@ -541,6 +541,7 @@
           id: 'row_' + i,
           matchedHeader: r.matchedHeader,
           amount: Math.round(r.extracted.amount_tax_excluded || 0),
+          taxIncludedAmount: Math.round(r.extracted.amount_tax_included || 0),
           existingValue: r.existingValue,
           taxNote: r.extracted.tax_note || '',
           supplierGuess: r.extracted.supplier_name || '(不明)',
@@ -604,6 +605,13 @@
           }
         });
         card.appendChild(amt);
+
+        if (row.taxIncludedAmount > 0) {
+          var taxRef = document.createElement('div');
+          taxRef.className = 'row-existing';
+          taxRef.textContent = '参考（税込み）: ¥' + row.taxIncludedAmount.toLocaleString() + '　※スプレッドシートには上の税抜き金額を入力します';
+          card.appendChild(taxRef);
+        }
 
         if (row.taxNote) {
           var note = document.createElement('div');
