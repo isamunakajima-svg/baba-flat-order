@@ -225,6 +225,12 @@
   .wall-tool-group{display:flex; align-items:center; gap:6px;}
   .wall-tool-btn.active{background:var(--accent); border-color:var(--accent); color:#fff;}
   .wall-tool-btn.active:hover{color:#fff;}
+  .clearance-tool-group{display:flex; align-items:center; gap:6px;}
+  .clearance-tool-group .wall-tool-btn.active{background:var(--status-estimate); border-color:var(--status-estimate);}
+  .clearance-threshold{
+    appearance:none; border:1px solid var(--line-strong); background:var(--paper-raised); color:var(--ink-soft);
+    font:inherit; font-weight:600; font-size:12px; padding:6px 10px; border-radius:7px; cursor:pointer;
+  }
 
   .legend-row{
     display:flex; flex-wrap:wrap; gap:8px 18px; margin:16px 2px; font-size:12.5px; color:var(--ink-soft);
@@ -294,6 +300,48 @@
   .action-btn.del-btn{margin-left:6px;}
   .action-btn.del-btn:hover{border-color:var(--accent); color:var(--accent);}
 
+  /* Custom equipment add form — a centered modal (not the bottom sheet used for
+     tap-info) since this has several fields and benefits from more room on screen */
+  .custom-eq-trigger-row{margin:4px 0 14px;}
+  .custom-eq-trigger{font-weight:700;}
+  .custom-eq-overlay{
+    position:fixed; inset:0; z-index:95; background:rgba(26,18,13,.42);
+    display:none; align-items:center; justify-content:center; padding:18px;
+  }
+  .custom-eq-overlay.show{display:flex;}
+  .custom-eq-modal{
+    width:100%; max-width:440px; max-height:calc(100vh - 36px); overflow-y:auto;
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:16px;
+    box-shadow:0 20px 50px -14px rgba(43,27,20,.45); padding:20px 22px 18px;
+  }
+  .custom-eq-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px;}
+  .custom-eq-head h3{margin:0; font-size:16px; font-weight:700; color:var(--ink);}
+  .custom-eq-close{
+    appearance:none; border:none; background:var(--paper-sunk); color:var(--ink-soft);
+    width:26px; height:26px; border-radius:50%; font-size:13px; line-height:1; cursor:pointer; flex:none;
+  }
+  .custom-eq-hint{font-size:12px; color:var(--ink-faint); line-height:1.55; margin:8px 0 16px;}
+  .custom-eq-field{margin-bottom:12px;}
+  .custom-eq-field label{display:block; font-size:12px; font-weight:600; color:var(--ink-soft); margin-bottom:4px;}
+  .custom-eq-field .req{color:var(--accent); margin-left:2px;}
+  .custom-eq-field input[type="text"], .custom-eq-field input[type="number"], .custom-eq-field select{
+    width:100%; box-sizing:border-box; appearance:none; border:1px solid var(--line-strong);
+    background:var(--paper); color:var(--ink); font:inherit; font-size:13px; padding:8px 10px;
+    border-radius:7px; transition:border-color .15s ease;
+  }
+  .custom-eq-field input:focus, .custom-eq-field select:focus{outline:none; border-color:var(--accent);}
+  .custom-eq-row{display:flex; gap:10px;}
+  .custom-eq-row .custom-eq-field{flex:1; min-width:0;}
+  .custom-eq-checks{display:flex; flex-wrap:wrap; gap:10px 16px;}
+  .custom-eq-checks label, .custom-eq-checkfield label{
+    display:flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer;
+  }
+  .custom-eq-checkfield{display:flex; align-items:flex-end;}
+  .custom-eq-error{font-size:12px; color:var(--status-estimate); min-height:1.4em; margin:2px 0 4px;}
+  .custom-eq-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:6px;}
+  .custom-eq-submit{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .custom-eq-submit:hover{border-color:var(--accent); color:#fff; filter:brightness(1.05);}
+
   .note{font-size:12.5px; color:var(--ink-faint); margin:14px 2px 0; line-height:1.6;}
 
   footer{margin-top:40px; border-top:1px solid var(--line); padding-top:20px;}
@@ -310,6 +358,23 @@
     .kw-summary .ks-value{font-size:18px;}
     .table-hint{display:block;}
   }
+
+  /* Export: PNG snapshot + print/PDF ----------------------------------------- */
+  .export-tool-group{display:flex; align-items:center; gap:6px;}
+  .export-tool-group .reset-btn[disabled]{opacity:.55; cursor:default; pointer-events:none;}
+  .print-export-root{display:none;}
+  .print-export-root h2{margin:0 0 4px; font-size:16px; font-weight:700; color:var(--ink);}
+  .print-export-root .print-date{margin:0 0 14px; font-size:11.5px; color:var(--ink-faint);}
+  @media print{
+    @page{ size:landscape; margin:12mm; }
+    body *{visibility:hidden;}
+    .print-export-root, .print-export-root *{visibility:visible;}
+    .print-export-root{
+      display:block !important; position:absolute; left:0; top:0; width:100%;
+      font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN",sans-serif;
+    }
+    .print-export-root svg{width:100%; height:auto;}
+  }
 </style>
 </head>
 <body>
@@ -322,6 +387,78 @@
   <div class="is-dim" id="isDim"></div>
   <div class="is-row" id="isRow"></div>
 </div>
+<div class="custom-eq-overlay" id="customEqOverlay">
+  <div class="custom-eq-modal" role="dialog" aria-modal="true" aria-labelledby="customEqTitle">
+    <div class="custom-eq-head">
+      <h3 id="customEqTitle">カスタム機器を追加</h3>
+      <button class="custom-eq-close" id="customEqClose" type="button" aria-label="閉じる">✕</button>
+    </div>
+    <p class="custom-eq-hint">カタログにない機器を自由に追加できます。追加した機器は右外側の「仮置き場」に置かれるので、そこからドラッグして配置してください。</p>
+    <div class="custom-eq-field">
+      <label for="ceName">機器名<span class="req">*</span></label>
+      <input type="text" id="ceName" maxlength="40" placeholder="例: 真空包装機">
+    </div>
+    <div class="custom-eq-row">
+      <div class="custom-eq-field">
+        <label for="ceW">幅 W (mm)<span class="req">*</span></label>
+        <input type="number" id="ceW" min="1" max="20000" step="1" placeholder="600">
+      </div>
+      <div class="custom-eq-field">
+        <label for="ceD">奥行 D (mm)<span class="req">*</span></label>
+        <input type="number" id="ceD" min="1" max="20000" step="1" placeholder="600">
+      </div>
+      <div class="custom-eq-field">
+        <label for="ceH">高さ H (mm)</label>
+        <input type="number" id="ceH" min="1" max="4000" step="1" placeholder="900">
+      </div>
+    </div>
+    <div class="custom-eq-row">
+      <div class="custom-eq-field">
+        <label for="ceKind">種別(表示色)</label>
+        <select id="ceKind">
+          <option value="prod">常温・作業</option>
+          <option value="cold">冷蔵・冷凍</option>
+          <option value="pack">梱包・保管</option>
+          <option value="util">洗浄・給排水</option>
+          <option value="sup">バックヤード</option>
+        </select>
+      </div>
+      <div class="custom-eq-field">
+        <label for="ceStatus">状態</label>
+        <select id="ceStatus">
+          <option value="new">新規</option>
+          <option value="estimate">目安</option>
+          <option value="confirmed">確定</option>
+        </select>
+      </div>
+    </div>
+    <div class="custom-eq-field">
+      <label>必要な設備</label>
+      <div class="custom-eq-checks">
+        <label><input type="checkbox" class="ce-util" value="power"> 電源</label>
+        <label><input type="checkbox" class="ce-util" value="water"> 給水</label>
+        <label><input type="checkbox" class="ce-util" value="drain"> 排水</label>
+        <label><input type="checkbox" class="ce-util" value="gas"> ガス</label>
+        <label><input type="checkbox" class="ce-util" value="air"> エア</label>
+      </div>
+    </div>
+    <div class="custom-eq-row">
+      <div class="custom-eq-field">
+        <label for="ceKw">消費電力の目安 (kW)</label>
+        <input type="number" id="ceKw" min="0" max="100" step="0.01" placeholder="未入力可">
+      </div>
+      <div class="custom-eq-field custom-eq-checkfield">
+        <label><input type="checkbox" id="ceDoryoku"> 動力(三相200V)が必要</label>
+      </div>
+    </div>
+    <p class="custom-eq-error" id="customEqError"></p>
+    <div class="custom-eq-actions">
+      <button class="reset-btn" id="customEqCancel" type="button">キャンセル</button>
+      <button class="reset-btn custom-eq-submit" id="customEqSubmit" type="button">仮置き場に追加</button>
+    </div>
+  </div>
+</div>
+<div class="print-export-root" id="printExportRoot"></div>
 <div class="page">
 
   <header>
@@ -344,16 +481,32 @@
           <button class="reset-btn wall-tool-btn" id="wallAddBtn" type="button" title="指でなぞった場所に壁を描き足します">壁を追加</button>
           <button class="reset-btn wall-tool-btn" id="wallEraseBtn" type="button" title="指でなぞった壁を少しずつ消します">消しゴム</button>
           <button class="reset-btn wall-tool-btn" id="doorAddBtn" type="button" title="壁の上でタップ、または指でなぞった分だけ引き戸(開いた状態)を配置します。既存の引き戸をタップすると削除できます">引き戸を追加</button>
+          <button class="reset-btn wall-tool-btn" id="measureBtn" type="button" title="2点をなぞるとその間の距離を表示します。既存の寸法線をタップすると削除できます">寸法を測る</button>
+        </div>
+        <div class="clearance-tool-group">
+          <button class="reset-btn wall-tool-btn" id="clearanceToggleBtn" type="button" title="機器同士・自分で描いた壁の隙間が、選んだ幅より狭い箇所を赤く表示します">通路幅チェック</button>
+          <select class="clearance-threshold" id="clearanceThreshold" title="この幅より狭い隙間を警告します">
+            <option value="0.6">600mm未満</option>
+            <option value="0.9">900mm未満</option>
+            <option value="1.2">1200mm未満</option>
+          </select>
+        </div>
+        <div class="export-tool-group">
+          <button class="reset-btn" id="exportPng2dBtn" type="button" title="現在の2D配置図をPNG画像として保存します">PNG画像で保存</button>
+          <button class="reset-btn" id="exportPdf2dBtn" type="button" title="印刷ダイアログを開きます。「PDFとして保存」を選ぶと図面をPDF化できます">印刷/PDFで保存</button>
         </div>
         <button class="reset-btn" id="resetBtn" type="button">初期配置に戻す</button>
       </div>
     </div>
     <div class="svg-wrap"><svg id="svg2d" xmlns="http://www.w3.org/2000/svg"></svg></div>
-    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。「引き戸を追加」ボタンを押してから壁の上でタップ(または少しなぞって幅を指定)すると、その部分が開口になり、戸が壁の中(戸袋)に引き込まれた簡易的な見た目で引き戸が配置されます。既存の引き戸をタップすると削除できます。どのボタンも、もう一度押すと通常の操作に戻ります。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
+    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。「引き戸を追加」ボタンを押してから壁の上でタップ(または少しなぞって幅を指定)すると、その部分が開口になり、戸が壁の中(戸袋)に引き込まれた簡易的な見た目で引き戸が配置されます。既存の引き戸をタップすると削除できます。「寸法を測る」ボタンを押してから2点間をなぞると、その距離を線と数値で表示できます(既存の寸法線をタップすると削除できます)。どのボタンも、もう一度押すと通常の操作に戻ります。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
     <div class="legend-row" id="legend2d"></div>
     <div class="kw-summary">
       <span class="ks-label">合計使用電気容量(仮置き場の機器を除く)</span>
       <span class="ks-value" id="kwSummaryValue">—</span>
+    </div>
+    <div class="custom-eq-trigger-row">
+      <button class="reset-btn custom-eq-trigger" id="customEqOpenBtn" type="button">+ カスタム機器を追加</button>
     </div>
     <p class="table-hint">→ 表は横にスクロールできます(容量(kW)列は右側)</p>
     <div class="table-wrap">
@@ -379,6 +532,10 @@
           <button class="reset-btn iso-rotate-btn" id="isoRotateLeft" type="button" aria-label="左に回転" title="左に回転">⟲</button>
           <button class="reset-btn iso-rotate-btn" id="isoRotateRight" type="button" aria-label="右に回転" title="右に回転">⟳</button>
           <button class="reset-btn" id="isoResetView" type="button">表示角度を戻す</button>
+        </div>
+        <div class="export-tool-group">
+          <button class="reset-btn" id="exportPng3dBtn" type="button" title="現在の3DパースをPNG画像として保存します">PNG画像で保存</button>
+          <button class="reset-btn" id="exportPdf3dBtn" type="button" title="印刷ダイアログを開きます。「PDFとして保存」を選ぶと図面をPDF化できます">印刷/PDFで保存</button>
         </div>
       </div>
     </div>
@@ -949,6 +1106,172 @@
   }
   loadSavedDoors();
 
+  // ---------- Measurement tool ----------
+  // A quick "what's the actual gap here" check — two points, a line with arrows
+  // between them (reusing the existing #dimArrow marker from buildIconDefs), and
+  // the distance labeled at the midpoint. Persisted/synced the same way as walls
+  // and doors, so a measurement taken on one device shows up on the others too.
+  var MEASURE_HIT_TOL = 0.15; // meters — how close a tap needs to land on an
+                               // existing line to delete it instead of starting a new one
+  var MEASURE_STORAGE_KEY = "flat-②坂下一丁目-measurements-v1";
+  var MEASUREMENTS = []; // {x1, y1, x2, y2} meters
+  var measureLayerEl = null; // committed measurement lines
+  var measurePreviewEl = null; // the one being dragged right now (ghost preview)
+  function loadSavedMeasurements(){
+    try {
+      var raw = localStorage.getItem(MEASURE_STORAGE_KEY);
+      if (!raw) return;
+      var arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function(m){
+        if (m && typeof m.x1 === "number" && typeof m.y1 === "number" && typeof m.x2 === "number" && typeof m.y2 === "number"){
+          MEASUREMENTS.push({x1:m.x1, y1:m.y1, x2:m.x2, y2:m.y2});
+        }
+      });
+    } catch (err) { /* ignore — storage may be unavailable */ }
+  }
+  function measurementsArray(){
+    return MEASUREMENTS.map(function(m){ return {x1:m.x1, y1:m.y1, x2:m.x2, y2:m.y2}; });
+  }
+  function saveMeasurements(){
+    try { localStorage.setItem(MEASURE_STORAGE_KEY, JSON.stringify(measurementsArray())); } catch (err) { /* ignore */ }
+    pushToCloud(); // also share this change with any other device open on the same link
+  }
+  function distPointToSegment(px_, py_, x1, y1, x2, y2){
+    var dx = x2 - x1, dy = y2 - y1;
+    var lenSq = dx*dx + dy*dy;
+    if (lenSq < 1e-9) return Math.hypot(px_ - x1, py_ - y1);
+    var t = ((px_ - x1)*dx + (py_ - y1)*dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px_ - (x1 + t*dx), py_ - (y1 + t*dy));
+  }
+  // Draws one measurement line (committed, full style) or preview (dashed/
+  // translucent ghost while dragging) into `parent`.
+  function renderMeasureInto(parent, m, opts){
+    opts = opts || {};
+    var x1 = wallPx(m.x1), y1 = wallPy(m.y1), x2 = wallPx(m.x2), y2 = wallPy(m.y2);
+    var opacity = opts.preview ? 0.6 : 1;
+    el("line", {x1:x1, y1:y1, x2:x2, y2:y2, stroke:"var(--accent)", "stroke-width":1.4,
+      "stroke-dasharray":(opts.preview ? "5 4" : "none"), opacity:opacity,
+      "marker-start":"url(#dimArrow)", "marker-end":"url(#dimArrow)", style:"pointer-events:none;"}, parent);
+    // short perpendicular end-ticks, matching the room's own dimension lines
+    var dx = m.x2 - m.x1, dy = m.y2 - m.y1;
+    var len = Math.hypot(dx, dy) || 1;
+    var ux = -dy/len, uy = dx/len; // unit perpendicular
+    var tick = 5;
+    [[x1,y1],[x2,y2]].forEach(function(p){
+      el("line", {x1:p[0]-ux*tick, y1:p[1]-uy*tick, x2:p[0]+ux*tick, y2:p[1]+uy*tick, stroke:"var(--accent)", "stroke-width":1.2, opacity:opacity, style:"pointer-events:none;"}, parent);
+    });
+    var distM = Math.hypot(m.x2 - m.x1, m.y2 - m.y1);
+    var label = distM.toFixed(2) + "m";
+    var mx = (x1+x2)/2, my = (y1+y2)/2;
+    var labelW = 7 * label.length + 8;
+    el("rect", {x:mx-labelW/2, y:my-10, width:labelW, height:15, rx:3, fill:"var(--paper-raised)", opacity:opacity*0.92, style:"pointer-events:none;"}, parent);
+    var txt = el("text", {x:mx, y:my+2, "text-anchor":"middle", "font-size":9.5, "font-weight":700, fill:"var(--accent)", class:"mono", style:"pointer-events:none;"}, parent);
+    txt.textContent = label;
+  }
+  function renderMeasureLayer(){
+    if (!measureLayerEl) return;
+    while (measureLayerEl.firstChild) measureLayerEl.removeChild(measureLayerEl.firstChild);
+    MEASUREMENTS.forEach(function(m){ renderMeasureInto(measureLayerEl, m, {}); });
+  }
+  function renderMeasurePreview(m){
+    if (!measurePreviewEl) return;
+    while (measurePreviewEl.firstChild) measurePreviewEl.removeChild(measurePreviewEl.firstChild);
+    if (m) renderMeasureInto(measurePreviewEl, m, {preview:true});
+  }
+  loadSavedMeasurements();
+
+  // ---------- Corridor/clearance-width auto-check ----------
+  // A view-only diagnostic layer — not persisted or synced, since it's a reading of
+  // the current layout, not data of its own. When toggled on, scans every pair of
+  // obstacles (equipment footprints + freehand wall runs — excluding person markers,
+  // which aren't physical, and anything parked in the swap dock, which isn't actually
+  // in the room yet) and flags any pair that faces each other with a gap narrower
+  // than the chosen threshold. The room's own outline is deliberately out of scope —
+  // this is about equipment/wall placement, not the building shell.
+  var clearanceCheckOn = false;
+  var clearanceThresholdM = 0.6; // meters — kept in sync with #clearanceThreshold's value
+  var clearanceLayerEl = null;
+  var CLEARANCE_MIN_OVERLAP = 0.08; // meters — how much the facing edges must overlap along
+                                     // the perpendicular axis to count as a real aisle and not
+                                     // just two rects brushing past each other's corner. Kept
+                                     // just under WALL_CELL (0.1m) so two freehand wall runs
+                                     // facing each other on the same row — the most common
+                                     // "did I leave a doorway gap?" check — still count.
+  var CLEARANCE_MIN_GAP = 0.03; // meters — gaps smaller than this are "flush" placements
+                                 // (e.g. two counters pushed together), not a passage to flag
+  function clearanceObstacles(){
+    var out = [];
+    EQUIPMENT.forEach(function(e){
+      if (e.kind === "person" || e.zone === "DOCK") return;
+      var fp = footprint(e);
+      out.push({x:e.x, y:e.y, w:fp.wM, h:fp.dM});
+    });
+    wallRowRuns().forEach(function(r){
+      out.push({x:r.x0*WALL_CELL, y:r.gy*WALL_CELL, w:(r.x1-r.x0+1)*WALL_CELL, h:WALL_CELL});
+    });
+    return out;
+  }
+  // Returns the facing gap between two axis-aligned rects — horizontal (side-by-side,
+  // y-ranges overlapping) or vertical (stacked, x-ranges overlapping) — as
+  // {gap,x1,y1,x2,y2}, or null if they don't face each other that way (overlapping on
+  // both axes, or only meeting diagonally near a corner).
+  function facingGap(a, b){
+    var dx = Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w));
+    var dy = Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h));
+    if (dy <= 0 && dx > 0){
+      var oy0 = Math.max(a.y, b.y), oy1 = Math.min(a.y+a.h, b.y+b.h);
+      if (oy1 - oy0 < CLEARANCE_MIN_OVERLAP) return null;
+      var left = (a.x < b.x) ? a : b, right = (a.x < b.x) ? b : a;
+      return {gap:dx, x1:left.x+left.w, y1:oy0, x2:right.x, y2:oy1};
+    }
+    if (dx <= 0 && dy > 0){
+      var ox0 = Math.max(a.x, b.x), ox1 = Math.min(a.x+a.w, b.x+b.w);
+      if (ox1 - ox0 < CLEARANCE_MIN_OVERLAP) return null;
+      var top = (a.y < b.y) ? a : b, bottom = (a.y < b.y) ? b : a;
+      return {gap:dy, x1:ox0, y1:top.y+top.h, x2:ox1, y2:bottom.y};
+    }
+    return null;
+  }
+  // Clears and (if the check is on) redraws every narrow-gap warning. Self-guarding,
+  // so every call site can just call this after any edit without checking the toggle.
+  function renderClearanceCheck(){
+    if (!clearanceLayerEl) return;
+    while (clearanceLayerEl.firstChild) clearanceLayerEl.removeChild(clearanceLayerEl.firstChild);
+    if (!clearanceCheckOn) return;
+    var obstacles = clearanceObstacles();
+    for (var i = 0; i < obstacles.length; i++){
+      for (var j = i+1; j < obstacles.length; j++){
+        var fg = facingGap(obstacles[i], obstacles[j]);
+        if (!fg || fg.gap < CLEARANCE_MIN_GAP || fg.gap >= clearanceThresholdM) continue;
+        var x1 = wallPx(fg.x1), y1 = wallPy(fg.y1), x2 = wallPx(fg.x2), y2 = wallPy(fg.y2);
+        el("rect", {x:Math.min(x1,x2), y:Math.min(y1,y2), width:Math.max(Math.abs(x2-x1),1), height:Math.max(Math.abs(y2-y1),1),
+          fill:"var(--status-estimate)", opacity:0.32, style:"pointer-events:none;"}, clearanceLayerEl);
+        var label = Math.round(fg.gap*1000) + "mm";
+        var mx = (x1+x2)/2, my = (y1+y2)/2;
+        var labelW = 6.4 * label.length + 8;
+        el("rect", {x:mx-labelW/2, y:my-9, width:labelW, height:14, rx:3, fill:"var(--status-estimate)", opacity:0.92, style:"pointer-events:none;"}, clearanceLayerEl);
+        var txt = el("text", {x:mx, y:my+2, "text-anchor":"middle", "font-size":9, "font-weight":700, fill:"#fff", class:"mono", style:"pointer-events:none;"}, clearanceLayerEl);
+        txt.textContent = label;
+      }
+    }
+  }
+  function initClearanceTool(){
+    var toggleBtn = document.getElementById("clearanceToggleBtn");
+    var select = document.getElementById("clearanceThreshold");
+    if (select) clearanceThresholdM = parseFloat(select.value) || clearanceThresholdM;
+    if (toggleBtn) toggleBtn.addEventListener("click", function(){
+      clearanceCheckOn = !clearanceCheckOn;
+      toggleBtn.classList.toggle("active", clearanceCheckOn);
+      renderClearanceCheck();
+    });
+    if (select) select.addEventListener("change", function(){
+      clearanceThresholdM = parseFloat(select.value) || clearanceThresholdM;
+      renderClearanceCheck();
+    });
+  }
+
   // ---------- Cross-device sync (optional) ----------
   // このGitHub Pages版は claude.ai の `window.claude.use("db")` が使えないため、代わりに
   // 自前のGoogle Apps Script Webアプリをバックエンドとして使う。GAS_URLとGAS_TOKENに
@@ -985,7 +1308,8 @@
       },
       zones: ZONES.map(function(z, i){ return {i:i, x:z.x, y:z.y, w:z.w, h:z.h}; }),
       walls: wallCellsArray(),
-      doors: doorsArray()
+      doors: doorsArray(),
+      measurements: measurementsArray()
     };
   }
   function applyCloudPayload(data){
@@ -1033,6 +1357,14 @@
       data.doors.forEach(function(d){
         if (d && typeof d.x === "number" && typeof d.y === "number" && typeof d.len === "number"){
           DOORS.push({x:d.x, y:d.y, len:d.len, horiz:!!d.horiz});
+        }
+      });
+    }
+    if (Array.isArray(data.measurements)){
+      MEASUREMENTS.length = 0;
+      data.measurements.forEach(function(m){
+        if (m && typeof m.x1 === "number" && typeof m.y1 === "number" && typeof m.x2 === "number" && typeof m.y2 === "number"){
+          MEASUREMENTS.push({x1:m.x1, y1:m.y1, x2:m.x2, y2:m.y2});
         }
       });
     }
@@ -1399,18 +1731,31 @@
     var dl = el("text", {x:dimLeftX-6, y:py(ROOM.h/2), "text-anchor":"middle", "font-size":11, fill:"var(--ink-soft)", class:"mono", transform:"rotate(-90 "+(dimLeftX-6)+" "+py(ROOM.h/2)+")"}, root);
     dl.textContent = ROOM.h.toFixed(2) + "m (最大奥行)";
 
+    // measurement lines — drawn above equipment (unlike walls/doors) so a line
+    // measured across an item is still visible
+    measureLayerEl = el("g", {class:"measure-layer"}, root);
+    renderMeasureLayer();
+
+    // corridor/clearance-width warnings — above everything committed so far (the
+    // whole point is to flag gaps that are hard to eyeball among the equipment/
+    // walls/doors already drawn), below the live preview + capture layers
+    clearanceLayerEl = el("g", {class:"clearance-layer"}, root);
+    renderClearanceCheck();
+
     // live preview of the door currently being dragged (cleared when nothing's
     // being dragged) — drawn above the committed door layer, below the capture rect
     doorPreviewEl = el("g", {class:"door-preview"}, root);
+    measurePreviewEl = el("g", {class:"measure-preview"}, root);
 
-    // wall paint/erase/door capture — an invisible full-canvas rect, drawn topmost
-    // so it intercepts pointer events ahead of equipment/zones, but only "live"
-    // while wallEditMode is set (see setWallEditMode) — otherwise normal dragging
-    // passes straight through it.
+    // wall paint/erase/door/measure capture — an invisible full-canvas rect, drawn
+    // topmost so it intercepts pointer events ahead of equipment/zones, but only
+    // "live" while wallEditMode is set (see setWallEditMode) — otherwise normal
+    // dragging passes straight through it.
     var paintRect = el("rect", {class:"wall-paint-capture", x:0, y:0, width:W, height:H, fill:"transparent",
       style:"pointer-events:" + (wallEditMode ? "auto" : "none") + "; cursor:" + (wallEditMode === "erase" ? "cell" : (wallEditMode ? "crosshair" : "default")) + ";"}, root);
     attachWallPaintHandlers(svg, paintRect);
     attachDoorHandlers(svg, paintRect);
+    attachMeasureHandlers(svg, paintRect);
   }
 
   // ---------- Drag-to-reposition (2D) ----------
@@ -1541,6 +1886,7 @@
       }, function(){
         saveWalls();
         build3D(); // keep the 3D view in sync, even while its tab is hidden
+        renderClearanceCheck(); // walls just moved — re-check gaps against them
       });
     });
   }
@@ -1559,6 +1905,7 @@
           renderDoorLayer();
           saveDoors();
           build3D();
+          renderClearanceCheck();
           return; // tapped an existing door — remove it, don't also start drawing one
         }
       }
@@ -1610,15 +1957,54 @@
         renderDoorLayer();
         saveDoors();
         build3D();
+        renderClearanceCheck(); // a wall span may have just opened up under the door
       });
     });
   }
-  // Toggles draw/erase/door mode on and off (clicking the active button again
-  // turns it off) — drives the capture rect's pointer-events/cursor and the
+  // Drag between two points to measure the distance; tapping/starting a drag on
+  // top of an existing measurement line removes it instead (within MEASURE_HIT_TOL).
+  function attachMeasureHandlers(svg, rectEl){
+    rectEl.addEventListener("pointerdown", function(ev){
+      if (wallEditMode !== "measure") return;
+      if (ev.cancelable) ev.preventDefault();
+      var p0 = modelPointFromClient(svg, ev.clientX, ev.clientY);
+
+      for (var i = MEASUREMENTS.length - 1; i >= 0; i--){
+        var mLine = MEASUREMENTS[i];
+        if (distPointToSegment(p0.x, p0.y, mLine.x1, mLine.y1, mLine.x2, mLine.y2) <= MEASURE_HIT_TOL){
+          MEASUREMENTS.splice(i, 1);
+          renderMeasureLayer();
+          saveMeasurements();
+          return; // tapped an existing line — remove it, don't also start a new one
+        }
+      }
+
+      var sx0 = Math.round(p0.x / WALL_CELL) * WALL_CELL;
+      var sy0 = Math.round(p0.y / WALL_CELL) * WALL_CELL;
+      var current = {x1:sx0, y1:sy0, x2:sx0, y2:sy0};
+      renderMeasurePreview(current);
+      startPointerTracking(function(mv){
+        var np = modelPointFromClient(svg, mv.clientX, mv.clientY);
+        current = {x1:sx0, y1:sy0, x2:Math.round(np.x / WALL_CELL) * WALL_CELL, y2:Math.round(np.y / WALL_CELL) * WALL_CELL};
+        renderMeasurePreview(current);
+      }, function(){
+        renderMeasurePreview(null);
+        var dist = Math.hypot(current.x2 - current.x1, current.y2 - current.y1);
+        if (dist >= WALL_CELL){ // discard an accidental near-zero-length drag
+          MEASUREMENTS.push(current);
+          renderMeasureLayer();
+          saveMeasurements();
+        }
+      });
+    });
+  }
+  // Toggles draw/erase/door/measure mode on and off (clicking the active button
+  // again turns it off) — drives the capture rect's pointer-events/cursor and the
   // buttons' pressed state without needing a full build2D() rebuild.
   function setWallEditMode(mode){
     wallEditMode = (wallEditMode === mode) ? null : mode;
     if (wallEditMode !== "door") renderDoorPreview(null); // leaving door mode mid-drag — drop any ghost preview
+    if (wallEditMode !== "measure") renderMeasurePreview(null); // same, for an in-progress measurement
     var svg = document.getElementById("svg2d");
     var cap = svg && svg.querySelector(".wall-paint-capture");
     if (cap){
@@ -1628,17 +2014,21 @@
     var wallBtn = document.getElementById("wallAddBtn");
     var eraseBtn = document.getElementById("wallEraseBtn");
     var doorBtn = document.getElementById("doorAddBtn");
+    var measureBtn = document.getElementById("measureBtn");
     if (wallBtn) wallBtn.classList.toggle("active", wallEditMode === "wall");
     if (eraseBtn) eraseBtn.classList.toggle("active", wallEditMode === "erase");
     if (doorBtn) doorBtn.classList.toggle("active", wallEditMode === "door");
+    if (measureBtn) measureBtn.classList.toggle("active", wallEditMode === "measure");
   }
   function initWallTools(){
     var wallBtn = document.getElementById("wallAddBtn");
     var eraseBtn = document.getElementById("wallEraseBtn");
     var doorBtn = document.getElementById("doorAddBtn");
+    var measureBtn = document.getElementById("measureBtn");
     if (wallBtn) wallBtn.addEventListener("click", function(){ setWallEditMode("wall"); });
     if (eraseBtn) eraseBtn.addEventListener("click", function(){ setWallEditMode("erase"); });
     if (doorBtn) doorBtn.addEventListener("click", function(){ setWallEditMode("door"); });
+    if (measureBtn) measureBtn.addEventListener("click", function(){ setWallEditMode("measure"); });
   }
 
   // Keep a dragged item's rectangle (xm,ym,wM,dM) inside the true room
@@ -1765,6 +2155,219 @@
     build2D();
     build3D();
     buildTable();
+  }
+
+  // ---------- Custom equipment add form ----------
+  // Lets the user add an item that isn't in the hardcoded catalog at all. Reuses the
+  // exact same "extra" EQUIPMENT slot shape as duplicateEquipment() above (same
+  // persistence/sync fields — see loadSavedPositions/cloudPayload), so it needs no
+  // plumbing of its own: push a well-formed item past BASE_COUNT and every existing
+  // view (2D/3D/table/clearance check/kW total) already knows how to draw it. New
+  // items always start in the "仮置き場" dock, same as a swap-in candidate, since
+  // there's no way to know a free spot inside the room — the user drags it in from
+  // there, same gesture already used for everything else staged in the dock.
+  function addCustomEquipment(spec){
+    var dockCount = EQUIPMENT.filter(function(e){ return e.zone === "DOCK"; }).length;
+    var item = {
+      name: spec.name, w: spec.w, d: spec.d, h: spec.h,
+      x: DOCK.x + 0.1, y: DOCK.y + 0.1 + dockCount * 0.25,
+      zone: "DOCK", kind: spec.kind, status: spec.status, util: spec.util,
+      rot: 0, isCopy: true,
+      kw: spec.kw, kwConfirmed: false,
+      short: spec.name,
+      power: spec.doryoku ? "doryoku" : undefined, powerConfirmed: false
+    };
+    var fp = footprint(item);
+    var clamped = clampEquipment(item, item.x, item.y, fp.wM, fp.dM);
+    item.x = clamped.x; item.y = clamped.y;
+    EQUIPMENT.push(item);
+    savePositions();
+    build2D();
+    build3D();
+    buildTable();
+  }
+  function initCustomEquipmentForm(){
+    var overlay = document.getElementById("customEqOverlay");
+    var openBtn = document.getElementById("customEqOpenBtn");
+    var closeBtn = document.getElementById("customEqClose");
+    var cancelBtn = document.getElementById("customEqCancel");
+    var submitBtn = document.getElementById("customEqSubmit");
+    var errorEl = document.getElementById("customEqError");
+    if (!overlay || !openBtn) return;
+
+    function resetForm(){
+      document.getElementById("ceName").value = "";
+      document.getElementById("ceW").value = "";
+      document.getElementById("ceD").value = "";
+      document.getElementById("ceH").value = "";
+      document.getElementById("ceKind").value = "prod";
+      document.getElementById("ceStatus").value = "new";
+      document.getElementById("ceKw").value = "";
+      document.getElementById("ceDoryoku").checked = false;
+      Array.prototype.forEach.call(overlay.querySelectorAll(".ce-util"), function(cb){ cb.checked = false; });
+      errorEl.textContent = "";
+    }
+    function openModal(){ resetForm(); overlay.classList.add("show"); document.getElementById("ceName").focus(); }
+    function closeModal(){ overlay.classList.remove("show"); }
+
+    openBtn.addEventListener("click", openModal);
+    closeBtn.addEventListener("click", closeModal);
+    cancelBtn.addEventListener("click", closeModal);
+    // tapping the dimmed backdrop (not the card itself) also closes it
+    overlay.addEventListener("pointerdown", function(ev){ if (ev.target === overlay) closeModal(); });
+    document.addEventListener("keydown", function(ev){
+      if (ev.key === "Escape" && overlay.classList.contains("show")) closeModal();
+    });
+
+    submitBtn.addEventListener("click", function(){
+      var name = document.getElementById("ceName").value.trim();
+      var w = parseFloat(document.getElementById("ceW").value);
+      var d = parseFloat(document.getElementById("ceD").value);
+      var h = parseFloat(document.getElementById("ceH").value);
+      if (!(h > 0)) h = 900; // optional — a reasonable counter-height default
+      h = Math.max(1, Math.min(4000, h));
+      var kwRaw = document.getElementById("ceKw").value;
+      var kw = kwRaw.trim() === "" ? null : parseFloat(kwRaw);
+
+      if (!name){ errorEl.textContent = "機器名を入力してください。"; return; }
+      if (!(w > 0) || !(d > 0)){ errorEl.textContent = "幅と奥行は1mm以上の数値で入力してください(単位はmm、例: 1.5mは1500)。"; return; }
+      if (w > 20000 || d > 20000){ errorEl.textContent = "寸法が大きすぎます。単位を確認してください(mm単位です)。"; return; }
+      if (kw !== null && (isNaN(kw) || kw < 0)){ errorEl.textContent = "消費電力は0以上の数値で入力してください。"; return; }
+
+      var util = Array.prototype.map.call(overlay.querySelectorAll(".ce-util:checked"), function(cb){ return cb.value; });
+
+      addCustomEquipment({
+        name: name, w: Math.round(w), d: Math.round(d), h: Math.round(h),
+        kind: document.getElementById("ceKind").value,
+        status: document.getElementById("ceStatus").value,
+        util: util,
+        kw: (kw === null || isNaN(kw)) ? null : kw,
+        doryoku: document.getElementById("ceDoryoku").checked
+      });
+      closeModal();
+    });
+  }
+
+  // ---------- Export: PNG snapshot + print/PDF ----------
+  // No external libraries (this file is self-contained): PNG export rasterizes the
+  // live, already-styled SVG onto a <canvas>; "PDF" goes through the browser's own
+  // print dialog (its "Save as PDF" destination), driven by the @media print rules
+  // above that isolate just the current view. Colors throughout this page are set
+  // with CSS custom properties (var(--x)) that only resolve inside THIS document, so
+  // a plain serialization of the SVG (as a standalone XML blob) would lose them —
+  // every element's fill/stroke/color is baked to its already-resolved computed
+  // value on a clone first, which matches exactly what's on screen in light or dark
+  // mode and needs no separate stylesheet to travel with the export.
+  function cloneSvgWithResolvedColors(svgEl){
+    var clone = svgEl.cloneNode(true);
+    var liveNodes = svgEl.querySelectorAll("*");
+    var cloneNodes = clone.querySelectorAll("*");
+    function bake(liveEl, cloneEl){
+      try {
+        var cs = getComputedStyle(liveEl);
+        if (cloneEl.hasAttribute && cloneEl.hasAttribute("fill")) cloneEl.setAttribute("fill", cs.fill);
+        if (cloneEl.hasAttribute && cloneEl.hasAttribute("stroke")) cloneEl.setAttribute("stroke", cs.stroke);
+        if (cloneEl.style) cloneEl.style.color = cs.color; // for icon paths using fill="currentColor"
+      } catch (err) { /* a handful of non-visual nodes (defs/symbol/style) don't compute
+                          meaningfully here — leave them exactly as cloned */ }
+    }
+    bake(svgEl, clone);
+    for (var i = 0; i < liveNodes.length; i++) bake(liveNodes[i], cloneNodes[i]);
+    return clone;
+  }
+  function pageBackgroundColor(){
+    var bg = getComputedStyle(document.body).backgroundColor;
+    return (bg && bg !== "rgba(0, 0, 0, 0)") ? bg : "#ffffff";
+  }
+  // Rasterizes `svgEl` to a PNG Blob at `scale`x its own viewBox size (sharper than a
+  // 1:1 export once the file's opened at full size) and hands it to `callback`.
+  function svgToPngBlob(svgEl, callback){
+    var clone = cloneSvgWithResolvedColors(svgEl);
+    var vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+    var w = (vb && vb.width) ? vb.width : (svgEl.clientWidth || 800);
+    var h = (vb && vb.height) ? vb.height : (svgEl.clientHeight || 600);
+    clone.setAttribute("width", w);
+    clone.setAttribute("height", h);
+    if (!clone.getAttribute("xmlns")) clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    var xml = new XMLSerializer().serializeToString(clone);
+    var svgBlob = new Blob([xml], {type:"image/svg+xml;charset=utf-8"});
+    var url = URL.createObjectURL(svgBlob);
+    var img = new Image();
+    img.onload = function(){
+      var scale = 2; // export at 2x so the download looks sharp at full size, not just on-screen size
+      var canvas = document.createElement("canvas");
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      var ctx = canvas.getContext("2d");
+      ctx.scale(scale, scale);
+      // flatten onto a solid background first — otherwise the transparent parts of
+      // the SVG would come out see-through, which looks like a broken export once
+      // the PNG is viewed outside a browser (e.g. pasted into a white document)
+      ctx.fillStyle = pageBackgroundColor();
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(function(blob){ callback(blob); }, "image/png");
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); callback(null); };
+    img.src = url;
+  }
+  function downloadBlob(blob, filename){
+    if (!blob){
+      alert("画像の書き出しに失敗しました。お手数ですが、もう一度お試しください。");
+      return;
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
+  function exportSvgAsPng(svgEl, filename){
+    if (!svgEl) return;
+    svgToPngBlob(svgEl, function(blob){ downloadBlob(blob, filename); });
+  }
+  // Fills the (normally hidden) print-only root with a resolved-color copy of
+  // whichever view is currently active, plus a small title/date header, then opens
+  // the browser's print dialog — "保存先" → "PDFに保存" there is the actual PDF export;
+  // there's no PDF library bundled in this file, so the print pipeline does the work.
+  function printCurrentView(){
+    var activeView = document.querySelector(".view.active");
+    var svgEl = activeView && activeView.querySelector("svg");
+    var root = document.getElementById("printExportRoot");
+    if (!activeView || !svgEl || !root) return;
+    var titleEl = activeView.querySelector(".panel-head h2");
+    var title = titleEl ? titleEl.textContent : "配置図";
+    var clone = cloneSvgWithResolvedColors(svgEl);
+    clone.removeAttribute("width");
+    clone.removeAttribute("height"); // let the print CSS's width:100% take over, viewBox keeps the aspect ratio
+    root.innerHTML = "";
+    var h = document.createElement("h2");
+    h.textContent = "FLAT Bakery — " + title;
+    root.appendChild(h);
+    var dateP = document.createElement("p");
+    dateP.className = "print-date";
+    dateP.textContent = "出力日: " + new Date().toLocaleDateString("ja-JP");
+    root.appendChild(dateP);
+    root.appendChild(clone);
+    window.print();
+  }
+  function initExportTools(){
+    var png2d = document.getElementById("exportPng2dBtn");
+    var png3d = document.getElementById("exportPng3dBtn");
+    var pdf2d = document.getElementById("exportPdf2dBtn");
+    var pdf3d = document.getElementById("exportPdf3dBtn");
+    if (png2d) png2d.addEventListener("click", function(){
+      exportSvgAsPng(document.getElementById("svg2d"), "FLATbakery_2D配置図.png");
+    });
+    if (png3d) png3d.addEventListener("click", function(){
+      exportSvgAsPng(document.getElementById("svg3d"), "FLATbakery_3Dパース.png");
+    });
+    if (pdf2d) pdf2d.addEventListener("click", printCurrentView);
+    if (pdf3d) pdf3d.addEventListener("click", printCurrentView);
   }
 
   // ---------- Equipment info: hover tooltip (mouse) + tap sheet (touch) ----------
@@ -1915,6 +2518,7 @@
             g.setAttribute("transform", "translate(" + px(xm) + "," + py(ym) + ")");
             savePositions();
             build3D(); // keep the 3D view in sync, even while its tab is hidden
+            renderClearanceCheck(); // re-check gaps now that this item moved
             if (e.zone !== prevZone) buildTable(); // dock↔room swap changed its zone label
           }
         );
@@ -2458,10 +3062,12 @@
       });
       WALL_CELLS.clear(); // drop any freehand walls too — back to the fixed catalog
       DOORS.length = 0; // and any sliding doors placed on them
+      MEASUREMENTS.length = 0; // and any measurement lines
       try { localStorage.removeItem(STORAGE_KEY); } catch (err) { /* ignore */ }
       try { localStorage.removeItem(ZONE_STORAGE_KEY); } catch (err) { /* ignore */ }
       try { localStorage.removeItem(WALL_STORAGE_KEY); } catch (err) { /* ignore */ }
       try { localStorage.removeItem(DOOR_STORAGE_KEY); } catch (err) { /* ignore */ }
+      try { localStorage.removeItem(MEASURE_STORAGE_KEY); } catch (err) { /* ignore */ }
       build2D();
       build3D();
       buildTable();
@@ -2478,6 +3084,9 @@
   initIso3DControls();
   initInfoSheet();
   initWallTools();
+  initClearanceTool();
+  initCustomEquipmentForm();
+  initExportTools();
 })();
 </script>
 </body>
