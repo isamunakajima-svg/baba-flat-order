@@ -210,8 +210,17 @@
   .iso-wrap{
     background:#F4EFE7; border:1px solid var(--line); border-radius:14px;
     padding:18px; overflow-x:auto; box-shadow:var(--shadow);
+    cursor:grab; touch-action:none; overscroll-behavior:contain;
   }
+  .iso-wrap.dragging{cursor:grabbing;}
   .iso-wrap svg{display:block; min-width:640px; width:100%; height:auto;}
+
+  .iso-rotate-group{display:flex; align-items:center; gap:6px;}
+  .iso-rotate-btn{font-size:15px; font-weight:700; padding:5px 11px; line-height:1;}
+
+  .wall-tool-group{display:flex; align-items:center; gap:6px;}
+  .wall-tool-btn.active{background:var(--accent); border-color:var(--accent); color:#fff;}
+  .wall-tool-btn.active:hover{color:#fff;}
 
   .legend-row{
     display:flex; flex-wrap:wrap; gap:8px 18px; margin:16px 2px; font-size:12.5px; color:var(--ink-soft);
@@ -327,11 +336,15 @@
       <h2>2D配置図 — ドラッグで配置調整</h2>
       <div class="head-actions">
         <span class="hint">①〜㉑は下表の機器番号と対応</span>
+        <div class="wall-tool-group">
+          <button class="reset-btn wall-tool-btn" id="wallAddBtn" type="button" title="指でなぞった場所に壁を描き足します">壁を追加</button>
+          <button class="reset-btn wall-tool-btn" id="wallEraseBtn" type="button" title="指でなぞった壁を少しずつ消します">消しゴム</button>
+        </div>
         <button class="reset-btn" id="resetBtn" type="button">初期配置に戻す</button>
       </div>
     </div>
     <div class="svg-wrap"><svg id="svg2d" xmlns="http://www.w3.org/2000/svg"></svg></div>
-    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
+    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。どちらのボタンも、もう一度押すと通常の操作に戻ります。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
     <div class="legend-row" id="legend2d"></div>
     <div class="kw-summary">
       <span class="ks-label">合計使用電気容量(仮置き場の機器を除く)</span>
@@ -355,11 +368,19 @@
   <section id="view-3d" class="view">
     <div class="panel-head">
       <h2>3Dパース — 俯瞰イラスト</h2>
-      <span class="hint">色と番号は2D配置図と共通(入口側のみ壁を省略して表示)</span>
+      <div class="head-actions">
+        <span class="hint">色と番号は2D配置図と共通(入口側のみ壁を省略して表示)</span>
+        <div class="iso-rotate-group">
+          <button class="reset-btn iso-rotate-btn" id="isoRotateLeft" type="button" aria-label="左に回転" title="左に回転">⟲</button>
+          <button class="reset-btn iso-rotate-btn" id="isoRotateRight" type="button" aria-label="右に回転" title="右に回転">⟳</button>
+          <button class="reset-btn" id="isoResetView" type="button">表示角度を戻す</button>
+        </div>
+      </div>
     </div>
     <div class="iso-wrap"><svg id="svg3d" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <p class="note drag-note">図の上を左右にドラッグ(スマホはスワイプ)すると視点を回転できます。ボタンでも45°ずつ回転できます。</p>
     <div class="legend-row" id="legend3d"></div>
-    <p class="note">簡易イラストのため、実際の機器の質感・色・形状とは異なります。高さは一般的な機種サイズからの目安です。</p>
+    <p class="note">簡易イラストのため、実際の機器の質感・色・形状とは異なります。高さは一般的な機種サイズからの目安です。「人(通行確認用)」は通路幅の目安として人型のシルエットで表示しています。</p>
   </section>
 
   <footer>
@@ -742,6 +763,87 @@
   }
   loadSavedZones();
 
+  // ---------- Wall paint/erase tool ----------
+  // Freehand partition walls added via the "壁を追加"/"消しゴム" buttons. These are
+  // deliberately NOT EQUIPMENT items — unlike the old approach of duplicating the
+  // 壁(50cm)/壁(100cm) catalog entries (which added a real EQUIPMENT row, so it also
+  // showed up — pointlessly, since a wall needs no electrical capacity — in the
+  // equipment table below), a painted wall is just a set of occupied cells on a
+  // fine grid, kept entirely separate from EQUIPMENT/the table. The eraser works
+  // cell-by-cell on the same grid, so any part of a drawn wall can be removed
+  // without needing real line/polygon subtraction.
+  var WALL_CELL = 0.1; // meters per cell — matches GRID_SNAP (defined below)
+  var WALL_STORAGE_KEY = "flat-②坂下一丁目-walls-v1";
+  var WALL_CELLS = new Set(); // "gx,gy" strings; gx/gy = Math.floor(meters / WALL_CELL)
+  var wallEditMode = null; // null | "wall" | "erase"
+  var wallLayerEl = null; // the <g> build2D() renders painted cells into — redrawn on
+                           // its own (renderWallLayer) while dragging, instead of a
+                           // full build2D() every pointermove
+  function cellKey(gx, gy){ return gx + "," + gy; }
+  function loadSavedWalls(){
+    try {
+      var raw = localStorage.getItem(WALL_STORAGE_KEY);
+      if (!raw) return;
+      var arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function(p){
+        if (Array.isArray(p) && p.length === 2 && typeof p[0] === "number" && typeof p[1] === "number"){
+          WALL_CELLS.add(cellKey(p[0], p[1]));
+        }
+      });
+    } catch (err) { /* ignore — storage may be unavailable */ }
+  }
+  function wallCellsArray(){
+    var out = [];
+    WALL_CELLS.forEach(function(k){
+      var parts = k.split(",");
+      out.push([parseInt(parts[0], 10), parseInt(parts[1], 10)]);
+    });
+    return out;
+  }
+  function saveWalls(){
+    try { localStorage.setItem(WALL_STORAGE_KEY, JSON.stringify(wallCellsArray())); } catch (err) { /* ignore */ }
+    pushToCloud(); // also share this change with any other device open on the same link
+  }
+  // Merge WALL_CELLS into per-row horizontal runs — far fewer shapes to draw than
+  // one per cell, and reads as continuous straight strokes instead of a loose grid
+  // of visibly-separate squares. Shared by the 2D layer and the 3D view.
+  function wallRowRuns(){
+    var rows = {};
+    WALL_CELLS.forEach(function(k){
+      var parts = k.split(",");
+      var gx = parseInt(parts[0], 10), gy = parseInt(parts[1], 10);
+      (rows[gy] = rows[gy] || []).push(gx);
+    });
+    var runs = [];
+    Object.keys(rows).forEach(function(gyStr){
+      var gy = parseInt(gyStr, 10);
+      var xs = rows[gyStr].sort(function(a, b){ return a - b; });
+      var runStart = xs[0], prev = xs[0];
+      for (var i = 1; i <= xs.length; i++){
+        if (i < xs.length && xs[i] === prev + 1){ prev = xs[i]; continue; }
+        runs.push({gy:gy, x0:runStart, x1:prev});
+        if (i < xs.length){ runStart = xs[i]; prev = xs[i]; }
+      }
+    });
+    return runs;
+  }
+  // meters → px, duplicated from build2D()'s own px()/py() (which are closures local
+  // to that function) so the paint tool can redraw just the wall layer without
+  // triggering a full build2D() on every pointermove.
+  function wallPx(xm){ return M2.l + xm*S2; }
+  function wallPy(ym){ return M2.t + ym*S2; }
+  function renderWallLayer(){
+    if (!wallLayerEl) return;
+    while (wallLayerEl.firstChild) wallLayerEl.removeChild(wallLayerEl.firstChild);
+    wallRowRuns().forEach(function(r){
+      var x0 = wallPx(r.x0*WALL_CELL), y0 = wallPy(r.gy*WALL_CELL);
+      var w = (r.x1 - r.x0 + 1)*WALL_CELL*S2, h = WALL_CELL*S2;
+      el("rect", {x:x0, y:y0, width:w, height:h, fill:"var(--wall-fill)", stroke:"var(--wall-line)", "stroke-width":0.6, style:"pointer-events:none;"}, wallLayerEl);
+    });
+  }
+  loadSavedWalls();
+
   // ---------- Cross-device sync (optional) ----------
   // このGitHub Pages版は claude.ai の `window.claude.use("db")` が使えないため、代わりに
   // 自前のGoogle Apps Script Webアプリをバックエンドとして使う。GAS_URLとGAS_TOKENに
@@ -776,7 +878,8 @@
                   power:e.power, powerConfirmed:e.powerConfirmed};
         })
       },
-      zones: ZONES.map(function(z, i){ return {i:i, x:z.x, y:z.y, w:z.w, h:z.h}; })
+      zones: ZONES.map(function(z, i){ return {i:i, x:z.x, y:z.y, w:z.w, h:z.h}; }),
+      walls: wallCellsArray()
     };
   }
   function applyCloudPayload(data){
@@ -811,6 +914,12 @@
         if (p && typeof p.i === "number" && ZONES[p.i]){
           ZONES[p.i].x = p.x; ZONES[p.i].y = p.y; ZONES[p.i].w = p.w; ZONES[p.i].h = p.h;
         }
+      });
+    }
+    if (Array.isArray(data.walls)){
+      WALL_CELLS.clear();
+      data.walls.forEach(function(p){
+        if (Array.isArray(p) && p.length === 2) WALL_CELLS.add(cellKey(p[0], p[1]));
       });
     }
   }
@@ -993,6 +1102,12 @@
       el("line", {x1:ax0, y1:ay, x2:ax1, y2:ay, stroke:"var(--ink-faint)", "stroke-width":1.2, "stroke-dasharray":"2 3", "marker-start":"url(#dimArrow)", "marker-end":"url(#dimArrow)"}, root);
     })();
 
+    // painted walls (freehand wall tool) — a static layer, not equipment, so it's
+    // never part of the drag/rotate logic below and never shows up in the table.
+    // Its own <g> lets the paint/erase tool redraw just this layer while dragging.
+    wallLayerEl = el("g", {class:"wall-layer"}, root);
+    renderWallLayer();
+
     // equipment — each item is a <g> positioned with transform:translate(),
     // containing its rect/badge/icons in LOCAL (0,0)-anchored coordinates.
     // That lets dragging just rewrite the group's transform instead of every
@@ -1029,15 +1144,20 @@
       // reverse sheeter's wings on コールドテーブル180②), so the clearance it needs
       // can be checked against neighboring equipment without that extra reach being
       // part of the item's actual drag/clamp footprint (w/d stay the folded size).
-      // Anchored with its own top-left at the main footprint's top-right corner (i.e.
-      // extends further in local +x from the item's right edge) — child of the same
-      // <g>, so it moves and rotates together with the item when dragged/rotated.
+      // deployOutline.w/d are the TOTAL deployed size (not an add-on), so the rect
+      // shares the footprint's own origin (x:0,y:0) and simply overlaps/encompasses
+      // it, showing only the real overhang past the folded edge. Child of the same
+      // <g>, so it moves with the item when dragged — and since "rotation" here is
+      // just a w/d swap (there's no real SVG rotate, see footprint()), doW/doD are
+      // swapped the same way on e.rot===90 so the overhang direction follows suit.
       if (e.deployOutline){
-        var doW = (e.deployOutline.w/1000)*S2, doD = (e.deployOutline.d/1000)*S2;
-        el("rect", {x:w0, y:0, width:doW, height:doD, fill:"none", stroke:"var(--ink-faint)", "stroke-width":1.3, "stroke-dasharray":"6 4", rx:2, ry:2, style:"pointer-events:none;"}, g);
-        if (e.deployOutline.label){
-          var doLabel = el("text", {x:w0+doW/2, y:doD+12, "text-anchor":"middle", "font-size":9, fill:"var(--ink-faint)", style:"pointer-events:none;"}, g);
-          doLabel.textContent = e.deployOutline.label;
+        var doSpec = e.deployOutline;
+        var doW = ((e.rot === 90 ? doSpec.d : doSpec.w)/1000)*S2;
+        var doD = ((e.rot === 90 ? doSpec.w : doSpec.d)/1000)*S2;
+        el("rect", {x:0, y:0, width:doW, height:doD, fill:"none", stroke:"var(--ink-faint)", "stroke-width":1.3, "stroke-dasharray":"6 4", rx:2, ry:2, style:"pointer-events:none;"}, g);
+        if (doSpec.label){
+          var doLabel = el("text", {x:doW/2, y:doD+12, "text-anchor":"middle", "font-size":9, fill:"var(--ink-faint)", style:"pointer-events:none;"}, g);
+          doLabel.textContent = doSpec.label;
         }
       }
 
@@ -1159,6 +1279,14 @@
     el("line", {x1:dimLeftX, y1:py(0), x2:dimLeftX, y2:py(ROOM.h), stroke:"var(--ink-faint)", "stroke-width":1, "marker-start":"url(#dimArrow)", "marker-end":"url(#dimArrow)"}, root);
     var dl = el("text", {x:dimLeftX-6, y:py(ROOM.h/2), "text-anchor":"middle", "font-size":11, fill:"var(--ink-soft)", class:"mono", transform:"rotate(-90 "+(dimLeftX-6)+" "+py(ROOM.h/2)+")"}, root);
     dl.textContent = ROOM.h.toFixed(2) + "m (最大奥行)";
+
+    // wall paint/erase capture — an invisible full-canvas rect, drawn topmost so it
+    // intercepts pointer events ahead of equipment/zones, but only "live" while
+    // wallEditMode is set (see setWallEditMode) — otherwise normal dragging passes
+    // straight through it.
+    var paintRect = el("rect", {class:"wall-paint-capture", x:0, y:0, width:W, height:H, fill:"transparent",
+      style:"pointer-events:" + (wallEditMode ? "auto" : "none") + "; cursor:" + (wallEditMode === "erase" ? "cell" : (wallEditMode === "wall" ? "crosshair" : "default")) + ";"}, root);
+    attachWallPaintHandlers(svg, paintRect);
   }
 
   // ---------- Drag-to-reposition (2D) ----------
@@ -1238,6 +1366,77 @@
     el.addEventListener("touchmove", function(ev){
       if (ev.cancelable) ev.preventDefault();
     }, {passive:false});
+  }
+
+  // ---------- Wall paint/erase: pointer handling ----------
+  function modelPointFromClient(svg, clientX, clientY){
+    var pt = toSvgPoint(svg, clientX, clientY);
+    return { x:(pt.x - M2.l) / S2, y:(pt.y - M2.t) / S2 };
+  }
+  // Paints/erases every cell the segment (x0,y0)→(x1,y1) crosses, not just its two
+  // endpoints — needed because a fast finger/mouse drag can jump several cells
+  // between consecutive pointermove events. Returns true if anything changed, so
+  // the caller only has to redraw the wall layer when it actually needs to.
+  function paintCellsAlong(x0, y0, x1, y1, erase){
+    var canvasW = Math.max(ROOM.w, DOCK.x + DOCK.w);
+    var canvasH = Math.max(ROOM.h, DOCK.y + DOCK.h);
+    var maxGx = Math.floor(canvasW / WALL_CELL) - 1, maxGy = Math.floor(canvasH / WALL_CELL) - 1;
+    var dx = x1 - x0, dy = y1 - y0;
+    var dist = Math.sqrt(dx*dx + dy*dy);
+    var steps = Math.max(1, Math.ceil(dist / (WALL_CELL*0.4)));
+    var changed = false;
+    for (var i = 0; i <= steps; i++){
+      var t = i / steps;
+      var gx = Math.floor((x0 + dx*t) / WALL_CELL);
+      var gy = Math.floor((y0 + dy*t) / WALL_CELL);
+      if (gx < 0 || gy < 0 || gx > maxGx || gy > maxGy) continue; // off the canvas — ignore
+      var k = cellKey(gx, gy);
+      if (erase){
+        if (WALL_CELLS.has(k)){ WALL_CELLS.delete(k); changed = true; }
+      } else {
+        if (!WALL_CELLS.has(k)){ WALL_CELLS.add(k); changed = true; }
+      }
+    }
+    return changed;
+  }
+  function attachWallPaintHandlers(svg, rectEl){
+    rectEl.addEventListener("pointerdown", function(ev){
+      if (!wallEditMode) return;
+      if (ev.cancelable) ev.preventDefault();
+      var erase = wallEditMode === "erase";
+      var lastPt = modelPointFromClient(svg, ev.clientX, ev.clientY);
+      if (paintCellsAlong(lastPt.x, lastPt.y, lastPt.x, lastPt.y, erase)) renderWallLayer();
+      startPointerTracking(function(mv){
+        var np = modelPointFromClient(svg, mv.clientX, mv.clientY);
+        if (paintCellsAlong(lastPt.x, lastPt.y, np.x, np.y, erase)) renderWallLayer();
+        lastPt = np;
+      }, function(){
+        saveWalls();
+        build3D(); // keep the 3D view in sync, even while its tab is hidden
+      });
+    });
+  }
+  // Toggles draw/erase mode on and off (clicking the active button again turns it
+  // off) — drives the capture rect's pointer-events/cursor and the two buttons'
+  // pressed state without needing a full build2D() rebuild.
+  function setWallEditMode(mode){
+    wallEditMode = (wallEditMode === mode) ? null : mode;
+    var svg = document.getElementById("svg2d");
+    var cap = svg && svg.querySelector(".wall-paint-capture");
+    if (cap){
+      cap.style.pointerEvents = wallEditMode ? "auto" : "none";
+      cap.style.cursor = wallEditMode === "erase" ? "cell" : (wallEditMode === "wall" ? "crosshair" : "default");
+    }
+    var wallBtn = document.getElementById("wallAddBtn");
+    var eraseBtn = document.getElementById("wallEraseBtn");
+    if (wallBtn) wallBtn.classList.toggle("active", wallEditMode === "wall");
+    if (eraseBtn) eraseBtn.classList.toggle("active", wallEditMode === "erase");
+  }
+  function initWallTools(){
+    var wallBtn = document.getElementById("wallAddBtn");
+    var eraseBtn = document.getElementById("wallEraseBtn");
+    if (wallBtn) wallBtn.addEventListener("click", function(){ setWallEditMode("wall"); });
+    if (eraseBtn) eraseBtn.addEventListener("click", function(){ setWallEditMode("erase"); });
   }
 
   // Keep a dragged item's rectangle (xm,ym,wM,dM) inside the true room
@@ -1636,6 +1835,13 @@
   var COS30 = Math.cos(Math.PI/6), SIN30 = 0.5;
   var WALL_H = 2.3;
 
+  // Rotation around the vertical (Z) axis, in radians. 0 reproduces the original
+  // fixed view exactly. Changed by dragging the 3D view or the rotate buttons —
+  // see initIso3DControls(). Kept at module scope (not reset by build3D) so the
+  // chosen angle survives re-renders triggered by drags, tab switches, etc.
+  var isoAngle = 0;
+  var ISO_PIVOT_X = ROOM.w / 2, ISO_PIVOT_Y = ROOM.h / 2;
+
   var KIND_BASE_3D = {
     cold:"#7FA6C9", prod:"#DD9A87", pack:"#93C49F", sup:"#C8B494", util:"#74C9BC", person:"#9B92C4", pillar:"#8E897E", wall:"#7E8892"
   };
@@ -1651,7 +1857,17 @@
   }
 
   function project(xm, ym, zm){
-    var X = xm*ISO_S, Y = ym*ISO_S, Z = zm*ISO_HS;
+    // spin (xm,ym) around the room's center by isoAngle first, then apply the
+    // same fixed-tilt oblique projection as before — this is what lets the
+    // camera "orbit" around the model while keeping the same viewing angle
+    var rx = xm, ry = ym;
+    if (isoAngle !== 0){
+      var dx = xm - ISO_PIVOT_X, dy = ym - ISO_PIVOT_Y;
+      var c = Math.cos(isoAngle), s = Math.sin(isoAngle);
+      rx = ISO_PIVOT_X + dx*c - dy*s;
+      ry = ISO_PIVOT_Y + dx*s + dy*c;
+    }
+    var X = rx*ISO_S, Y = ry*ISO_S, Z = zm*ISO_HS;
     return [ (X - Y)*COS30, (X + Y)*SIN30 - Z ];
   }
 
@@ -1727,6 +1943,19 @@
       wallQuad(wa, wb);
     }
 
+    // painted walls (freehand wall tool) — drawn as simple boxes, merged into the
+    // same per-row runs as the 2D layer (wallRowRuns()) so a long drawn wall is a
+    // handful of boxes, not one per 10cm cell.
+    (function(){
+      var topC = shade(wallFill, 14), southC = shade(wallFill, -10), eastC = shade(wallFill, -22);
+      wallRowRuns().forEach(function(r){
+        var wx = r.x0*WALL_CELL, wy = r.gy*WALL_CELL, ww = (r.x1 - r.x0 + 1)*WALL_CELL, wd = WALL_CELL, wh = WALL_H;
+        poly(scene, [[wx,wy,wh],[wx+ww,wy,wh],[wx+ww,wy+wd,wh],[wx,wy+wd,wh]], topC, {stroke:"#CFC2AC", sw:0.6});
+        poly(scene, [[wx,wy+wd,0],[wx+ww,wy+wd,0],[wx+ww,wy+wd,wh],[wx,wy+wd,wh]], southC, {stroke:"#CFC2AC", sw:0.6});
+        poly(scene, [[wx+ww,wy,0],[wx+ww,wy+wd,0],[wx+ww,wy+wd,wh],[wx+ww,wy,wh]], eastC, {stroke:"#CFC2AC", sw:0.6});
+      });
+    })();
+
     // equipment, painter's algorithm: draw back-to-front (smaller x+y first)
     var order = EQUIPMENT.map(function(e,i){ return i; });
     order.sort(function(a,b){
@@ -1745,12 +1974,33 @@
       var eg = el("g", {class:"equip3d-group", "data-idx":idx}, scene);
       equip3dItems.push({el:eg, idx:idx});
 
-      // top face
-      poly(eg, [[x,y,h],[x+w,y,h],[x+w,y+d,h],[x,y+d,h]], topC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
-      // south (front-left) face
-      poly(eg, [[x,y+d,0],[x+w,y+d,0],[x+w,y+d,h],[x,y+d,h]], southC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
-      // east (front-right) face
-      poly(eg, [[x+w,y,0],[x+w,y+d,0],[x+w,y+d,h],[x+w,y,h]], eastC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
+      if (e.kind === "person"){
+        // 通路幅確認用の「人」マーカーは、他の機器と同じ箱型だと紛らわしいので、
+        // 同じ占有footprint(x,y,w,d,h)の中に収まる簡易な人型(頭+胴体の2段)で描く。
+        // バッジ(番号)の位置は従来通りh(=headTop)を使うので変更不要。
+        var cx = x + w/2, cy = y + d/2;
+        var bodyHalf = Math.min(w,d) * 0.26, headHalf = Math.min(w,d) * 0.16;
+        var bodyTop = h * 0.60, headBase = h * 0.64, headTop = h;
+        var skinC = "#E3BE97", skinTopC = shade(skinC, 14), skinSideC = shade(skinC, -16);
+        var FACE = {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}};
+
+        var bx0 = cx - bodyHalf, bx1 = cx + bodyHalf, by0 = cy - bodyHalf, by1 = cy + bodyHalf;
+        poly(eg, [[bx0,by0,bodyTop],[bx1,by0,bodyTop],[bx1,by1,bodyTop],[bx0,by1,bodyTop]], topC, FACE);
+        poly(eg, [[bx0,by1,0],[bx1,by1,0],[bx1,by1,bodyTop],[bx0,by1,bodyTop]], southC, FACE);
+        poly(eg, [[bx1,by0,0],[bx1,by1,0],[bx1,by1,bodyTop],[bx1,by0,bodyTop]], eastC, FACE);
+
+        var hx0 = cx - headHalf, hx1 = cx + headHalf, hy0 = cy - headHalf, hy1 = cy + headHalf;
+        poly(eg, [[hx0,hy0,headTop],[hx1,hy0,headTop],[hx1,hy1,headTop],[hx0,hy1,headTop]], skinTopC, FACE);
+        poly(eg, [[hx0,hy1,headBase],[hx1,hy1,headBase],[hx1,hy1,headTop],[hx0,hy1,headTop]], skinC, FACE);
+        poly(eg, [[hx1,hy0,headBase],[hx1,hy1,headBase],[hx1,hy1,headTop],[hx1,hy0,headTop]], skinSideC, FACE);
+      } else {
+        // top face
+        poly(eg, [[x,y,h],[x+w,y,h],[x+w,y+d,h],[x,y+d,h]], topC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
+        // south (front-left) face
+        poly(eg, [[x,y+d,0],[x+w,y+d,0],[x+w,y+d,h],[x,y+d,h]], southC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
+        // east (front-right) face
+        poly(eg, [[x+w,y,0],[x+w,y+d,0],[x+w,y+d,h],[x+w,y,h]], eastC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
+      }
 
       // number badge on top face center
       var centerTop = project(x+w/2, y+d/2, h);
@@ -1784,6 +2034,42 @@
     svg.setAttribute("viewBox", bx + " " + by + " " + bw + " " + bh);
     svg.setAttribute("width", bw);
     svg.setAttribute("height", bh);
+  }
+
+  // Drag-to-rotate + buttons for the 3D view. Attached once (not re-attached on every
+  // build3D() call) since isoAngle itself lives at module scope and just needs build3D()
+  // re-run whenever it changes.
+  function initIso3DControls(){
+    var wrap = document.querySelector(".iso-wrap");
+    if (!wrap) return;
+    suppressNativeTouch(wrap);
+
+    var ROTATE_PX_PER_TURN = 480; // px of horizontal drag for one full 360° spin — tuned
+                                    // so a normal swipe feels responsive, not twitchy
+    wrap.addEventListener("pointerdown", function(ev){
+      ev.preventDefault();
+      try { wrap.setPointerCapture(ev.pointerId); } catch (err) { /* nice-to-have only — see attachDragHandlers */ }
+      wrap.classList.add("dragging");
+      var startX = ev.clientX, startAngle = isoAngle;
+      startPointerTracking(
+        function onMove(mv){
+          var dx = mv.clientX - startX;
+          isoAngle = startAngle + (dx / ROTATE_PX_PER_TURN) * Math.PI * 2;
+          build3D();
+        },
+        function onEnd(){
+          wrap.classList.remove("dragging");
+        }
+      );
+    });
+
+    var ROTATE_STEP = Math.PI / 4; // 45°
+    var leftBtn = document.getElementById("isoRotateLeft");
+    var rightBtn = document.getElementById("isoRotateRight");
+    var resetViewBtn = document.getElementById("isoResetView");
+    if (leftBtn) leftBtn.addEventListener("click", function(){ isoAngle -= ROTATE_STEP; build3D(); });
+    if (rightBtn) rightBtn.addEventListener("click", function(){ isoAngle += ROTATE_STEP; build3D(); });
+    if (resetViewBtn) resetViewBtn.addEventListener("click", function(){ isoAngle = 0; build3D(); });
   }
 
   // ======================================================================
@@ -1951,8 +2237,10 @@
         z.x = ZONES_DEFAULT[i].x; z.y = ZONES_DEFAULT[i].y;
         z.w = ZONES_DEFAULT[i].w; z.h = ZONES_DEFAULT[i].h;
       });
+      WALL_CELLS.clear(); // drop any freehand walls too — back to the fixed catalog
       try { localStorage.removeItem(STORAGE_KEY); } catch (err) { /* ignore */ }
       try { localStorage.removeItem(ZONE_STORAGE_KEY); } catch (err) { /* ignore */ }
+      try { localStorage.removeItem(WALL_STORAGE_KEY); } catch (err) { /* ignore */ }
       build2D();
       build3D();
       buildTable();
@@ -1966,7 +2254,9 @@
   buildTable();
   initTabs();
   initReset();
+  initIso3DControls();
   initInfoSheet();
+  initWallTools();
 })();
 </script>
 </body>
