@@ -35,6 +35,7 @@
     --person-fill:#E7E4F2; --person-line:#675F92;
     --pillar-fill:#C7C3BA; --pillar-line:#4E4A42;
     --wall-fill:#C9CDD3; --wall-line:#48525C;
+    --door-fill:#EDDFC2; --door-line:#9C7A3C;
 
     --badge-fill:#2B1B14; --badge-text:#FBF9F6;
 
@@ -64,6 +65,7 @@
       --person-fill:#2A273A; --person-line:#B6AEDC;
       --pillar-fill:#433F39; --pillar-line:#AFA99D;
       --wall-fill:#3A3F46; --wall-line:#A9B1B9;
+      --door-fill:#332A1C; --door-line:#D9BB7A;
 
       --badge-fill:#F2E9E1; --badge-text:#1C1613;
 
@@ -90,6 +92,7 @@
     --person-fill:#2A273A; --person-line:#B6AEDC;
     --pillar-fill:#433F39; --pillar-line:#AFA99D;
     --wall-fill:#3A3F46; --wall-line:#A9B1B9;
+    --door-fill:#332A1C; --door-line:#D9BB7A;
     --badge-fill:#F2E9E1; --badge-text:#1C1613;
     --status-confirmed:#93C49F; --status-confirmed-bg:#1E2820;
     --status-estimate:#E2917E; --status-estimate-bg:#3A2722;
@@ -340,12 +343,13 @@
         <div class="wall-tool-group">
           <button class="reset-btn wall-tool-btn" id="wallAddBtn" type="button" title="指でなぞった場所に壁を描き足します">壁を追加</button>
           <button class="reset-btn wall-tool-btn" id="wallEraseBtn" type="button" title="指でなぞった壁を少しずつ消します">消しゴム</button>
+          <button class="reset-btn wall-tool-btn" id="doorAddBtn" type="button" title="壁の上でタップ、または指でなぞった分だけ引き戸(開いた状態)を配置します。既存の引き戸をタップすると削除できます">引き戸を追加</button>
         </div>
         <button class="reset-btn" id="resetBtn" type="button">初期配置に戻す</button>
       </div>
     </div>
     <div class="svg-wrap"><svg id="svg2d" xmlns="http://www.w3.org/2000/svg"></svg></div>
-    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。どちらのボタンも、もう一度押すと通常の操作に戻ります。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
+    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。「引き戸を追加」ボタンを押してから壁の上でタップ(または少しなぞって幅を指定)すると、その部分が開口になり、戸が壁の中(戸袋)に引き込まれた簡易的な見た目で引き戸が配置されます。既存の引き戸をタップすると削除できます。どのボタンも、もう一度押すと通常の操作に戻ります。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
     <div class="legend-row" id="legend2d"></div>
     <div class="kw-summary">
       <span class="ks-label">合計使用電気容量(仮置き場の機器を除く)</span>
@@ -845,6 +849,106 @@
   }
   loadSavedWalls();
 
+  // ---------- Sliding door tool ----------
+  // Placed on top of a freehand wall (or on empty space) via the "引き戸を追加"
+  // button. A door is stored as its OPENING's bounding box {x,y,len,horiz} in
+  // meters — not an EQUIPMENT item, same reasoning as the wall tool: it needs no
+  // electrical capacity and shouldn't show up in the table. Placing one also
+  // clears any WALL_CELLS under its opening, so a wall that was already there
+  // visually "opens up" exactly as asked. Drawn as a simplified schematic: the
+  // opening itself is just the gap left in the wall, plus a solid leaf shown
+  // retracted into a same-size wall pocket (戸袋) right next to the opening, so
+  // it reads as "a sliding door, currently open" at a glance.
+  var DOOR_LEN_DEFAULT = 0.8; // meters — used for a plain tap with no drag
+  var DOOR_STORAGE_KEY = "flat-②坂下一丁目-doors-v1";
+  var DOORS = []; // {x, y, len, horiz}
+  var doorLayerEl = null; // committed doors
+  var doorPreviewEl = null; // the one door being dragged right now (ghost preview)
+  function loadSavedDoors(){
+    try {
+      var raw = localStorage.getItem(DOOR_STORAGE_KEY);
+      if (!raw) return;
+      var arr = JSON.parse(raw);
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function(d){
+        if (d && typeof d.x === "number" && typeof d.y === "number" && typeof d.len === "number"){
+          DOORS.push({x:d.x, y:d.y, len:d.len, horiz:!!d.horiz});
+        }
+      });
+    } catch (err) { /* ignore — storage may be unavailable */ }
+  }
+  function doorsArray(){
+    return DOORS.map(function(d){ return {x:d.x, y:d.y, len:d.len, horiz:d.horiz}; });
+  }
+  function saveDoors(){
+    try { localStorage.setItem(DOOR_STORAGE_KEY, JSON.stringify(doorsArray())); } catch (err) { /* ignore */ }
+    pushToCloud(); // also share this change with any other device open on the same link
+  }
+  // The opening itself — axis-aligned, thickness = one wall cell, running along
+  // whichever axis the door was drawn on.
+  function doorOpeningRect(d){
+    return d.horiz ? {x:d.x, y:d.y, w:d.len, h:WALL_CELL} : {x:d.x, y:d.y, w:WALL_CELL, h:d.len};
+  }
+  // The leaf's retracted position — a same-size pocket immediately on the
+  // lower-x (or lower-y) side of the opening, representing it slid fully open.
+  function doorPocketRect(d){
+    return d.horiz ? {x:d.x - d.len, y:d.y, w:d.len, h:WALL_CELL} : {x:d.x, y:d.y - d.len, w:WALL_CELL, h:d.len};
+  }
+  // Bounding box of the whole visible symbol (opening + pocket) — used for
+  // tap-to-delete hit testing and for de-duplicating overlapping placements.
+  function doorUnionRect(d){
+    var o = doorOpeningRect(d), p = doorPocketRect(d);
+    var x0 = Math.min(o.x, p.x), y0 = Math.min(o.y, p.y);
+    var x1 = Math.max(o.x+o.w, p.x+p.w), y1 = Math.max(o.y+o.h, p.y+p.h);
+    return {x:x0, y:y0, w:x1-x0, h:y1-y0};
+  }
+  function rectsOverlap(a, b){
+    return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+  }
+  function pointInRect(px_, py_, r){
+    return px_ >= r.x && px_ <= r.x+r.w && py_ >= r.y && py_ <= r.y+r.h;
+  }
+  // Draws one door (committed, full style) or preview (dashed/translucent ghost
+  // while dragging) into `parent`. Shared by the 2D committed layer and the
+  // live drag preview.
+  function renderDoorInto(parent, d, opts){
+    opts = opts || {};
+    var op = doorOpeningRect(d), pk = doorPocketRect(d);
+    var opacity = opts.preview ? 0.55 : 1;
+    el("rect", {x:wallPx(pk.x), y:wallPy(pk.y), width:pk.w*S2, height:pk.h*S2,
+      fill:"var(--door-fill)", stroke:"var(--door-line)", "stroke-width":1,
+      "stroke-dasharray":(opts.preview ? "3 2" : "none"), rx:1, opacity:opacity,
+      style:"pointer-events:none;"}, parent);
+    // a faint track line across the opening, so the gap reads as "a door", not
+    // just a random hole punched in the wall
+    if (d.horiz){
+      el("line", {x1:wallPx(op.x), y1:wallPy(op.y+op.h/2), x2:wallPx(op.x+op.w), y2:wallPy(op.y+op.h/2),
+        stroke:"var(--door-line)", "stroke-width":1, "stroke-dasharray":"4 3", opacity:opacity*0.85, style:"pointer-events:none;"}, parent);
+    } else {
+      el("line", {x1:wallPx(op.x+op.w/2), y1:wallPy(op.y), x2:wallPx(op.x+op.w/2), y2:wallPy(op.y+op.h),
+        stroke:"var(--door-line)", "stroke-width":1, "stroke-dasharray":"4 3", opacity:opacity*0.85, style:"pointer-events:none;"}, parent);
+    }
+    if (!opts.preview){
+      var u = doorUnionRect(d);
+      var lx, ly, anchor;
+      if (d.horiz){ lx = wallPx(u.x+u.w/2); ly = wallPy(u.y) - 5; anchor = "middle"; }
+      else { lx = wallPx(u.x+u.w) + 4; ly = wallPy(u.y+u.h/2) + 3; anchor = "start"; }
+      var txt = el("text", {x:lx, y:ly, "text-anchor":anchor, "font-size":7.8, "font-weight":700, fill:"var(--door-line)", style:"pointer-events:none;"}, parent);
+      txt.textContent = "引き戸";
+    }
+  }
+  function renderDoorLayer(){
+    if (!doorLayerEl) return;
+    while (doorLayerEl.firstChild) doorLayerEl.removeChild(doorLayerEl.firstChild);
+    DOORS.forEach(function(d){ renderDoorInto(doorLayerEl, d, {}); });
+  }
+  function renderDoorPreview(d){
+    if (!doorPreviewEl) return;
+    while (doorPreviewEl.firstChild) doorPreviewEl.removeChild(doorPreviewEl.firstChild);
+    if (d) renderDoorInto(doorPreviewEl, d, {preview:true});
+  }
+  loadSavedDoors();
+
   // ---------- Cross-device sync (optional) ----------
   // このGitHub Pages版は claude.ai の `window.claude.use("db")` が使えないため、代わりに
   // 自前のGoogle Apps Script Webアプリをバックエンドとして使う。GAS_URLとGAS_TOKENに
@@ -880,7 +984,8 @@
         })
       },
       zones: ZONES.map(function(z, i){ return {i:i, x:z.x, y:z.y, w:z.w, h:z.h}; }),
-      walls: wallCellsArray()
+      walls: wallCellsArray(),
+      doors: doorsArray()
     };
   }
   function applyCloudPayload(data){
@@ -921,6 +1026,14 @@
       WALL_CELLS.clear();
       data.walls.forEach(function(p){
         if (Array.isArray(p) && p.length === 2) WALL_CELLS.add(cellKey(p[0], p[1]));
+      });
+    }
+    if (Array.isArray(data.doors)){
+      DOORS.length = 0;
+      data.doors.forEach(function(d){
+        if (d && typeof d.x === "number" && typeof d.y === "number" && typeof d.len === "number"){
+          DOORS.push({x:d.x, y:d.y, len:d.len, horiz:!!d.horiz});
+        }
       });
     }
   }
@@ -1109,6 +1222,11 @@
     wallLayerEl = el("g", {class:"wall-layer"}, root);
     renderWallLayer();
 
+    // sliding doors (same reasoning as the wall layer above) — drawn right after
+    // the walls so a door placed over a wall visually sits on top of it
+    doorLayerEl = el("g", {class:"door-layer"}, root);
+    renderDoorLayer();
+
     // equipment — each item is a <g> positioned with transform:translate(),
     // containing its rect/badge/icons in LOCAL (0,0)-anchored coordinates.
     // That lets dragging just rewrite the group's transform instead of every
@@ -1281,13 +1399,18 @@
     var dl = el("text", {x:dimLeftX-6, y:py(ROOM.h/2), "text-anchor":"middle", "font-size":11, fill:"var(--ink-soft)", class:"mono", transform:"rotate(-90 "+(dimLeftX-6)+" "+py(ROOM.h/2)+")"}, root);
     dl.textContent = ROOM.h.toFixed(2) + "m (最大奥行)";
 
-    // wall paint/erase capture — an invisible full-canvas rect, drawn topmost so it
-    // intercepts pointer events ahead of equipment/zones, but only "live" while
-    // wallEditMode is set (see setWallEditMode) — otherwise normal dragging passes
-    // straight through it.
+    // live preview of the door currently being dragged (cleared when nothing's
+    // being dragged) — drawn above the committed door layer, below the capture rect
+    doorPreviewEl = el("g", {class:"door-preview"}, root);
+
+    // wall paint/erase/door capture — an invisible full-canvas rect, drawn topmost
+    // so it intercepts pointer events ahead of equipment/zones, but only "live"
+    // while wallEditMode is set (see setWallEditMode) — otherwise normal dragging
+    // passes straight through it.
     var paintRect = el("rect", {class:"wall-paint-capture", x:0, y:0, width:W, height:H, fill:"transparent",
-      style:"pointer-events:" + (wallEditMode ? "auto" : "none") + "; cursor:" + (wallEditMode === "erase" ? "cell" : (wallEditMode === "wall" ? "crosshair" : "default")) + ";"}, root);
+      style:"pointer-events:" + (wallEditMode ? "auto" : "none") + "; cursor:" + (wallEditMode === "erase" ? "cell" : (wallEditMode ? "crosshair" : "default")) + ";"}, root);
     attachWallPaintHandlers(svg, paintRect);
+    attachDoorHandlers(svg, paintRect);
   }
 
   // ---------- Drag-to-reposition (2D) ----------
@@ -1406,7 +1529,7 @@
       // reinterpreted by the browser as a page/panel scroll a few pixels in, which is
       // exactly what "the stroke breaks off after only 3-4 cells" looks like
     rectEl.addEventListener("pointerdown", function(ev){
-      if (!wallEditMode) return;
+      if (wallEditMode !== "wall" && wallEditMode !== "erase") return; // door mode has its own handler below
       if (ev.cancelable) ev.preventDefault();
       var erase = wallEditMode === "erase";
       var lastPt = modelPointFromClient(svg, ev.clientX, ev.clientY);
@@ -1421,27 +1544,101 @@
       });
     });
   }
-  // Toggles draw/erase mode on and off (clicking the active button again turns it
-  // off) — drives the capture rect's pointer-events/cursor and the two buttons'
-  // pressed state without needing a full build2D() rebuild.
+  // Drag-to-place a sliding door (or tap for a default-width one); tapping/starting
+  // a drag on top of an existing door removes it instead. Shares the same capture
+  // rect as attachWallPaintHandlers, gated to "door" mode only.
+  function attachDoorHandlers(svg, rectEl){
+    rectEl.addEventListener("pointerdown", function(ev){
+      if (wallEditMode !== "door") return;
+      if (ev.cancelable) ev.preventDefault();
+      var p0 = modelPointFromClient(svg, ev.clientX, ev.clientY);
+
+      for (var i = DOORS.length - 1; i >= 0; i--){
+        if (pointInRect(p0.x, p0.y, doorUnionRect(DOORS[i]))){
+          DOORS.splice(i, 1);
+          renderDoorLayer();
+          saveDoors();
+          build3D();
+          return; // tapped an existing door — remove it, don't also start drawing one
+        }
+      }
+
+      var snappedX0 = Math.round(p0.x / WALL_CELL) * WALL_CELL;
+      var snappedY0 = Math.round(p0.y / WALL_CELL) * WALL_CELL;
+      function previewFrom(p1){
+        var dx = p1.x - p0.x, dy = p1.y - p0.y;
+        var horiz = Math.abs(dx) >= Math.abs(dy);
+        var len = Math.round(Math.abs(horiz ? dx : dy) / WALL_CELL) * WALL_CELL;
+        var tapLike = len < WALL_CELL * 1.5; // barely moved — treat as a plain tap
+        if (tapLike){ horiz = true; len = DOOR_LEN_DEFAULT; }
+        var x, y;
+        if (horiz){
+          x = tapLike ? snappedX0 - len/2 : Math.min(snappedX0, Math.round(p1.x / WALL_CELL) * WALL_CELL);
+          y = snappedY0;
+        } else {
+          x = snappedX0;
+          y = tapLike ? snappedY0 - len/2 : Math.min(snappedY0, Math.round(p1.y / WALL_CELL) * WALL_CELL);
+        }
+        return {x:x, y:y, len:Math.max(len, WALL_CELL), horiz:horiz};
+      }
+
+      var preview = previewFrom(p0);
+      renderDoorPreview(preview);
+      startPointerTracking(function(mv){
+        var np = modelPointFromClient(svg, mv.clientX, mv.clientY);
+        preview = previewFrom(np);
+        renderDoorPreview(preview);
+      }, function(){
+        renderDoorPreview(null);
+        // placing a door never stacks — clear out anything it overlaps first
+        for (var j = DOORS.length - 1; j >= 0; j--){
+          if (rectsOverlap(doorUnionRect(DOORS[j]), doorUnionRect(preview))) DOORS.splice(j, 1);
+        }
+        DOORS.push(preview);
+        // placing it over existing wall "opens" that span — clear wall cells under the opening
+        var op = doorOpeningRect(preview);
+        var wallChanged = false;
+        WALL_CELLS.forEach(function(k){
+          var parts = k.split(",");
+          var gx = parseInt(parts[0], 10), gy = parseInt(parts[1], 10);
+          var cx = gx*WALL_CELL, cy = gy*WALL_CELL;
+          if (cx + WALL_CELL > op.x && cx < op.x + op.w && cy + WALL_CELL > op.y && cy < op.y + op.h){
+            WALL_CELLS.delete(k); wallChanged = true;
+          }
+        });
+        if (wallChanged){ renderWallLayer(); saveWalls(); }
+        renderDoorLayer();
+        saveDoors();
+        build3D();
+      });
+    });
+  }
+  // Toggles draw/erase/door mode on and off (clicking the active button again
+  // turns it off) — drives the capture rect's pointer-events/cursor and the
+  // buttons' pressed state without needing a full build2D() rebuild.
   function setWallEditMode(mode){
     wallEditMode = (wallEditMode === mode) ? null : mode;
+    if (wallEditMode !== "door") renderDoorPreview(null); // leaving door mode mid-drag — drop any ghost preview
     var svg = document.getElementById("svg2d");
     var cap = svg && svg.querySelector(".wall-paint-capture");
     if (cap){
       cap.style.pointerEvents = wallEditMode ? "auto" : "none";
-      cap.style.cursor = wallEditMode === "erase" ? "cell" : (wallEditMode === "wall" ? "crosshair" : "default");
+      cap.style.cursor = wallEditMode === "erase" ? "cell" : (wallEditMode ? "crosshair" : "default");
     }
     var wallBtn = document.getElementById("wallAddBtn");
     var eraseBtn = document.getElementById("wallEraseBtn");
+    var doorBtn = document.getElementById("doorAddBtn");
     if (wallBtn) wallBtn.classList.toggle("active", wallEditMode === "wall");
     if (eraseBtn) eraseBtn.classList.toggle("active", wallEditMode === "erase");
+    if (doorBtn) doorBtn.classList.toggle("active", wallEditMode === "door");
   }
   function initWallTools(){
     var wallBtn = document.getElementById("wallAddBtn");
     var eraseBtn = document.getElementById("wallEraseBtn");
+    var doorBtn = document.getElementById("doorAddBtn");
     if (wallBtn) wallBtn.addEventListener("click", function(){ setWallEditMode("wall"); });
     if (eraseBtn) eraseBtn.addEventListener("click", function(){ setWallEditMode("erase"); });
+    if (doorBtn) doorBtn.addEventListener("click", function(){ setWallEditMode("door"); });
   }
 
   // Keep a dragged item's rectangle (xm,ym,wM,dM) inside the true room
@@ -1961,6 +2158,23 @@
       });
     })();
 
+    // sliding doors — just the retracted leaf (the opening itself needs no drawing:
+    // clearing its wall cells on placement already leaves a gap in the boxes above),
+    // drawn a bit lower than full wall height so it still reads as a door leaf
+    (function(){
+      if (!DOORS.length) return;
+      var doorBase = "#C9A56B";
+      var dTopC = shade(doorBase, 16), dSouthC = shade(doorBase, -10), dEastC = shade(doorBase, -24);
+      var leafH = WALL_H * 0.86;
+      DOORS.forEach(function(d){
+        var pk = doorPocketRect(d);
+        var dx = pk.x, dy = pk.y, dw = pk.w, dd = pk.h, dh = leafH;
+        poly(scene, [[dx,dy,dh],[dx+dw,dy,dh],[dx+dw,dy+dd,dh],[dx,dy+dd,dh]], dTopC, {stroke:"#6B5226", sw:0.6});
+        poly(scene, [[dx,dy+dd,0],[dx+dw,dy+dd,0],[dx+dw,dy+dd,dh],[dx,dy+dd,dh]], dSouthC, {stroke:"#6B5226", sw:0.6});
+        poly(scene, [[dx+dw,dy,0],[dx+dw,dy+dd,0],[dx+dw,dy+dd,dh],[dx+dw,dy,dh]], dEastC, {stroke:"#6B5226", sw:0.6});
+      });
+    })();
+
     // equipment, painter's algorithm: draw back-to-front (smaller x+y first)
     var order = EQUIPMENT.map(function(e,i){ return i; });
     order.sort(function(a,b){
@@ -2243,9 +2457,11 @@
         z.w = ZONES_DEFAULT[i].w; z.h = ZONES_DEFAULT[i].h;
       });
       WALL_CELLS.clear(); // drop any freehand walls too — back to the fixed catalog
+      DOORS.length = 0; // and any sliding doors placed on them
       try { localStorage.removeItem(STORAGE_KEY); } catch (err) { /* ignore */ }
       try { localStorage.removeItem(ZONE_STORAGE_KEY); } catch (err) { /* ignore */ }
       try { localStorage.removeItem(WALL_STORAGE_KEY); } catch (err) { /* ignore */ }
+      try { localStorage.removeItem(DOOR_STORAGE_KEY); } catch (err) { /* ignore */ }
       build2D();
       build3D();
       buildTable();
