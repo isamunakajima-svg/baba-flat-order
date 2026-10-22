@@ -174,6 +174,7 @@
   .zone-rect.dragging{stroke-width:2.2;}
   .zone-resize-handle{cursor:nwse-resize; touch-action:none;}
   .zone-resize-handle:hover{opacity:1 !important;}
+  .wall-paint-capture{touch-action:none;}
   .equip3d-group{cursor:default;}
 
   .eq-tooltip{
@@ -1400,6 +1401,10 @@
     return changed;
   }
   function attachWallPaintHandlers(svg, rectEl){
+    suppressNativeTouch(rectEl); // see suppressNativeTouch's own comment — without this,
+      // a touch drag that starts inside .svg-wrap (which scrolls horizontally) can get
+      // reinterpreted by the browser as a page/panel scroll a few pixels in, which is
+      // exactly what "the stroke breaks off after only 3-4 cells" looks like
     rectEl.addEventListener("pointerdown", function(ev){
       if (!wallEditMode) return;
       if (ev.cancelable) ev.preventDefault();
