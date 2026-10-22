@@ -1,0 +1,1973 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>② 坂下一丁目 厨房レイアウト</title>
+
+<!-- PWA / 「アプリ化」用タグ(2026-10-22追加) — ホーム画面に追加して単独起動すると、
+     ブラウザのアドレスバー/検索窓なしの全画面表示になり、画面をより広く使える。
+     iOS Safariはmanifest.jsonを見ないため、apple-mobile-web-app-*系のタグで個別に対応。 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#B85042">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="厨房レイアウト">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#FBF9F6; --paper-raised:#FFFFFF; --paper-sunk:#F2EEE7;
+    --ink:#2B1B14; --ink-soft:#73635A; --ink-faint:#9C9087;
+    --line:#E2DBD0; --line-strong:#C9C0B2;
+    --accent:#B85042; --accent-soft:#F3E1DC;
+
+    --cold-fill:#E1E9F0; --cold-line:#4C6E90;
+    --prod-fill:#F3E1DC; --prod-line:#B85042;
+    --pack-fill:#E4ECE3; --pack-line:#5C7D63;
+    --sup-fill:#F1E9DD; --sup-line:#8A7B6C;
+    --util-fill:#E3EEEC; --util-line:#3E7C74;
+    --notch-fill:#DCD7CF; --notch-line:#6B6358;
+    --person-fill:#E7E4F2; --person-line:#675F92;
+    --pillar-fill:#C7C3BA; --pillar-line:#4E4A42;
+    --wall-fill:#C9CDD3; --wall-line:#48525C;
+
+    --badge-fill:#2B1B14; --badge-text:#FBF9F6;
+
+    --status-confirmed:#5C7D63; --status-confirmed-bg:#E4ECE3;
+    --status-estimate:#B85042; --status-estimate-bg:#F3E1DC;
+    --status-new:#3E7C74; --status-new-bg:#E3EEEC;
+    --status-ref:#675F92; --status-ref-bg:#E7E4F2;
+    --status-approx:#9A6B21; --status-approx-bg:#F0E3C6;
+    --doryoku:#2B5FA3; --doryoku-bg:#E1EAF5;
+
+    --shadow: 0 1px 2px rgba(43,27,20,.06), 0 6px 20px -8px rgba(43,27,20,.18);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#1C1613; --paper-raised:#241D19; --paper-sunk:#17120F;
+      --ink:#F2E9E1; --ink-soft:#C3B4A8; --ink-faint:#8B7C70;
+      --line:#352B24; --line-strong:#4A3D33;
+      --accent:#E2917E; --accent-soft:#3A2722;
+
+      --cold-fill:#1F2C38; --cold-line:#8FB3D8;
+      --prod-fill:#332420; --prod-line:#E2917E;
+      --pack-fill:#1E2820; --pack-line:#93C49F;
+      --sup-fill:#2A231C; --sup-line:#C7B39B;
+      --util-fill:#16302C; --util-line:#79CBBE;
+      --notch-fill:#332C24; --notch-line:#A89A89;
+      --person-fill:#2A273A; --person-line:#B6AEDC;
+      --pillar-fill:#433F39; --pillar-line:#AFA99D;
+      --wall-fill:#3A3F46; --wall-line:#A9B1B9;
+
+      --badge-fill:#F2E9E1; --badge-text:#1C1613;
+
+      --status-confirmed:#93C49F; --status-confirmed-bg:#1E2820;
+      --status-estimate:#E2917E; --status-estimate-bg:#3A2722;
+      --status-new:#79CBBE; --status-new-bg:#16302C;
+      --status-ref:#B6AEDC; --status-ref-bg:#2A273A;
+      --status-approx:#E0B978; --status-approx-bg:#3A2E18;
+      --doryoku:#7FADE0; --doryoku-bg:#1C2E42;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#1C1613; --paper-raised:#241D19; --paper-sunk:#17120F;
+    --ink:#F2E9E1; --ink-soft:#C3B4A8; --ink-faint:#8B7C70;
+    --line:#352B24; --line-strong:#4A3D33;
+    --accent:#E2917E; --accent-soft:#3A2722;
+    --cold-fill:#1F2C38; --cold-line:#8FB3D8;
+    --prod-fill:#332420; --prod-line:#E2917E;
+    --pack-fill:#1E2820; --pack-line:#93C49F;
+    --sup-fill:#2A231C; --sup-line:#C7B39B;
+    --util-fill:#16302C; --util-line:#79CBBE;
+    --notch-fill:#332C24; --notch-line:#A89A89;
+    --person-fill:#2A273A; --person-line:#B6AEDC;
+    --pillar-fill:#433F39; --pillar-line:#AFA99D;
+    --wall-fill:#3A3F46; --wall-line:#A9B1B9;
+    --badge-fill:#F2E9E1; --badge-text:#1C1613;
+    --status-confirmed:#93C49F; --status-confirmed-bg:#1E2820;
+    --status-estimate:#E2917E; --status-estimate-bg:#3A2722;
+    --status-new:#79CBBE; --status-new-bg:#16302C;
+    --status-ref:#B6AEDC; --status-ref-bg:#2A273A;
+    --status-approx:#E0B978; --status-approx-bg:#3A2E18;
+    --doryoku:#7FADE0; --doryoku-bg:#1C2E42;
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Inter",system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+
+  .page{
+    max-width:1040px;
+    margin:0 auto;
+    /* env(safe-area-inset-*) keeps content clear of notches/home-indicators when
+       launched as an installed standalone app (viewport-fit=cover) — falls back to
+       the plain 16px/28px/64px values on ordinary browsers where the env() is 0. */
+    padding:28px max(16px, env(safe-area-inset-right)) max(64px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    padding-top:max(28px, env(safe-area-inset-top));
+  }
+
+  header{padding-bottom:18px; border-bottom:1px solid var(--line); margin-bottom:22px;}
+  .eyebrow{
+    margin:0 0 6px; font-size:12.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); font-weight:700;
+  }
+  h1{margin:0 0 10px; font-size:clamp(22px,4vw,30px); font-weight:800; letter-spacing:-.01em; text-wrap:balance;}
+  .subtitle{margin:0 0 18px; color:var(--ink-soft); font-size:14.5px; line-height:1.7; max-width:68ch;}
+
+  .caution{
+    display:flex; gap:10px; align-items:flex-start;
+    background:var(--accent-soft); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius:10px; padding:11px 14px; margin:0 0 20px; font-size:13.5px; line-height:1.6; color:var(--ink);
+  }
+  .caution b{color:var(--accent);}
+
+  .tabs{display:flex; gap:6px; background:var(--paper-sunk); padding:4px; border-radius:11px; width:fit-content;}
+  .tab{
+    appearance:none; border:none; background:transparent; color:var(--ink-soft);
+    font:inherit; font-weight:600; font-size:13.5px; padding:9px 18px; border-radius:8px; cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .tab.active{background:var(--paper-raised); color:var(--ink); box-shadow:var(--shadow);}
+  .tab:hover:not(.active){color:var(--ink);}
+
+  .view{display:none; margin-top:22px;}
+  .view.active{display:block;}
+
+  .panel-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
+  .panel-head h2{margin:0; font-size:16px; font-weight:700;}
+  .panel-head .hint{font-size:12.5px; color:var(--ink-faint);}
+  .head-actions{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+  .reset-btn{
+    appearance:none; border:1px solid var(--line-strong); background:var(--paper-raised); color:var(--ink-soft);
+    font:inherit; font-weight:600; font-size:12px; padding:6px 12px; border-radius:7px; cursor:pointer;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .reset-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .drag-note{margin-top:10px;}
+
+  .svg-wrap{
+    background:var(--paper-raised); border:1px solid var(--line); border-radius:14px;
+    padding:18px; overflow-x:auto; box-shadow:var(--shadow); overscroll-behavior:contain;
+  }
+  .svg-wrap svg{display:block; min-width:640px; width:100%; height:auto;}
+  .equip-group{cursor:grab; touch-action:none;}
+  .equip-group:active, .equip-group.dragging{cursor:grabbing;}
+  .equip-group.dragging .equip-rect{stroke-width:2.4;}
+  .rotate-btn{cursor:pointer; touch-action:none;}
+  .rotate-btn:hover circle{stroke:var(--accent);}
+  .zone-rect{cursor:grab; touch-action:none;}
+  .zone-rect:active, .zone-rect.dragging{cursor:grabbing;}
+  .zone-rect.dragging{stroke-width:2.2;}
+  .zone-resize-handle{cursor:nwse-resize; touch-action:none;}
+  .zone-resize-handle:hover{opacity:1 !important;}
+  .equip3d-group{cursor:default;}
+
+  .eq-tooltip{
+    position:fixed; z-index:80; pointer-events:none; left:0; top:0;
+    background:var(--ink); color:var(--paper); max-width:240px;
+    font-size:12px; line-height:1.55; padding:9px 12px; border-radius:9px; box-shadow:var(--shadow);
+    opacity:0; transform:translateY(3px); transition:opacity .1s ease, transform .1s ease;
+  }
+  .eq-tooltip.show{opacity:1; transform:translateY(0);}
+  .eq-tooltip .tt-name{display:block; font-weight:700; font-size:12.5px; margin-bottom:4px;}
+  .eq-tooltip .tt-dim{display:block; font-family:"IBM Plex Mono",monospace; font-size:11.5px; opacity:.82;}
+  .eq-tooltip .tt-row{margin-top:4px; opacity:.82; font-size:11.5px;}
+
+  /* Tap-to-show info sheet — the touch-friendly counterpart to the hover
+     tooltip above. A phone has no hover state, so tapping an equipment
+     block (without dragging it) slides this up from the bottom instead. */
+  .eq-infosheet{
+    position:fixed; left:0; right:0; bottom:0; z-index:90; max-width:480px; margin:0 auto;
+    background:var(--paper-raised); border:1px solid var(--line); border-bottom:none;
+    border-radius:16px 16px 0 0; box-shadow:0 -8px 28px -10px rgba(43,27,20,.3);
+    padding:16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+    transform:translateY(110%); transition:transform .2s ease;
+  }
+  .eq-infosheet.show{transform:translateY(0);}
+  .eq-infosheet .is-head{display:flex; justify-content:space-between; align-items:flex-start; gap:14px;}
+  .eq-infosheet .is-name{font-weight:700; font-size:14.5px; color:var(--ink); line-height:1.4;}
+  .eq-infosheet .is-close{
+    appearance:none; border:none; background:var(--paper-sunk); color:var(--ink-soft);
+    width:26px; height:26px; border-radius:50%; font-size:13px; line-height:1; cursor:pointer; flex:none;
+  }
+  .eq-infosheet .is-dim{margin-top:6px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft);}
+  .eq-infosheet .is-row{margin-top:5px; font-size:12.5px; color:var(--ink-soft);}
+
+  .iso-wrap{
+    background:#F4EFE7; border:1px solid var(--line); border-radius:14px;
+    padding:18px; overflow-x:auto; box-shadow:var(--shadow);
+  }
+  .iso-wrap svg{display:block; min-width:640px; width:100%; height:auto;}
+
+  .legend-row{
+    display:flex; flex-wrap:wrap; gap:8px 18px; margin:16px 2px; font-size:12.5px; color:var(--ink-soft);
+  }
+  .legend-item{display:flex; align-items:center; gap:7px;}
+  .swatch{width:13px; height:13px; border-radius:3px; border:1.4px solid; flex:none;}
+  .legend-icon{width:15px; height:15px; color:var(--ink-soft); flex:none;}
+
+  .kw-summary{
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px 14px;
+    background:var(--accent-soft); border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius:12px; padding:13px 16px; margin:14px 0 0; box-shadow:var(--shadow);
+  }
+  .kw-summary .ks-label{font-size:12.5px; font-weight:700; color:var(--ink); letter-spacing:.01em;}
+  .kw-summary .ks-value{font-family:"IBM Plex Mono",monospace; font-size:21px; font-weight:700; color:var(--accent); white-space:nowrap;}
+  .table-wrap{
+    margin-top:18px; background:var(--paper-raised); border:1px solid var(--line); border-radius:14px;
+    overflow:hidden; box-shadow:var(--shadow);
+  }
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  table{width:100%; min-width:760px; border-collapse:collapse; font-size:13px;}
+  thead th{
+    text-align:left; font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--ink-faint); font-weight:700; padding:10px 12px; border-bottom:1px solid var(--line);
+    background:var(--paper-sunk); white-space:nowrap;
+  }
+  tbody td{padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:middle;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--paper-sunk);}
+  /* 動力(三相200V)が必要な見込みの機器の行 — 左の縦線+薄い背景で、スクロールしても
+     容量(kW)列まで見なくても一目で分かるようにする(容量列自体の数値も青くする) */
+  tr.row-doryoku td{background:var(--doryoku-bg);}
+  tr.row-doryoku:hover td{background:var(--doryoku-bg); filter:brightness(0.96);}
+  tr.row-doryoku td:first-child{box-shadow:inset 3px 0 0 var(--doryoku);}
+  td.num{font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); white-space:nowrap;}
+  td.num.kw-doryoku{color:var(--doryoku); font-weight:700;}
+  .badge-num{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:20px; height:20px; border-radius:50%; background:var(--badge-fill); color:var(--badge-text);
+    font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:600; flex:none;
+  }
+  .zone-pill{font-size:11.5px; color:var(--ink-soft);}
+  .pill{
+    display:inline-block; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700;
+  }
+  .pill.confirmed{background:var(--status-confirmed-bg); color:var(--status-confirmed);}
+  .pill.estimate{background:var(--status-estimate-bg); color:var(--status-estimate);}
+  .pill.new{background:var(--status-new-bg); color:var(--status-new);}
+  .pill.ref{background:var(--status-ref-bg); color:var(--status-ref);}
+  .pill.approx{background:var(--status-approx-bg); color:var(--status-approx);}
+  .util-icons{display:flex; gap:6px;}
+  .util-icons svg{width:15px; height:15px; color:var(--ink-soft);}
+
+  tfoot .total-row td{
+    padding:11px 12px; border-top:2px solid var(--line-strong); border-bottom:none;
+    font-weight:700; background:var(--paper-sunk);
+  }
+  tfoot .total-row td:first-child{text-align:right; color:var(--ink-soft); font-weight:600;}
+  tfoot .total-row td.num{color:var(--accent); font-size:14px;}
+  .action-cell{white-space:nowrap;}
+  .action-btn{
+    appearance:none; border:1px solid var(--line-strong); background:var(--paper-raised); color:var(--ink-soft);
+    font:inherit; font-weight:600; font-size:11px; padding:5px 9px; border-radius:6px; cursor:pointer;
+    transition:border-color .15s ease, color .15s ease; white-space:nowrap;
+  }
+  .action-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .action-btn.del-btn{margin-left:6px;}
+  .action-btn.del-btn:hover{border-color:var(--accent); color:var(--accent);}
+
+  .note{font-size:12.5px; color:var(--ink-faint); margin:14px 2px 0; line-height:1.6;}
+
+  footer{margin-top:40px; border-top:1px solid var(--line); padding-top:20px;}
+  footer h2{font-size:15px; margin:0 0 10px;}
+  footer ul{margin:0; padding-left:18px; color:var(--ink-soft); font-size:13.5px; line-height:1.85;}
+  footer li b{color:var(--ink);}
+
+  .table-hint{display:none; font-size:12px; color:var(--ink-faint); margin:6px 2px 0;}
+
+  @media (max-width:640px){
+    .panel-head{flex-direction:column; align-items:flex-start;}
+    table{font-size:12px;}
+    thead th, tbody td{padding:8px 8px;}
+    .kw-summary .ks-value{font-size:18px;}
+    .table-hint{display:block;}
+  }
+</style>
+</head>
+<body>
+<div class="eq-tooltip" id="eqTooltip"></div>
+<div class="eq-infosheet" id="eqInfoSheet">
+  <div class="is-head">
+    <span class="is-name" id="isName"></span>
+    <button class="is-close" id="isClose" type="button" aria-label="閉じる">✕</button>
+  </div>
+  <div class="is-dim" id="isDim"></div>
+  <div class="is-row" id="isRow"></div>
+</div>
+<div class="page">
+
+  <header>
+    <p class="eyebrow">FLAT Bakery — 新工場 仮設計図</p>
+    <h1>② 坂下一丁目(大野ビル) 厨房レイアウト</h1>
+    <p class="subtitle">物件写真の間取りスケッチを実際の形状どおりに座標トレースし(専有面積131.04㎡に面積を合わせて校正)、現地確認(2026-10-15)で分かった入口・トイレの実際の位置を反映した配置案です。2D配置図と3Dパースは同じ配置データから生成しているため、番号は共通です。</p>
+    <div class="caution"><span>⚠</span><span><b>この図面は「仮」です。</b>建物外形・入口・トイレの位置は現地確認済みですが、正式な採寸ではありません。機器の一部寸法・給排水/電源の要否は引き続き目安です。発注前に正式な採寸と設備業者の確認が必要です。</span></div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-view="2d" type="button">2D配置図</button>
+      <button class="tab" data-view="3d" type="button">3Dパース</button>
+    </div>
+  </header>
+
+  <section id="view-2d" class="view active">
+    <div class="panel-head">
+      <h2>2D配置図 — ドラッグで配置調整</h2>
+      <div class="head-actions">
+        <span class="hint">①〜㉑は下表の機器番号と対応</span>
+        <button class="reset-btn" id="resetBtn" type="button">初期配置に戻す</button>
+      </div>
+    </div>
+    <div class="svg-wrap"><svg id="svg2d" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
+    <div class="legend-row" id="legend2d"></div>
+    <div class="kw-summary">
+      <span class="ks-label">合計使用電気容量(仮置き場の機器を除く)</span>
+      <span class="ks-value" id="kwSummaryValue">—</span>
+    </div>
+    <p class="table-hint">→ 表は横にスクロールできます(容量(kW)列は右側)</p>
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>#</th><th>機器名</th><th>寸法 W×D×H (mm)</th><th>ゾーン</th><th>状態</th><th>設備</th><th>容量(kW)</th><th>操作</th></tr>
+          </thead>
+          <tbody id="eqTableBody"></tbody>
+          <tfoot id="eqTableFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+    <p class="note">設備(電源/給排水/ガス/エア)の要否は一般的な機種を想定した目安です。実際の配管・配線位置は現地採寸後に設備業者と確定してください。容量(kW)列の「〜」はメーカー公式値ではない同クラス機種の目安値です。行が薄い青色+⚡マークの機器は、動力(三相200V)が必要、または必要になる可能性が高い機器です(ツールチップで確認済みか目安かを表示)。目安判定は単純なkWしきい値ではなく機器の種類(ギア駆動の連続モーター機器は小容量でも動力になりやすい等)を踏まえたもので、仕様書・銘板による確認はまだです。合計は「仮置き場」の機器を除いた、実際に配置されている機器のみで計算しています。正式な電気設計(契約電力・ブレーカー容量・動力/電灯の区分)の前に、必ず各メーカーの仕様書と電気業者の確認を受けてください。</p>
+  </section>
+
+  <section id="view-3d" class="view">
+    <div class="panel-head">
+      <h2>3Dパース — 俯瞰イラスト</h2>
+      <span class="hint">色と番号は2D配置図と共通(入口側のみ壁を省略して表示)</span>
+    </div>
+    <div class="iso-wrap"><svg id="svg3d" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="legend-row" id="legend3d"></div>
+    <p class="note">簡易イラストのため、実際の機器の質感・色・形状とは異なります。高さは一般的な機種サイズからの目安です。</p>
+  </section>
+
+  <footer>
+    <h2>前提・注意事項</h2>
+    <ul>
+      <li><b>外形:</b>物件写真の間取りスケッチをピクセル単位でトレースし、実際の形状(北西角の面取り・北東側の凹み・階段室側の面取り)を再現したうえで、ポリゴンの面積が専有面積131.04㎡と一致するよう縮尺を校正しています。直線のみで構成される簡易図面からの再現のため、正確な採寸値ではありません</li>
+      <li><b>入口(現地確認済み):</b>2026-10-15の現地確認で、入口は図面下辺(南壁)中央よりやや左寄りに自動ドア1か所のみと判明しました。以前の推定(北西角の面取り部分)は誤りだったため修正しています。北西角は用途未定の建物形状として残しています</li>
+      <li><b>トイレ(現地確認済み):</b>北東側の凹みのあたりに、トイレ用の配管設備が現地で確認できました。この一帯をトイレゾーンとしています</li>
+      <li><b>更衣室・休憩所:</b>トイレの周囲(主に東側)を更衣室・休憩所としてまとめています。更衣室は入口の自動ドアを入ってすぐの南側一帯(入口の真正面)に配置し、入口から最初に入る部屋として機能するようにしています</li>
+      <li><b>入口の目隠し(提案):</b>自動ドアを開けてすぐ製造エリアが見えてしまわないよう、入口から奥へ約1.5mの位置に目隠しパーティション(点線のオレンジ線)を提案しています。ドア正面を塞ぎ、左右どちらかに回り込むと更衣室に入る動線です。パーティションの先が製造エリアではなく更衣室になるようにしているため、来客対応と衛生動線(入室→更衣→手洗い→製造エリア)を兼ねられます。別案として、更衣は後回しにして休憩所側を目隠しにする配置も可能です — ゾーン枠はドラッグで動かせるので、現地の使い勝手を見ながら調整してください</li>
+      <li><b>階段室側の面取り:</b>図面右下、共用階段とみられる記号の付近で南東角が斜めに切れています。この階段は専有部外(共用)と判断し、面積・什器配置からは除外しています</li>
+      <li><b>目安寸法の機器:</b>ミキサー、オーブン、ミニモルダー、6ドア冷蔵庫、シンク、番重洗浄機はメーカー公開寸法が未確認のため一般的なサイズ感での目安値です</li>
+      <li><b>確定寸法の機器:</b>ドウコン、リターダー、コールドテーブル、粉計量機、オシキリDQS2/4・RVS、レオンVX701-A・PR101は、メーカー公式カタログまたは現地実測に基づく確認済み寸法を使用しています</li>
+      <li><b>分割・丸め機の比較配置(新規):</b>ゾーンBには候補①レオンVR250ライン(フレックスデバイダーVX701-A+パンチラウンダーPR101)を仮に入れています。候補②オシキリDQS2/4+RVS(1玉230g/最小分割40gで現物テスト済み・問題なし)は建物の外側、右の「仮置き場」に置いてあります。どちらもドラッグで本体側⇄仮置き場を入れ替えられるので、実際の動線を見ながら比較してください。VX701-A・PR101は奥行きが長いため、初期配置では90°回転した状態(⟳ボタンで戻せます)で置いています</li>
+      <li><b>壁際配置:</b>ドウコン・コールドテーブル180①②・リターダーは西壁沿い、6ドア冷蔵庫は東壁沿いに配置しています</li>
+      <li><b>焼成ゾーンの電気容量比較(2026-10-21):</b>キューブエア×4台(合計31.2kW)に対し、デッキオーブン「コンド」(6枚差・1段、CO1.1212)×1台+キューブエア×2台(合計10.9+15.6=26.5kW)の組み合わせの方が電気容量を抑えられるため、こちらをゾーンFの現行配置としています。退避させたキューブエア③④は仮置き場に置いてあるので、ドラッグでいつでも4台案に戻せます</li>
+      <li><b>番重洗浄機をガス式に変更(2026-10-21):</b>電気容量削減のため、電気式(目安)からタニコー TDWG-A4DB3(ガスブースター内蔵の小型ドアタイプ洗浄機)に差し替えました。電気消費は1.7kWまで下がりますが、新たにガス配管(給排気含む)が必要になる点と、ラックサイズが番重の実寸に収まるかはメーカー・販売店への確認が必要な点にご注意ください</li>
+      <li><b>出荷置き場(ゾーンL)を新設(2026-10-22):</b>食品工場のゾーニング(清浄区域・準清潔区域・汚染区域の区分け)と異物混入防止の考え方に基づき、配送業者が製造エリア(清潔区域)に立ち入らずに完成品を受け取れる専用スペースを入口の東側に追加しました。更衣室(ゾーンJ)の幅を7.10→5.60mに縮小し、空いた東側(入口を出てすぐ右)を出荷置き場に割り当てています — 入口から見て左が更衣室、右が出荷置き場になる動線です。スタッフが製造エリア側から梱包済み商品を出荷棚まで運び、配送員はそこまでしか立ち入らない運用を想定しています。ただし施設基準の詳細(専用区画の要否・寸法等)は自治体の条例によるため、着工前に板橋区保健所へ図面持参での事前相談を推奨します</li>
+    </ul>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Data (mirrors the drag-tool xlsx for property ②) ----------
+  // Room outline traced directly from the listing's 1F sketch (pixel-by-pixel,
+  // then scaled so the polygon's area matches the stated 専有面積 131.04m²
+  // to within 0.01m²) — not a plain rectangle. Three real features of the
+  // unit are reproduced: the chamfered NW entrance corner, a stepped NE
+  // recess (the unit sets back from the building's full footprint there),
+  // and a chamfered SE corner by the shared stairwell.
+  var ROOM = {w:12.73, h:11.38}; // bounding box, used for sizing/margins/dim lines
+  var ROOM_POLY = [
+    [2.24, 0.00],   // 北壁 西端(入口庇の立ち上がり)
+    [8.80, 0.00],   // 北壁 東端 — ここから東側が凹む
+    [8.80, 1.57],
+    [12.00,1.57],
+    [12.00,3.36],
+    [12.73,3.81],   // 東壁 開始
+    [12.73,9.25],   // 東壁 終了
+    [8.69, 11.38],  // 南壁 東端 — 階段室側の斜めカット開始
+    [0.00, 11.38],  // 南西角
+    [0.00, 1.68]    // 西壁 上端(入口の斜めカット下端)
+  ];
+  // two rectangular "keep-out" pockets carved out of the bounding box by the
+  // NE recess, used both to draw the cut and to keep dragged equipment out of it
+  var NE_CUTS = [
+    {x:8.80, y:0.00, w:3.93, h:1.57},
+    {x:12.00,y:1.57, w:0.73, h:1.79}
+  ];
+  // diagonal corners, as {p1,p2} — equipment is kept on the room side of each line
+  var CHAMFERS = [
+    {p1:[0.00,1.68], p2:[2.24,0.00], name:"建物角(用途未定)"},  // NW — confirmed on-site NOT the entrance
+    {p1:[12.73,9.25], p2:[8.69,11.38], name:"階段室側(推定)"}  // SE
+  ];
+
+  // Confirmed on-site (2026-10-15): the only entrance is a single automatic door on the
+  // SOUTH wall, slightly left of center — not the NW corner this sheet originally guessed.
+  var ENTRANCE = {x:4.00, w:1.60, wall:"south", name:"入口(両開き自動ドア)"};
+  // A light suggestion, not a real wall: a short partition just inside the door so the
+  // production floor isn't directly visible when it opens, forming a small foyer that
+  // doubles as the way into the locker room either side of it (see footer notes).
+  var SUGGESTED_PARTITION = {x1:3.40, y1:9.90, x2:6.20, y2:9.90, name:"目隠しパーティション(提案)"};
+
+  // Equipment "swap dock": a staging area OUTSIDE the real room, drawn to the
+  // right of the building, where an alternate candidate machine can sit so it
+  // can be dragged in to compare against whatever's currently occupying its
+  // spot inside the room (and dragged back out again). Not a ZONES entry on
+  // purpose — ZONES rects are draggable/resizable and hard-clamped to ROOM
+  // bounds (see attachZoneHandlers/attachZoneResizeHandlers), which would snap
+  // this box straight back into the building if the user ever dragged it.
+  // h bumped 4.20→6.50 (2026-10-21) to also fit the retired エコノ オーブン①②(now parked
+  // here as a 3rd candidate pair, swappable back in against zone F's キューブエア×4 — see the
+  // EQUIPMENT array). CANVAS_H in build2D() takes max(ROOM.h, DOCK.y+DOCK.h), and ROOM.h=11.38
+  // already exceeds this, so growing DOCK doesn't resize the overall canvas.
+  // h bumped again 6.50→8.20 (2026-10-21, same day) to additionally fit キューブエア③④,
+  // retired here when the "コンド(6枚差・1段)×1+キューブエア×2" combo became the active zone F
+  // layout (see EQUIPMENT array, キューブエア comment). Still well under ROOM.h=11.38, so
+  // CANVAS_H is unaffected by this bump either.
+  var DOCK = {x: ROOM.w + 0.6, y: 0.00, w: 2.00, h: 8.20, name: "仮置き場(比較用・オシキリ案)"};
+
+  var ZONES = [
+    {k:"A", name:"仕込み・ミキシング",              x:2.24, y:0.00, w:6.56, h:1.57, kind:"prod"},
+    {k:"B", name:"分割・丸め・成形",                x:0.00, y:1.68, w:5.00, h:1.72, kind:"prod"},
+    {k:"C", name:"ドウコン・面台・リターダー(西壁)", x:0.00, y:3.40, w:4.30, h:2.40, kind:"prod"},
+    {k:"D", name:"コールドテーブル(最遠・西壁)",     x:0.00, y:5.80, w:2.20, h:0.90, kind:"cold"},
+    {k:"E", name:"冷蔵保管(東壁)",                  x:10.50,y:4.20, w:2.23, h:1.60, kind:"cold"},
+    {k:"F", name:"焼成",                            x:4.30, y:7.20, w:5.00, h:1.30, kind:"prod"},
+    {k:"G", name:"番重洗浄・包装前処理",            x:4.30, y:8.50, w:2.80, h:1.10, kind:"pack"},
+    {k:"H", name:"包装・出荷",                      x:7.10, y:8.50, w:4.20, h:1.30, kind:"pack"},
+    {k:"I", name:"トイレ(配管あり・現地確認済み)",  x:8.90, y:1.70, w:3.10, h:1.60, kind:"sup"},
+    // J(更衣室)の幅を7.10→5.60に縮小(2026-10-22)し、空いた東側を新ゾーンL(出荷置き場)に
+    // 割り当てた。入口(x4.00〜5.60、南壁)を出てすぐ左が更衣室、右が出荷置き場になるよう、
+    // ちょうど入口の東端(x5.60)をJ/Lの境界に合わせている — 詳細はL、および末尾の
+    // ZONES.push(…)コメント参照。
+    {k:"J", name:"更衣室(ロッカー8人分・入口直結)", x:0.00, y:9.60, w:5.60, h:1.78, kind:"sup"},
+    {k:"K", name:"休憩所(4人用)",                   x:7.10, y:9.80, w:2.20, h:1.10, kind:"sup"}
+  ];
+  // ゾーンL(出荷置き場・配送受け渡し)は必ずZONESの末尾にpush()で追加すること — 既存ゾーンは
+  // 保存済みレイアウト(localStorage/クラウド同期とも)がインデックス番号で位置・大きさを復元
+  // しているため、途中に挿入すると以降のゾーン番号がずれてしまう(EQUIPMENT配列と同じ理由)。
+  //
+  // 2026-10-22: 食品工場のゾーニング/異物混入防止の相談を受けて追加。配送業者が完成品を
+  // 受け取る際に製造エリア(清潔区域)へ立ち入らせないための専用スペース — 入口を入って
+  // すぐ右側(更衣室の反対側)に配置し、スタッフが製造エリア側から梱包済み商品を運び入れ、
+  // 配送員はここまでしか入らない運用を想定。入口の東端(x5.60)をJとの境界に合わせ、
+  // 既存の目隠しパーティション(SUGGESTED_PARTITION)の東半分がこのゾーンの視線もある程度
+  // 遮る位置関係になっている。あくまで参考区画(ドラッグ・リサイズ可能)。
+  ZONES.push({k:"L", name:"出荷置き場(配送受け渡し用)", x:5.60, y:9.60, w:1.50, h:1.78, kind:"pack"});
+
+  // w,d,h in mm. x,y in m (top-left). status: confirmed | estimate | new. util: power/water/drain/gas
+  // kw: electrical capacity (定格消費電力/モーター出力合計の目安), in kW — null for items
+  // with no electrical load. kwConfirmed: true only when the figure comes directly off a
+  // maker's official spec page for that exact model (2026-10-17 web research); false means
+  // it's a same-class typical/estimated figure (either the model wasn't fully published, or
+  // it's a generic/unbranded item) — shown with "〜" in the table and excluded from the
+  // "確定" framing even though the item's own dimension status above may say "confirmed".
+  // power: "doryoku" marks equipment that is expected to need a 動力(三相200V)circuit rather
+  // than a normal 電灯(単相100/200V)outlet — this matters for electrical design since 動力 is
+  // a separate contract/wiring run. Set on: (a) the 2 items with an explicit maker spec sheet
+  // confirming 三相200V (急速凍結庫, and the スーパーシーター inside the combined コールド
+  // テーブル180②row) — these also get powerConfirmed:true. (b) Everything else flagged below is
+  // an unconfirmed judgment call, NOT a simple kW cutoff — an earlier "≥1.5kW" rule of thumb
+  // (2026-10-21) was dropped because it's too crude: Japanese commercial bakery equipment with a
+  // continuous-duty geared motor (分割機・丸め機・モルダー・ミキサー・ドウコン等) commonly runs
+  // on 三相200V even well under 1kW, while a pure refrigeration-compressor load in the same kW
+  // range is just as often 単相. So per the owner's own judgment (2026-10-21): the geared-motor
+  // forming machines 分割機レオン・丸め機レオン and 2 compressor items the owner flagged by eye
+  // (リターダー, 6ドア縦型冷蔵庫) were marked "doryoku" — still unconfirmed (powerConfirmed stays
+  // false/unset), same as any other "〜"/estimate figure in this sheet. ミニモルダー(愛工舎) was
+  // initially included in that same judgment-call batch but UNFLAGGED again the same day once the
+  // maker's own product page (aicohsha.co.jp, 2026-10-21) turned up: it states the motor is only
+  // 60W (brushless, down from 200W on the previous model) and that a 単相100V variant (MM-230SD)
+  // is now offered alongside the base MM-230SC — a 60W load has no real-world reason to need
+  // 三相200V, so this one reverts to 電灯 pending the exact SC-model voltage, which the maker's
+  // page doesn't state outright. Verify per-model against the actual nameplate/spec sheet before
+  // finalizing the electrical design. Left unset (undefined) for everything else not called out
+  // above, assumed to run on an ordinary 電灯 outlet.
+  var EQUIPMENT = [
+    {name:"コールドテーブル150(仕込み台・固定)", w:1500,d:600, h:800,  x:2.34, y:0.20, zone:"A", kind:"cold", status:"confirmed", util:["power"], kw:0.25, kwConfirmed:false, short:"コールド\nテーブル150"},
+    {name:"ミキサー(愛工舎 マイティE90)",        w:700, d:900, h:1000, x:4.00, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:["power"], kw:4.4,  kwConfirmed:true, short:"ミキサー", power:"doryoku"},
+    {name:"シンク",                               w:750, d:600, h:850,  x:4.80, y:0.20, zone:"A", kind:"util", status:"estimate",  util:["water","drain"], kw:null, kwConfirmed:false, short:"シンク"},
+    {name:"粉置き場(シェルフ)",                   w:900, d:500, h:1800, x:5.65, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:[], kw:null, kwConfirmed:false, short:"粉置き場"},
+    {name:"粉計量機",                             w:400, d:600, h:450,  x:6.65, y:0.20, zone:"A", kind:"prod", status:"confirmed", util:["power"], kw:0.1, kwConfirmed:false, short:"粉計量機"},
+    {name:"番重置き場①(仕込み場付近)",            w:400, d:600, h:600,  x:7.10, y:0.20, zone:"A", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重①"},
+
+    // 分割・丸め機 比較中(2026-10-17〜): ゾーンBには候補①レオンVR250ライン(VX701-A+PR101)を
+    // 仮に入れてあります。候補②オシキリDQS2/4+RVSは下の「仮置き場(DOCK)」に出してあるので、
+    // ドラッグで2台を入れ替えて比較できます。寸法は両社の公式カタログ値(2026-10-16/17入手)。
+    // VX701-A/PR101は奥行きが長いため、90°回転した状態(rot:90)で初期配置しています。
+    {name:"分割機(レオン VX701-Aタイプ・フレックスデバイダー)", w:1324,d:1790,h:2080, x:0.20, y:1.78, zone:"B", kind:"prod", status:"estimate", util:["power"], rot:90, kw:0.99, kwConfirmed:true, short:"分割機\n(レオン)", power:"doryoku"},
+    {name:"丸め機(レオン PR101・パンチラウンダー)",             w:830, d:2046,h:1260, x:2.05, y:1.78, zone:"B", kind:"prod", status:"estimate", util:["power","air"], rot:90, kw:1.13, kwConfirmed:true, short:"丸め機\n(レオン)", power:"doryoku"},
+    {name:"ミニモルダー(愛工舎)",                 w:500, d:900, h:1200, x:4.20, y:1.78, zone:"B", kind:"prod", status:"estimate",  util:["power"], kw:0.06, kwConfirmed:true, short:"モルダー"},
+
+    // 2026-10-21: 愛工舎ドウレック(A-DPII-3222A)の公式仕様(aicohsha.co.jp)で寸法・容量・電源を
+    // すべて確定値に更新(フクシマガリレイ16枚×2室→愛工舎ドウレックにブランド変更)。2列×8段×
+    // 2室=天板32枚収容(600×400mmまたは530×380mm、室ごとに統一要)で従来想定と同容量。消費電力は
+    // 冷却時1.21kW/加温時0.95kW(50/60Hz共通)とあり、安全側で高い方(冷却時)を採用。三相200V確定。
+    // 加温・冷却の両モードを1台でこなせる機種のため、別項目のリターダーと機能が重なる可能性あり
+    // (要user確認・未統合)。
+    {name:"ドウコン(愛工舎 ドウレック・A-DPII-3222A)",  w:770, d:1190,h:1950, x:0.20, y:3.50, zone:"C", kind:"cold", status:"confirmed", util:["power"], kw:1.21, kwConfirmed:true, short:"ドウレック", power:"doryoku", powerConfirmed:true},
+    {name:"コールドテーブル180①(面台作業)",       w:1800,d:600, h:800,  x:0.95, y:3.50, zone:"C", kind:"cold", status:"confirmed", util:["power"], kw:0.25, kwConfirmed:false, short:"コールド\nテーブル180①"},
+    {name:"リターダー",                           w:820, d:1210,h:2000, x:2.95, y:3.50, zone:"C", kind:"cold", status:"confirmed", util:["power"], kw:0.8, kwConfirmed:false, short:"リターダー", power:"doryoku"},
+
+    // リバースシーター = 高円寺で使用中の「スーパーシーター」(型番SFB500X710、羽根短め)と
+    // 同メーカー・羽根長めの馬場の機体。2026-10-17、高円寺機の仕様書(電気容量表)を共有してもらい、
+    // 馬場機も同じ電気容量という前提で0.75kW(3相200V)を採用 — コールドテーブル本体の目安分
+    // 0.25kWと合わせて計1.00kW(シーター分は確定、テーブル分は引き続き目安)。
+    // 2026-10-17: 当初コールドテーブル本体を奥行600mm想定としていたが、実際は奥行900mmの
+    // モデルを使用しているとのことで修正(幅は変わらず1800mm=シーターと同じ幅)。
+    // 2026-10-21: 馬場機の実機は愛工舎公式ページ(aicohsha.co.jp)のスーパーシーターSFB500×950
+    // タイプと確認(ユーザー確認済み)。公式仕様: 外形W2320×D860×H640mm・三相200V・モーター
+    // 0.75kW(確定・従来の目安値と一致)・重量約120kg・ローラーΦ60×500mm・厚み調整範囲35mm。
+    // 普段は折り畳んだ状態でコールドテーブル180②(幅1800×奥行900mm)の右端に本体を置き、
+    // テーブル上を作業スペースとして使う運用。使用時のみ羽根(ローラー両脇のコンベア)が開いて
+    // 全幅2320mmまで展開するため、テーブル幅(1800mm)を520mm超えてはみ出す — この占有サイズ
+    // (w1800×d900)は折り畳み時の実用フットプリント(テーブル本体)を表しており、展開時の最大
+    // 範囲は深Outlineで別途、点線の輪郭として重ねて描画している(本体はテーブルの右端にある
+    // 前提で、テーブル右辺を起点に右方向へ2320mm分を展開 — deployOutline参照、build2Dで描画)。
+    {name:"コールドテーブル180②(+リバースシーター)", w:1800,d:900, h:800, x:0.20, y:5.80, zone:"D", kind:"cold", status:"confirmed", util:["power"], kw:1.00, kwConfirmed:true, short:"コールド\nテーブル180②\n+シーター", power:"doryoku", powerConfirmed:true, deployOutline:{w:2320, d:860, label:"展開時(使用時)"}},
+
+    {name:"6ドア縦型冷蔵庫(既存)",                w:1800,d:800, h:1900, x:10.60,y:4.30, zone:"E", kind:"cold", status:"estimate",  util:["power"], kw:0.5, kwConfirmed:false, short:"6ドア\n冷蔵庫", power:"doryoku"},
+
+    // エコノ10枚差しは2026-10-17の調査で、ガス式ではなく電気焼成+スチーム式(給排水あり)の
+    // モデルが見つかったため util を gas→water/drain に修正(本文の返信で要確認と案内)。
+    //
+    // 2026-10-21: 愛工舎キューブエア×4台(下記、zone"F")を代替候補として追加したのに伴い、
+    // この2台はゾーンFから仮置き場(DOCK)に退避 — 位置/ゾーンだけの変更で、他のフィールドは
+    // 一切変えていないので、ドラッグでいつでもゾーンFに戻せる(他の候補スワップと同じ仕組み)。
+    {name:"オーブン(エコノ 10枚差し)①",           w:1200,d:1100,h:1700, x:13.43, y:3.70, zone:"DOCK", kind:"prod", status:"estimate",  util:["power","water","drain"], kw:15.0, kwConfirmed:false, short:"オーブン①", power:"doryoku"},
+    {name:"オーブン(エコノ 10枚差し)②",           w:1200,d:1100,h:1700, x:13.43, y:4.90, zone:"DOCK", kind:"prod", status:"estimate",  util:["power","water","drain"], kw:15.0, kwConfirmed:false, short:"オーブン②", power:"doryoku"},
+    {name:"番重置き場②(オーブン付近)",            w:400, d:600, h:600,  x:7.00, y:7.30, zone:"F", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重②"},
+    {name:"番重置き場③(オーブン付近)",            w:400, d:600, h:600,  x:7.50, y:7.30, zone:"F", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重③"},
+
+    // 番重洗浄機を電気式(目安)からガス式(タニコー TDWG-A4DB3・小型ドアタイプ洗浄機)へ差し替え
+    // (2026-10-21)。電気容量削減が目的で、ガスブースター内蔵のため電気消費が大幅に下がる
+    // (電気式の同クラス機は目安5kW前後だったところ、この機種は1.7kWで済む)。出典は販売店
+    // ページ(chuubou.com)経由で、タニコー公式サイト自体には電気仕様の記載がないため
+    // kwConfirmed は false のまま(電源区分「ガス・三相200V」という記載自体は明確なので
+    // powerConfirmed は true)。ガス消費量は都市ガス8,000kcal/h(LPG 0.66kg/h)相当 ≒9.3kW分
+    // —このツールの合計kW集計には電気分(1.7kW)のみを計上し、ガス消費分は含めていない。
+    // 新たにガス配管(給排気含む)が必要になる点、ラックサイズが番重の実寸に合うかは未確認
+    // (メーカーページには皿・丼・カップ等の食器基準の収容数しか記載がなく、番重が物理的に
+    // 収まるかはメーカー・販売店へ別途確認が必要)。
+    {name:"番重洗浄機(タニコー TDWG-A4DB3・ガス式)", w:600, d:660, h:1390, x:4.40, y:8.60, zone:"G", kind:"util", status:"confirmed", util:["water","drain","power","gas"], kw:1.7, kwConfirmed:false, short:"番重\n洗浄機\n(ガス)", power:"doryoku", powerConfirmed:true},
+    {name:"番重置き場④(洗浄機付近)",              w:400, d:600, h:600,  x:5.50, y:8.60, zone:"G", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重④"},
+    {name:"番重置き場⑤(洗浄機付近)",              w:400, d:600, h:600,  x:6.00, y:8.60, zone:"G", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重⑤"},
+
+    // 比較用候補② オシキリ DQS2/4 + RVS — 建物の外、右側の仮置き場(DOCK)に配置。
+    // 1玉230g/最小分割40gで現物テスト済み(2026-10-16、問題なし)の寸法確定値。
+    {name:"分割機(オシキリ DQS2/4・2/4ポケット切替)", w:740, d:1400,h:1555, x:13.43, y:0.40, zone:"DOCK", kind:"prod", status:"confirmed", util:["power"], kw:1.9, kwConfirmed:false, short:"分割機\n(オシキリ)", power:"doryoku"},
+    {name:"丸め機(オシキリ RVS・円筒型ラウンダ)",     w:800, d:800, h:1521, x:13.43, y:1.95, zone:"DOCK", kind:"prod", status:"confirmed", util:["power","air"], kw:0.81, kwConfirmed:false, short:"丸め機\n(オシキリ)"},
+
+    // 急速凍結庫 BF-K120 — 2026-10-17、現物の仕様書(写真)で追加。6ドア冷蔵庫のすぐ南側に設置。
+    // 新しい項目は必ずこの配列の末尾に追加すること — 途中に挿入すると、保存済みのレイアウト
+    // (localStorage/クラウド同期とも) がインデックス番号で各ベース機器の位置を復元している
+    // ため、以降の機器すべての番号がずれて位置が入れ替わってしまう。
+    // 消費電力は仕様書の「霜取り時 1082W/1082W(50Hz/60Hz)」(冷却時923W/1051Wより高い方)を採用。
+    // 電源は三相200V、圧縮機始動電流32.2A/30.1A(短時間の突入電流、連続消費ではない)。
+    {name:"急速凍結庫(BF-K120)",                   w:745, d:800, h:1890, x:10.60, y:5.10, zone:"E", kind:"cold", status:"confirmed", util:["power"], kw:1.082, kwConfirmed:true, short:"急速\n凍結庫", power:"doryoku", powerConfirmed:true},
+
+    // 通行確認用の人形マーカー ×2(2026-10-17) — ドラッグして通路の両脇や機器の間に置き、1人が
+    // 通れるか・2人がすれ違えるかを目で確認するための目安オブジェクト。実在の機器ではないため
+    // kw/util は空、状態は専用の「参考」ラベル(status:"ref")。footprint は成人の肩幅+ゆとりの
+    // 目安として一辺500mmの正方形(2D描画時に角丸を最大にして円として表示 — 新設のkind:"person"
+    // で equip-rect の rx/ry を分岐)。回転しても見た目が変わらないので回転ボタンは出さない。
+    // 初期位置は室内中央の何もない通路(ゾーンC/Bとゾーントイレ・Fの間)に隣接させて配置 — 2体が
+    // 隙間なく並ぶと幅1.0mになるので、そのまま「すれ違い幅の目安」としても使える。
+    {name:"人(通行確認用)①", w:500, d:500, h:1700, x:6.00, y:4.30, zone:"FREE", kind:"person", status:"ref", util:[], kw:null, kwConfirmed:false, short:"人①"},
+    {name:"人(通行確認用)②", w:500, d:500, h:1700, x:6.70, y:4.30, zone:"FREE", kind:"person", status:"ref", util:[], kw:null, kwConfirmed:false, short:"人②"},
+
+    // 構造柱 ×2(2026-10-17) — 現地写真(自動ドア入って奥、写真内で2人が立っている角柱、および
+    // トイレ区画近く・配電盤そばの角柱)から追加。写真から正確な採寸はできないため、位置は
+    // あくまで目安(status:"approx")。太さは本人確認で「おそらく450mm角」とのことなのでw/d=450を
+    // 採用。高さは天井まで(WALL_H=2.3m)で通し。正式な採寸後に位置を要調整。
+    {name:"柱①(構造・位置目安)", w:450, d:450, h:2300, x:6.20, y:5.60, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱①"},
+    {name:"柱②(構造・位置目安)", w:450, d:450, h:2300, x:8.70, y:2.60, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱②"},
+
+    // 天板ラック ×2 + 作業台600×900 ×1(2026-10-17追加) — 焼成ゾーン(F)の空きスペースと、
+    // まだ何も置いていない包装・出荷ゾーン(H)に配置。精密な製品仕様はまだ無いため status:"new"。
+    {name:"天板ラック①",     w:400, d:600, h:1700, x:8.00, y:7.30, zone:"F", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"天板\nラック①"},
+    {name:"天板ラック②",     w:400, d:600, h:1700, x:8.50, y:7.30, zone:"F", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"天板\nラック②"},
+    {name:"作業台600×900",   w:600, d:900, h:800,  x:7.20, y:8.60, zone:"H", kind:"prod", status:"new", util:[], kw:null, kwConfirmed:false, short:"作業台"},
+
+    // 壁(仕切り)ストック ×2(2026-10-17) — 間仕切り壁を検討中とのことで、現物の壁オブジェクトを
+    // 建物の外(仮置き場と同じDOCKエリア)に置いておき、下表の「コピーを追加」で必要な数だけ
+    // 室内にコピーして好きな場所に並べられるようにしたもの。幅500mm・幅1000mmの2種類
+    // (どちらも厚み100mm・高さは天井まで2300mm)。回転ボタンで90°単位に向きを変えられる
+    // (壁は薄いので、通常のw0>24&&d0>24という回転ボタンの表示条件は満たさないため、
+    // kind:"wall"だけ別条件で常に回転ボタンを出すようにしてある — build2DのrotBtn参照)。
+    // コピー自体は1枚の壁オブジェクトのままなので、長い壁を作るには複数枚を並べて配置する。
+    {name:"壁(50cm)",  w:500,  d:100, h:2300, x:13.43, y:3.00, zone:"DOCK", kind:"wall", status:"confirmed", util:[], kw:null, kwConfirmed:false, short:"壁50"},
+    {name:"壁(100cm)", w:1000, d:100, h:2300, x:13.43, y:3.40, zone:"DOCK", kind:"wall", status:"confirmed", util:[], kw:null, kwConfirmed:false, short:"壁100"},
+
+    // キューブエア(愛工舎 CBA5.0406)×4台(2026-10-21) — エコノ10枚差し×2台の代替候補として
+    // ゾーンFに追加。公式製品ページ(aicohsha.co.jp)の仕様値: W800×D855×H625mm、三相200V・
+    // 7.8kW(確定)、天板600×400mm×5枚差し。4台で天板20枚分、現行の10枚差し×2台と焼成能力は
+    // 同等。1台あたりの電流は約26.5A(力率0.85想定)と、エコノ1台(約51A)の半分程度で、
+    // 既設動力盤の空き30A回路にも収まりやすい。高さも625mmと低く、実機は2段積み運用が一般的。
+    //
+    // 2026-10-21(同日): デッキオーブン「コンド」(愛工舎)検討中に、キューブエア4台(31.2kW)より
+    // 電気容量を抑えられる組み合わせとして「コンド(6枚差・1段)×1台+キューブエア×2台
+    // (10.9+15.6=26.5kW)」をユーザーが選択。①②はそのままゾーンFで稼働させ(②は位置だけ
+    // ①の下に変更)、③④はオーブン①②と同じ仮置き場(DOCK)に退避 — 位置/ゾーンのみの変更で
+    // 他のフィールドは変えていないので、4台案に戻したい場合はドラッグでゾーンFに戻せる。
+    {name:"キューブエア①(愛工舎 CBA5.0406)", w:800, d:855, h:625, x:4.40, y:6.70, zone:"F", kind:"prod", status:"confirmed", util:["power"], kw:7.8, kwConfirmed:true, short:"キューブ\nエア①", power:"doryoku", powerConfirmed:true},
+    {name:"キューブエア②(愛工舎 CBA5.0406)", w:800, d:855, h:625, x:4.40, y:7.65, zone:"F", kind:"prod", status:"confirmed", util:["power"], kw:7.8, kwConfirmed:true, short:"キューブ\nエア②", power:"doryoku", powerConfirmed:true},
+    {name:"キューブエア③(愛工舎 CBA5.0406・仮置き場)", w:800, d:855, h:625, x:13.43, y:6.10, zone:"DOCK", kind:"prod", status:"confirmed", util:["power"], kw:7.8, kwConfirmed:true, short:"キューブ\nエア③", power:"doryoku", powerConfirmed:true},
+    {name:"キューブエア④(愛工舎 CBA5.0406・仮置き場)", w:800, d:855, h:625, x:13.43, y:7.10, zone:"DOCK", kind:"prod", status:"confirmed", util:["power"], kw:7.8, kwConfirmed:true, short:"キューブ\nエア④", power:"doryoku", powerConfirmed:true},
+
+    // デッキオーブン「コンド」(愛工舎 CO1.1212・6枚差し/1段)(2026-10-21) — 上記キューブエア
+    // 4台案の代替として追加。公式サイト(aicohsha.co.jp)には電気仕様の記載がなく、販売店の
+    // 商品ページ(oishii-chubou.shop-pro.jp、型式CO1.1212)経由で確認: 定格消費電力10.9kW・
+    // 三相200V・W1500×D1905×H610mm・重量約350kg(ラック別・約140kg)。メーカー公式ページ
+    // 由来ではないが、同シリーズの2段/3段機(CO2.1208=17.4kW・CO3.1208=26.1kW、いずれも
+    // 1段あたり8.7kWで一致)との整合性が取れており信頼度は高いと判断、2026-10-21にユーザー
+    // 確認のうえ kwConfirmed を true に格上げ(出典が販売店経由である点はxlsx側の備考欄に明記)。
+    // 本体高さ610mmは焼成室本体のみで、架台(スタンド)は別途必要な可能性あり(寸法表に記載
+    // なし)。新しい項目は必ずこの配列の末尾に追加(既存の保存済みレイアウトのインデックス
+    // 復元を壊さないため)。
+    {name:"デッキオーブン(コンド 6枚差し・1段/愛工舎 CO1.1212)", w:1500, d:1905, h:610, x:5.30, y:6.60, zone:"F", kind:"prod", status:"confirmed", util:["power"], kw:10.9, kwConfirmed:true, short:"コンド\n(6枚差)", power:"doryoku", powerConfirmed:true},
+
+    // 出荷棚(配送受け渡し用)(2026-10-22) — 新ゾーンL(出荷置き場)に置く什器。梱包済みの
+    // 完成品をスタッフが製造エリア側からここに運び入れ、配送員はこの棚のある場所までしか
+    // 立ち入らない運用を想定(ゾーニング/異物混入防止の相談を受けて追加)。電源・給排水は
+    // 不要なシェルフなのでkw/utilは空。寸法は粉置き場(シェルフ)と同じ目安サイズ。
+    {name:"出荷棚(配送受け渡し用)", w:900, d:500, h:1800, x:5.80, y:9.75, zone:"L", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"出荷棚"}
+  ];
+  // rot: 0 or 90 — which way the item is turned (swaps its footprint's w/d for layout
+  // purposes). Most items don't specify one above, so default those to 0 here; a few
+  // (the long Rheon candidates) set rot:90 directly on their entry to start pre-rotated.
+  EQUIPMENT.forEach(function(e){ if (typeof e.rot !== "number") e.rot = 0; });
+  function footprint(e){ // effective {wM,dM} in meters, accounting for rotation
+    return e.rot === 90 ? {wM:e.d/1000, dM:e.w/1000} : {wM:e.w/1000, dM:e.d/1000};
+  }
+
+  // deep clone of the original positions/rotations, kept for the "reset" button
+  var EQUIPMENT_DEFAULT = EQUIPMENT.map(function(e){ return Object.assign({}, e); });
+  // the fixed catalog length — anything at this index or beyond is a user-added
+  // copy (see duplicateEquipment/deleteEquipment), never part of the hardcoded list
+  var BASE_COUNT = EQUIPMENT.length;
+
+  // v4: bumped because EQUIPMENT can now grow/shrink at runtime (the "コピーを追加"
+  // button in the table), so the saved shape changed from a flat per-index array to
+  // {base:[...], extra:[...]} — a v3 flat-array save would otherwise be misread as
+  // base-item overrides reaching past the real catalog.
+  var STORAGE_KEY = "flat-②坂下一丁目-layout-v4";
+  function loadSavedPositions(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (!saved || typeof saved !== "object") return;
+      if (Array.isArray(saved.base)){
+        saved.base.forEach(function(p){
+          if (p && typeof p.i === "number" && EQUIPMENT[p.i]){
+            EQUIPMENT[p.i].x = p.x;
+            EQUIPMENT[p.i].y = p.y;
+            if (p.rot === 90) EQUIPMENT[p.i].rot = 90;
+            if (typeof p.zone === "string") EQUIPMENT[p.i].zone = p.zone;
+          }
+        });
+      }
+      if (Array.isArray(saved.extra)){
+        saved.extra.forEach(function(p){
+          if (!p || typeof p.name !== "string") return;
+          EQUIPMENT.push({
+            name:p.name, w:p.w, d:p.d, h:p.h, x:p.x, y:p.y, zone:p.zone, kind:p.kind,
+            status:p.status, util:Array.isArray(p.util) ? p.util : [],
+            rot:(p.rot === 90 ? 90 : 0), isCopy:true,
+            kw:(typeof p.kw === "number" ? p.kw : null), kwConfirmed:!!p.kwConfirmed,
+            short:(typeof p.short === "string" ? p.short : p.name),
+            power:(p.power === "doryoku" ? "doryoku" : undefined), powerConfirmed:!!p.powerConfirmed
+          });
+        });
+      }
+    } catch (err) { /* private browsing / blocked storage — just start from defaults */ }
+  }
+  function savePositions(){
+    try {
+      var baseData = EQUIPMENT.slice(0, BASE_COUNT).map(function(e, i){
+        return {i:i, x:e.x, y:e.y, rot:e.rot, zone:e.zone};
+      });
+      var extraData = EQUIPMENT.slice(BASE_COUNT).map(function(e){
+        return {name:e.name, w:e.w, d:e.d, h:e.h, x:e.x, y:e.y, zone:e.zone,
+                kind:e.kind, status:e.status, util:e.util.slice(), rot:e.rot,
+                kw:e.kw, kwConfirmed:e.kwConfirmed, short:e.short,
+                power:e.power, powerConfirmed:e.powerConfirmed};
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({base:baseData, extra:extraData}));
+    } catch (err) { /* ignore — storage may be unavailable */ }
+    pushToCloud(); // also share this change with any other device open on the same link
+  }
+  loadSavedPositions();
+
+  var ZONE_STORAGE_KEY = "flat-②坂下一丁目-zones-v3";
+  var ZONES_DEFAULT = ZONES.map(function(z){ return Object.assign({}, z); });
+  function loadSavedZones(){
+    try {
+      var raw = localStorage.getItem(ZONE_STORAGE_KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (!Array.isArray(saved)) return;
+      saved.forEach(function(p){
+        if (p && typeof p.i === "number" && ZONES[p.i]){
+          ZONES[p.i].x = p.x; ZONES[p.i].y = p.y; ZONES[p.i].w = p.w; ZONES[p.i].h = p.h;
+        }
+      });
+    } catch (err) { /* ignore */ }
+  }
+  function saveZones(){
+    try {
+      var data = ZONES.map(function(z, i){ return {i:i, x:z.x, y:z.y, w:z.w, h:z.h}; });
+      localStorage.setItem(ZONE_STORAGE_KEY, JSON.stringify(data));
+    } catch (err) { /* ignore */ }
+    pushToCloud(); // also share this change with any other device open on the same link
+  }
+  loadSavedZones();
+
+  // ---------- Cross-device sync (optional) ----------
+  // このGitHub Pages版は claude.ai の `window.claude.use("db")` が使えないため、代わりに
+  // 自前のGoogle Apps Script Webアプリをバックエンドとして使う。GAS_URLとGAS_TOKENに
+  // 自分のWebアプリURLと合言葉を設定すれば、スマホ・PCなど複数デバイスでレイアウトが
+  // 同期される。設定しない(空のまま)場合は、このブラウザのlocalStorageのみで動作する
+  // (従来通り、同期なしでも問題なく使える)。
+  //
+  // ▼ 設定方法
+  //   1) script.google.com で新規プロジェクトを作り、このツールと一緒に渡したGASコードを貼り付ける
+  //   2) コード内の ACCESS_TOKEN を好きな合言葉に変更する
+  //   3) 「デプロイ」→「新しいデプロイ」→種類「ウェブアプリ」→実行ユーザー「自分」→
+  //      アクセスできるユーザー「全員」でデプロイし、発行された /exec で終わるURLをコピーする
+  //   4) 下のGAS_URLにそのURLを、GAS_TOKENに手順2と同じ合言葉を貼る
+  var GAS_URL   = "https://script.google.com/macros/s/AKfycbzCTz-HnReahWp5lmN-ErQjoUsx2T4bEo5v47UF7Eho_aibPJV3xufg-sH8Eepd6PsrmQ/exec";
+  var GAS_TOKEN = "flatfactory"; // GAS側のACCESS_TOKENと必ず同じ値にする
+  var cloudSyncEnabled = !!(GAS_URL && GAS_TOKEN);
+  var cloudSeeded = false; // becomes true after this view's first pull, so we only ever
+                            // seed an empty cloud doc once, not on every poll
+  var lastCloudJSON = null; // the last payload we pushed or pulled, as JSON text — lets us
+                             // skip a needless rebuild when a poll comes back unchanged
+  var cloudPollTimer = null;
+  function cloudPayload(){
+    return {
+      equipment: {
+        base: EQUIPMENT.slice(0, BASE_COUNT).map(function(e, i){
+          return {i:i, x:e.x, y:e.y, rot:e.rot, zone:e.zone};
+        }),
+        extra: EQUIPMENT.slice(BASE_COUNT).map(function(e){
+          return {name:e.name, w:e.w, d:e.d, h:e.h, x:e.x, y:e.y, zone:e.zone,
+                  kind:e.kind, status:e.status, util:e.util.slice(), rot:e.rot,
+                  kw:e.kw, kwConfirmed:e.kwConfirmed, short:e.short,
+                  power:e.power, powerConfirmed:e.powerConfirmed};
+        })
+      },
+      zones: ZONES.map(function(z, i){ return {i:i, x:z.x, y:z.y, w:z.w, h:z.h}; })
+    };
+  }
+  function applyCloudPayload(data){
+    if (!data || typeof data !== "object") return;
+    if (data.equipment && typeof data.equipment === "object"){
+      EQUIPMENT.length = BASE_COUNT;
+      if (Array.isArray(data.equipment.base)){
+        data.equipment.base.forEach(function(p){
+          if (p && typeof p.i === "number" && EQUIPMENT[p.i]){
+            EQUIPMENT[p.i].x = p.x; EQUIPMENT[p.i].y = p.y;
+            EQUIPMENT[p.i].rot = (p.rot === 90) ? 90 : 0;
+            if (typeof p.zone === "string") EQUIPMENT[p.i].zone = p.zone;
+          }
+        });
+      }
+      if (Array.isArray(data.equipment.extra)){
+        data.equipment.extra.forEach(function(p){
+          if (!p || typeof p.name !== "string") return;
+          EQUIPMENT.push({
+            name:p.name, w:p.w, d:p.d, h:p.h, x:p.x, y:p.y, zone:p.zone, kind:p.kind,
+            status:p.status, util:Array.isArray(p.util) ? p.util : [],
+            rot:(p.rot === 90 ? 90 : 0), isCopy:true,
+            kw:(typeof p.kw === "number" ? p.kw : null), kwConfirmed:!!p.kwConfirmed,
+            short:(typeof p.short === "string" ? p.short : p.name),
+            power:(p.power === "doryoku" ? "doryoku" : undefined), powerConfirmed:!!p.powerConfirmed
+          });
+        });
+      }
+    }
+    if (Array.isArray(data.zones)){
+      data.zones.forEach(function(p){
+        if (p && typeof p.i === "number" && ZONES[p.i]){
+          ZONES[p.i].x = p.x; ZONES[p.i].y = p.y; ZONES[p.i].w = p.w; ZONES[p.i].h = p.h;
+        }
+      });
+    }
+  }
+  function pushToCloud(){
+    if (!cloudSyncEnabled) return; // GAS_URL/GAS_TOKENが未設定 — localStorageのみで動作
+    var payload = cloudPayload();
+    lastCloudJSON = JSON.stringify(payload);
+    fetch(GAS_URL, {
+      method: "POST",
+      // text/plain を使うことでCORSプリフライト(OPTIONS)を発生させない — Apps Scriptは
+      // OPTIONSに応答しないため、application/jsonを指定するとブロックされてしまう。
+      // JSON自体はこれまで通りGAS側で e.postData.contents をJSON.parseして読む。
+      headers: {"Content-Type": "text/plain;charset=utf-8"},
+      body: JSON.stringify({token: GAS_TOKEN, data: payload})
+    }).catch(function(){ /* offline/transient — fine, this device's own state is unaffected */ });
+  }
+  function pullFromCloud(isInitial){
+    if (!cloudSyncEnabled) return;
+    var url = GAS_URL + "?token=" + encodeURIComponent(GAS_TOKEN) + "&_=" + Date.now();
+    fetch(url).then(function(res){ return res.json(); }).then(function(json){
+      if (!json || json.error) return;
+      if (json.data){
+        var asStr = JSON.stringify(json.data);
+        if (asStr === lastCloudJSON) return; // 前回自分がpush/pullした内容と同じ — 再描画不要
+        lastCloudJSON = asStr;
+        applyCloudPayload(json.data);
+        build2D();
+        build3D();
+        buildTable();
+      } else if (isInitial && !cloudSeeded){
+        // 共有データがまだ何もない(このツールを初めて開いた) — 今のこのデバイスの
+        // localStorageの内容をそのまま種として保存し、他のデバイスが拾えるようにする
+        pushToCloud();
+      }
+      cloudSeeded = true;
+    }).catch(function(){ /* offline — このデバイスはlocalStorageのみで動作を継続 */ });
+  }
+  function initCloudSync(){
+    if (!cloudSyncEnabled) return;
+    pullFromCloud(true);
+    // Google Apps ScriptはFirestoreのようなリアルタイム通知を持たないため、定期的に
+    // ポーリングして他デバイスの変更を取り込む(15秒ごと)
+    cloudPollTimer = setInterval(function(){ pullFromCloud(false); }, 15000);
+  }
+  initCloudSync();
+
+  var ZONE_NAME = {};
+  ZONES.forEach(function(z){ ZONE_NAME[z.k] = z.name; });
+  ZONE_NAME["DOCK"] = DOCK.name; // the dock isn't a ZONES entry (see DOCK's comment above) but still needs a label for the table/tooltip
+  ZONE_NAME["FREE"] = "通路(ゾーン枠外)"; // the 人(通行確認用) markers start in the open corridor between
+                                        // zones, which isn't covered by any ZONES rect — same reason
+
+  var KIND_LABEL = {cold:"冷蔵・冷凍", prod:"常温・作業", pack:"梱包・保管", sup:"バックヤード", util:"洗浄・給排水", person:"人(通行確認用)", pillar:"柱(構造)", wall:"壁(仕切り)"};
+  var STATUS_LABEL = {confirmed:"確定", estimate:"目安", "new":"新規", ref:"参考", approx:"位置目安"};
+  var UTIL_LABEL = {power:"電源", water:"給水", drain:"排水", gas:"ガス", air:"エア"};
+
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, parent){
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs){ e.setAttribute(k, attrs[k]); }
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function clearSvg(svg){
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+  }
+
+  // ---------- Icon defs (shared) ----------
+  function buildIconDefs(svg){
+    var defs = el("defs", {}, svg);
+    var icons = {
+      "ic-power": '<path d="M8 2v6M16 2v6M6 8h12v4a6 6 0 01-12 0V8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 18v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+      "ic-water": '<path d="M12 2C9 7 5 11 5 15a7 7 0 0014 0c0-4-4-8-7-13z" fill="currentColor"/>',
+      "ic-drain": '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v7m0 0l-3-3m3 3l3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+      "ic-gas": '<path d="M12 2c1 4-3 5-3 9a3 3 0 006 0c0-1-1-2-1-3 2 1 3 3 3 5a5 5 0 01-10 0c0-5 3-7 5-11z" fill="currentColor"/>',
+      "ic-air": '<path d="M3 8h12.5a2.75 2.75 0 10-2.4-4.2M3 13h15.5a2.75 2.75 0 11-2.4 4.2M3 18h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    };
+    for (var id in icons){
+      var sym = el("symbol", {id:id, viewBox:"0 0 24 24"}, defs);
+      sym.innerHTML = icons[id];
+    }
+    var marker = el("marker", {id:"dimArrow", viewBox:"0 0 10 10", refX:"5", refY:"5", markerWidth:"6", markerHeight:"6", orient:"auto-start-reverse"}, defs);
+    el("path", {d:"M0,0 L10,5 L0,10 z", fill:"var(--ink-faint)"}, marker);
+  }
+  function useIcon(parent, id, x, y, size, cls){
+    var u = el("use", {href:"#"+id, x:x, y:y, width:size, height:size}, parent);
+    u.setAttribute("class", cls || "");
+    return u;
+  }
+
+  // ======================================================================
+  // 2D FLOOR PLAN
+  // ======================================================================
+  var S2 = 72; // px per meter
+  var M2 = {l:60, t:46, r:26, b:26};
+
+  function build2D(){
+    var svg = document.getElementById("svg2d");
+    clearSvg(svg);
+    // canvas extends past the room's own bounding box when the dock sticks out beyond it
+    var CANVAS_W = Math.max(ROOM.w, DOCK.x + DOCK.w);
+    var CANVAS_H = Math.max(ROOM.h, DOCK.y + DOCK.h);
+    var W = CANVAS_W*S2 + M2.l + M2.r;
+    var H = CANVAS_H*S2 + M2.t + M2.b;
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("width", W);
+    svg.setAttribute("height", H);
+    buildIconDefs(svg);
+
+    function px(xm){ return M2.l + xm*S2; }
+    function py(ym){ return M2.t + ym*S2; }
+
+    var root = el("g", {}, svg);
+
+    // room base — the true traced outline, not a plain rectangle
+    var roomD0 = ROOM_POLY.map(function(p,i){ return (i===0?"M":"L") + px(p[0]) + " " + py(p[1]); }).join(" ") + " Z";
+    el("path", {d:roomD0, fill:"var(--paper-sunk)"}, root);
+
+    // zones — each is a plain <rect> (not a path) so a resize can just change its
+    // width/height attributes directly; a small handle at the bottom-right corner
+    // (wired up below, drawn in a later top-layer pass) lets the user resize it.
+    var zoneItems = [];
+    ZONES.forEach(function(z, zi){
+      var zx = px(z.x), zy = py(z.y), zw = z.w*S2, zh = z.h*S2;
+      var rect = el("rect", {class:"zone-rect", "data-zi":zi, x:zx, y:zy, width:zw, height:zh, fill:"var(--"+z.kind+"-fill)", stroke:"var(--"+z.kind+"-line)", "stroke-width":1.4, "stroke-dasharray":"3 3", opacity:0.85}, root);
+      zoneItems.push({rect:rect, zi:zi});
+    });
+
+    // room outline (true boundary: NW corner cut, NE recess, SE stairwell chamfer)
+    var roomD = ROOM_POLY.map(function(p,i){ return (i===0?"M":"L") + px(p[0]) + " " + py(p[1]); }).join(" ") + " Z";
+    el("path", {d:roomD, fill:"none", stroke:"var(--ink)", "stroke-width":2.4, "stroke-linejoin":"round"}, root);
+
+    // NW corner — confirmed on-site this is NOT the entrance; labelled neutrally
+    var etx = px(0.18), ety = py(1.08);
+    var etext = el("text", {x:etx, y:ety, "font-size":7.8, fill:"var(--ink-faint)"}, root);
+    etext.textContent = "建物角";
+    var etext2 = el("text", {x:etx, y:ety+10, "font-size":7.8, fill:"var(--ink-faint)"}, root);
+    etext2.textContent = "(用途未定)";
+
+    // stairwell-side chamfer label (SE)
+    var stx = px(9.9), sty = py(10.55);
+    var stext = el("text", {x:stx, y:sty, "font-size":7.8, "text-anchor":"middle", fill:"var(--ink-faint)"}, root);
+    stext.textContent = "階段室側(推定)";
+
+    // the real entrance — a 両開き自動ドア (two-panel sliding automatic door) symbol
+    // on the south wall, confirmed on-site: two panels sliding apart from the
+    // centerline, not a hinged door, so no swing leaf/arc here
+    (function(){
+      var dx0 = px(ENTRANCE.x), dx1 = px(ENTRANCE.x + ENTRANCE.w), dy = py(ROOM.h);
+      el("line", {x1:dx0, y1:dy, x2:dx1, y2:dy, stroke:"var(--paper)", "stroke-width":3}, root); // gap in the wall line
+      var midX = (dx0+dx1)/2, panelY = dy - 5, gap = 3;
+      el("rect", {x:dx0+2, y:panelY, width:(midX-gap)-(dx0+2), height:3, fill:"var(--ink-soft)"}, root);
+      el("rect", {x:midX+gap, y:panelY, width:(dx1-2)-(midX+gap), height:3, fill:"var(--ink-soft)"}, root);
+      var arrowY = panelY - 5;
+      el("line", {x1:midX-6, y1:arrowY, x2:midX-16, y2:arrowY, stroke:"var(--ink-faint)", "stroke-width":1, "marker-end":"url(#dimArrow)"}, root);
+      el("line", {x1:midX+6, y1:arrowY, x2:midX+16, y2:arrowY, stroke:"var(--ink-faint)", "stroke-width":1, "marker-end":"url(#dimArrow)"}, root);
+      var elbl = el("text", {x:midX, y:dy+14, "text-anchor":"middle", "font-size":8.5, "font-weight":700, fill:"var(--notch-line)"}, root);
+      elbl.textContent = ENTRANCE.name;
+    })();
+
+    // suggested sight-blocking partition just inside the door (see footer notes) — a
+    // proposal, not a measured wall, so it's drawn as a light dashed line only
+    (function(){
+      var p = SUGGESTED_PARTITION;
+      el("line", {x1:px(p.x1), y1:py(p.y1), x2:px(p.x2), y2:py(p.y2), stroke:"var(--accent)", "stroke-width":2, "stroke-dasharray":"5 4", opacity:0.75}, root);
+      el("text", {x:px((p.x1+p.x2)/2), y:py(p.y1)-6, "text-anchor":"middle", "font-size":7.8, "font-weight":700, fill:"var(--accent)"}, root).textContent = p.name;
+    })();
+
+    // equipment swap dock — a staging box OUTSIDE the building outline, drawn plainly
+    // (no drag/resize handlers; not part of ZONES/zoneItems — see DOCK's own comment)
+    // so the alternate candidate machine(s) have somewhere to sit while not in use.
+    // (label text is drawn later, in the top layer pass below, so it stays legible
+    // above any equipment box that ends up sitting right under it)
+    (function(){
+      var dx0 = px(DOCK.x), dy0 = py(DOCK.y), dw0 = DOCK.w*S2, dh0 = DOCK.h*S2;
+      el("rect", {x:dx0, y:dy0, width:dw0, height:dh0, rx:6, fill:"var(--paper-sunk)", stroke:"var(--line-strong)", "stroke-width":1.4, "stroke-dasharray":"5 4"}, root);
+      // a short connecting arrow between the building's east wall and the dock, to
+      // make clear the two candidate sets are meant to be swapped against each other
+      var ax0 = px(ROOM.w) + 4, ax1 = dx0 - 4, ay = py(DOCK.y + DOCK.h/2);
+      el("line", {x1:ax0, y1:ay, x2:ax1, y2:ay, stroke:"var(--ink-faint)", "stroke-width":1.2, "stroke-dasharray":"2 3", "marker-start":"url(#dimArrow)", "marker-end":"url(#dimArrow)"}, root);
+    })();
+
+    // equipment — each item is a <g> positioned with transform:translate(),
+    // containing its rect/badge/icons in LOCAL (0,0)-anchored coordinates.
+    // That lets dragging just rewrite the group's transform instead of every
+    // child's absolute position, and keeps the drag math in one place.
+    var equipGroups = [];
+    EQUIPMENT.forEach(function(e, idx){
+      var fp = footprint(e);
+      var w0 = fp.wM*S2, d0 = fp.dM*S2;
+      var x0 = px(e.x), y0 = py(e.y);
+
+      var g = el("g", {class:"equip-group", "data-idx":idx, transform:"translate(" + x0 + "," + y0 + ")"}, root);
+      // invisible, enlarged hit-rect drawn first (so it sits under everything else but
+      // still receives pointer events) — on a phone, a small item (400x600mm renders
+      // around only ~15px wide once the diagram is scaled down to fit) is very easy to
+      // miss with a fingertip; padding the touch target out past the visible edges makes
+      // it grabbable without changing how the item looks.
+      el("rect", {class:"equip-hit", x:-EQUIP_HIT_PAD, y:-EQUIP_HIT_PAD, width:w0+EQUIP_HIT_PAD*2, height:d0+EQUIP_HIT_PAD*2, fill:"transparent", style:"pointer-events:auto;"}, g);
+      // person markers render as a circle, not a rounded box — rx/ry at (or past) half the
+      // width/height collapses a <rect> into a full ellipse, which for a square footprint
+      // (w0 === d0 here) is a perfect circle, so no separate <circle> element is needed and
+      // every existing rect-based code path (sizing, hit area, drag, badge) keeps working
+      var personCorner = e.kind === "person";
+      var isWall = e.kind === "wall";
+      var noRotate = personCorner || e.kind === "pillar"; // circular (symmetric) or square structural column —
+                                                            // walls stay rotatable (see the rotate-button block below)
+      // a pillar or a wall segment is solid structure, not an equipment footprint
+      // outline — fill it solid so it visually reads as "can't put anything
+      // through this", unlike every other (hollow-outline) equipment box
+      var solidFill = (e.kind === "pillar" || isWall);
+      el("rect", {class:"equip-rect", x:0, y:0, width:w0, height:d0, rx:(personCorner ? w0/2 : 2), ry:(personCorner ? d0/2 : 2), fill:(solidFill ? "var(--"+e.kind+"-fill)" : "var(--paper-raised)"), stroke:"var(--"+e.kind+"-line)", "stroke-width":1.6}, g);
+
+      // deployOutline — a dashed, non-interactive outline showing an item's maximum
+      // extent when something attached to it swings/folds out during use (e.g. the
+      // reverse sheeter's wings on コールドテーブル180②), so the clearance it needs
+      // can be checked against neighboring equipment without that extra reach being
+      // part of the item's actual drag/clamp footprint (w/d stay the folded size).
+      // Anchored with its own top-left at the main footprint's top-right corner (i.e.
+      // extends further in local +x from the item's right edge) — child of the same
+      // <g>, so it moves and rotates together with the item when dragged/rotated.
+      if (e.deployOutline){
+        var doW = (e.deployOutline.w/1000)*S2, doD = (e.deployOutline.d/1000)*S2;
+        el("rect", {x:w0, y:0, width:doW, height:doD, fill:"none", stroke:"var(--ink-faint)", "stroke-width":1.3, "stroke-dasharray":"6 4", rx:2, ry:2, style:"pointer-events:none;"}, g);
+        if (e.deployOutline.label){
+          var doLabel = el("text", {x:w0+doW/2, y:doD+12, "text-anchor":"middle", "font-size":9, fill:"var(--ink-faint)", style:"pointer-events:none;"}, g);
+          doLabel.textContent = e.deployOutline.label;
+        }
+      }
+
+      // utility icon row — top-right corner (only if box is big enough and item has utilities)
+      if (e.util.length && w0 > 30){
+        e.util.forEach(function(u, ui){
+          useIcon(g, "ic-"+u, w0 - 13*(ui+1), 3, 11, "u-"+u);
+        });
+      }
+
+      // rotate button — top-left corner (click to turn 90°; doesn't start a drag).
+      // A wall segment is long and only 10cm thick, so it fails the normal
+      // w0>24/d0>24 size gate on its thin axis — but it's exactly the kind of
+      // item that most needs rotating (to run it the other way), so it gets its
+      // own always-on gate and a position shifted to 75% along whichever axis is
+      // currently the long one, instead of the usual fixed top-left (11,11)
+      // (shifted via a translate on the whole button group, so the hand-drawn
+      // icon path underneath doesn't need separate coordinates for this case).
+      var rotBtn = null;
+      var longIsW = w0 >= d0;
+      if ((w0 > 24 && d0 > 24 && !noRotate) || isWall){
+        var rcx = 11, rcy = 11;
+        if (isWall){ rcx = longIsW ? w0*0.75 : w0/2; rcy = longIsW ? d0/2 : d0*0.75; }
+        rotBtn = el("g", {class:"rotate-btn", "data-idx":idx, transform:"translate("+(rcx-11)+","+(rcy-11)+")"}, g);
+        el("circle", {cx:11, cy:11, r:8.5, fill:"var(--paper-raised)", stroke:"var(--ink-faint)", "stroke-width":1}, rotBtn);
+        el("path", {d:"M7.5 8.5a4.3 4.3 0 116.8 3.9 M14.3 7.6v2.9h-2.9", fill:"none", stroke:"var(--ink-soft)", "stroke-width":1.3, "stroke-linecap":"round", "stroke-linejoin":"round"}, rotBtn);
+      }
+
+      // abbreviated name label, right on the box, so what each item is reads at a
+      // glance while dragging — the tap/hover popup (attachTooltipHandlers /
+      // attachTapInfoHandlers, wired below) still gives the full name/size/zone/
+      // utilities on top of this. Wraps on the "\n" breaks chosen per item in its
+      // `short` field. Drawn AFTER the icons/rotate-button (so it paints over
+      // them rather than getting hidden behind the rotate button's solid
+      // circle — on most of these boxes a centered label has no room to dodge
+      // every corner decoration) but BEFORE the number badge, so the badge —
+      // the one thing the equipment table cross-references by — always stays
+      // fully legible on top of everything else. Skipped for the person/pillar
+      // markers: their footprint is a small square where the corner badge alone
+      // already covers most of the box, and they're already told apart by shape
+      // and color (circle vs. solid square) without needing text.
+      if (e.short && w0 > 26 && d0 > 20 && !personCorner && e.kind !== "pillar"){
+        var labelLines = e.short.split("\n");
+        var boxMin = Math.min(w0, d0);
+        var lfs = Math.max(6, Math.min(11, boxMin / 4.2));
+        var lineH = lfs * 1.2;
+        var totalH = labelLines.length * lineH;
+        var labelEl = el("text", {x:w0/2, y:d0/2 - totalH/2 + lineH*0.8, "text-anchor":"middle", "font-size":lfs, "font-weight":600, fill:"var(--ink-soft)", style:"pointer-events:none;"}, g);
+        labelLines.forEach(function(line, li){
+          var tsp = el("tspan", {x:w0/2, dy:(li === 0 ? 0 : lineH)}, labelEl);
+          tsp.textContent = line;
+        });
+      }
+
+      // number badge — bottom-left corner, so it never collides with the zone
+      // label pill drawn later at each zone's top-left corner. A wall segment
+      // instead gets it at 25% along the long axis (mirroring the rotate
+      // button's 75% position above), since the usual bottom-left corner sits
+      // almost entirely outside a bar only 10cm (≈7px) thick.
+      var cx = 11, cy = d0 - 11;
+      if (isWall){ cx = longIsW ? w0*0.25 : w0/2; cy = longIsW ? d0/2 : d0*0.25; }
+      else if (w0 < 20 || d0 < 20){ cx = w0/2; cy = d0/2; }
+      el("circle", {cx:cx, cy:cy, r:8.5, fill:"var(--badge-fill)"}, g);
+      var bt = el("text", {x:cx, y:cy+3, "font-size":9, "text-anchor":"middle", fill:"var(--badge-text)", "font-weight":700, class:"mono"}, g);
+      bt.textContent = (idx+1);
+
+      equipGroups.push({g:g, idx:idx, w0:w0, d0:d0, rotBtn:rotBtn});
+    });
+
+    attachDragHandlers(svg, equipGroups, px, py);
+    attachZoneHandlers(svg, zoneItems, px, py);
+    var equip2dItems = equipGroups.map(function(it){ return {el:it.g, idx:it.idx}; });
+    attachTooltipHandlers(equip2dItems);
+    attachTapInfoHandlers(equip2dItems);
+
+    // zone resize handles + labels — drawn last, on top, so they always stay
+    // reachable/legible above equipment and zone fills
+    ZONES.forEach(function(z, zi){
+      var lx = px(z.x) + 5;
+      var ly = py(z.y) + 12;
+      var label = z.k + " " + z.name;
+      var textW = 6.1 * label.length + 8;
+      el("rect", {x:lx-4, y:ly-11, width:textW, height:15, rx:3, fill:"var(--paper-raised)", opacity:0.88}, root);
+      var lbl = el("text", {x:lx, y:ly, "font-size":9.5, "font-weight":700, fill:"var(--"+z.kind+"-line)"}, root);
+      var tsK = el("tspan", {class:"mono"}, lbl); tsK.textContent = z.k;
+      var tsName = el("tspan", {dx:4, fill:"var(--ink-soft)", "font-weight":600}, lbl); tsName.textContent = z.name;
+
+      var hx = px(z.x+z.w) - ZONE_HANDLE_SIZE, hy = py(z.y+z.h) - ZONE_HANDLE_SIZE;
+      var handle = el("rect", {class:"zone-resize-handle", "data-zi":zi, x:hx, y:hy, width:ZONE_HANDLE_SIZE, height:ZONE_HANDLE_SIZE, rx:2.5, fill:"var(--"+z.kind+"-line)", opacity:0.6}, root);
+      zoneItems[zi].handle = handle;
+    });
+    attachZoneResizeHandlers(svg, zoneItems, px, py);
+
+    // dock label — drawn here too (same top layer as the zone labels above) so it
+    // stays legible even when an equipment box sits right under the dock's top edge
+    (function(){
+      var dx0 = px(DOCK.x), dy0 = py(DOCK.y), dw0 = DOCK.w*S2, dh0 = DOCK.h*S2;
+      var lx = dx0 + 6, ly = dy0 + 16;
+      el("rect", {x:lx-4, y:ly-12, width:dw0-4, height:17, rx:3, fill:"var(--paper-raised)", opacity:0.9}, root);
+      el("text", {x:lx, y:ly, "font-size":9.5, "font-weight":700, fill:"var(--ink-soft)"}, root).textContent = DOCK.name;
+      var hx = dx0 + 8, hy = dy0 + dh0 - 8;
+      el("rect", {x:dx0+4, y:hy-11, width:dw0-8, height:14, rx:3, fill:"var(--paper-raised)", opacity:0.85}, root);
+      el("text", {x:hx, y:hy, "font-size":7.8, fill:"var(--ink-faint)"}, root).textContent = "ドラッグで本体側と入れ替え";
+    })();
+
+    // style utility icon colors
+    var style = el("style", {}, svg);
+    style.textContent = ".u-power{color:var(--prod-line)} .u-water{color:var(--util-line)} .u-drain{color:var(--util-line)} .u-gas{color:var(--accent)} .u-air{color:var(--cold-line)}";
+
+    // ---- dimension lines ----
+    var dimTopY = M2.t - 24;
+    el("line", {x1:px(0), y1:dimTopY, x2:px(ROOM.w), y2:dimTopY, stroke:"var(--ink-faint)", "stroke-width":1, "marker-start":"url(#dimArrow)", "marker-end":"url(#dimArrow)"}, root);
+    el("line", {x1:px(0), y1:dimTopY-5, x2:px(0), y2:py(0)-2, stroke:"var(--line-strong)", "stroke-width":1}, root);
+    el("line", {x1:px(ROOM.w), y1:dimTopY-5, x2:px(ROOM.w), y2:py(0)-2, stroke:"var(--line-strong)", "stroke-width":1}, root);
+    var dt = el("text", {x:px(ROOM.w/2), y:dimTopY-7, "text-anchor":"middle", "font-size":11, fill:"var(--ink-soft)", class:"mono"}, root);
+    dt.textContent = ROOM.w.toFixed(2) + "m (最大幅)";
+
+    var dimLeftX = M2.l - 20;
+    el("line", {x1:dimLeftX, y1:py(0), x2:dimLeftX, y2:py(ROOM.h), stroke:"var(--ink-faint)", "stroke-width":1, "marker-start":"url(#dimArrow)", "marker-end":"url(#dimArrow)"}, root);
+    var dl = el("text", {x:dimLeftX-6, y:py(ROOM.h/2), "text-anchor":"middle", "font-size":11, fill:"var(--ink-soft)", class:"mono", transform:"rotate(-90 "+(dimLeftX-6)+" "+py(ROOM.h/2)+")"}, root);
+    dl.textContent = ROOM.h.toFixed(2) + "m (最大奥行)";
+  }
+
+  // ---------- Drag-to-reposition (2D) ----------
+  var GRID_SNAP = 0.1; // meters — matches the 10cm grid used in the xlsx drag-tool
+  var EQUIP_HIT_PAD = 10; // viewBox units of invisible padding added around each equipment
+                          // item's touch/click target, so small items are easier to grab
+  var ZONE_HANDLE_SIZE = 16; // px — up from the original 9, which was too small to reliably
+                             // catch a fingertip on a phone screen
+
+  // getBoundingClientRect() + viewBox, not getScreenCTM()/matrixTransform(): the CTM path
+  // has shown mobile-browser-specific drift once the visual and layout viewports diverge
+  // (pinch-zoom, some Android Chrome builds), which reads exactly like "the object comes
+  // off my finger" — the drag math keeps running, but the computed SVG point stops tracking
+  // the real touch point. getBoundingClientRect()+viewBox is the same conversion done with
+  // layout-viewport numbers only, so it stays correct under those conditions.
+  function toSvgPoint(svg, clientX, clientY){
+    var rect = svg.getBoundingClientRect();
+    var vb = svg.viewBox && svg.viewBox.baseVal;
+    if (!vb || !rect.width || !rect.height) return {x:0, y:0};
+    var scaleX = vb.width / rect.width;
+    var scaleY = vb.height / rect.height;
+    return {
+      x: vb.x + (clientX - rect.left) * scaleX,
+      y: vb.y + (clientY - rect.top) * scaleY
+    };
+  }
+  function readTranslate(g){
+    var m = /translate\(([-\d.]+),([-\d.]+)\)/.exec(g.getAttribute("transform") || "");
+    return m ? {x:parseFloat(m[1]), y:parseFloat(m[2])} : {x:0, y:0};
+  }
+
+  // Track a drag's move/end on `document` instead of the dragged element itself.
+  // Pointer capture alone isn't honored consistently by every mobile browser once a
+  // finger drifts off a small element's hit area — that shows up as a drag that
+  // "moves a little and then just stops." Listening on `document` keeps following
+  // the pointer no matter where it wanders, until pointerup/cancel ends it.
+  // preventDefault() on every move is the second half of the fix: `touch-action:none`
+  // on the dragged element should already stop the page/panel from scrolling under a
+  // drag, but some mobile browsers still start a native scroll once the finger has
+  // moved a few pixels (which is exactly what "stops as soon as you move it" looks
+  // like — the browser took over as a scroll and the drag's own moves stopped
+  // landing). Calling preventDefault here too, with the listener registered
+  // non-passive, is the standard belt-and-suspenders fix every JS drag library uses.
+  function startPointerTracking(onMove, onEnd){
+    function move(ev){
+      if (ev.cancelable) ev.preventDefault();
+      onMove(ev);
+    }
+    function end(ev){
+      document.removeEventListener("pointermove", move, {passive:false});
+      document.removeEventListener("pointerup", end);
+      document.removeEventListener("pointercancel", end);
+      onEnd(ev);
+    }
+    document.addEventListener("pointermove", move, {passive:false});
+    document.addEventListener("pointerup", end);
+    document.addEventListener("pointercancel", end);
+  }
+
+  // `touch-action:none` (CSS) and preventDefault() on pointermove (above) are both
+  // requests to the browser, not guarantees — on some Android Chrome builds, once a
+  // touch starts inside a horizontally-scrollable container (.svg-wrap has
+  // overflow-x:auto, which it needs so the diagram can be wider than the screen),
+  // the browser can still decide mid-gesture that this is a pan/scroll and hand the
+  // touch over to native scrolling, which is exactly what "the drag lets go of my
+  // finger partway through" looks like — the element stops getting pointermove
+  // events because the browser took the touch away from the page. Calling
+  // preventDefault() directly on the raw `touchstart` event is a stronger, earlier
+  // tool than either of those: it tells the browser, at first contact, never to
+  // start its own default handling (scroll, zoom, overscroll glow, double-tap-zoom)
+  // for this touch at all, so there's nothing for it to hand the gesture over to
+  // later. Registered non-passive so preventDefault is actually allowed to do this.
+  function suppressNativeTouch(el){
+    el.addEventListener("touchstart", function(ev){
+      if (ev.cancelable) ev.preventDefault();
+    }, {passive:false});
+    el.addEventListener("touchmove", function(ev){
+      if (ev.cancelable) ev.preventDefault();
+    }, {passive:false});
+  }
+
+  // Keep a dragged item's rectangle (xm,ym,wM,dM) inside the true room
+  // outline: clamp to the bounding box, then push it out of the two
+  // rectangular NE keep-out pockets and off the wrong side of either
+  // diagonal chamfer (NW entrance / SE stairwell corner).
+  function clampIntoRoom(xm, ym, wM, dM){
+    xm = Math.max(0, Math.min(ROOM.w - wM, xm));
+    ym = Math.max(0, Math.min(ROOM.h - dM, ym));
+
+    NE_CUTS.forEach(function(c){
+      var ix = Math.max(xm, c.x), iy = Math.max(ym, c.y);
+      var ax = Math.min(xm+wM, c.x+c.w), ay = Math.min(ym+dM, c.y+c.h);
+      if (ix < ax && iy < ay){ // overlapping the cut — push out the shorter way
+        var pushLeft = (c.x - wM) - xm;      // move so right edge = c.x
+        var pushDown = (c.y + c.h) - ym;     // move so top edge = c.y+c.h
+        if (Math.abs(pushLeft) <= Math.abs(pushDown)) xm = c.x - wM;
+        else ym = c.y + c.h;
+        xm = Math.max(0, Math.min(ROOM.w - wM, xm));
+        ym = Math.max(0, Math.min(ROOM.h - dM, ym));
+      }
+    });
+
+    CHAMFERS.forEach(function(c){
+      // line from p1 to p2; room interior is the side containing the room's center.
+      // sideRaw's gradient w.r.t. (px,py) is the constant vector (-dy,dx), so that
+      // (normalized, signed by inSign) is both the "which way is in" test and the
+      // exact push direction — no separate flip-test needed.
+      var x1=c.p1[0], y1=c.p1[1], x2=c.p2[0], y2=c.p2[1];
+      var dx=x2-x1, dy=y2-y1;
+      var lineLen = Math.sqrt(dx*dx+dy*dy) || 1;
+      var cxm = ROOM.w/2, cym = ROOM.h/2;
+      function sideRaw(px_,py_){ return dx*(py_-y1) - dy*(px_-x1); }
+      var inSign = sideRaw(cxm,cym) >= 0 ? 1 : -1;
+      var ux = -dy/lineLen, uy = dx/lineLen; // unit vector along which sideRaw increases
+      // check the rect corner nearest the forbidden side, as a true perpendicular distance
+      var corners = [[xm,ym],[xm+wM,ym],[xm,ym+dM],[xm+wM,ym+dM]];
+      var worstPerp = Infinity;
+      corners.forEach(function(pt){
+        var perp = (sideRaw(pt[0],pt[1]) * inSign) / lineLen;
+        if (perp < worstPerp) worstPerp = perp;
+      });
+      if (worstPerp < 0){
+        // push the whole rect along the line's normal until that corner is back on the room side
+        var shift = -worstPerp;
+        xm += inSign*ux*shift; ym += inSign*uy*shift;
+        xm = Math.max(0, Math.min(ROOM.w - wM, xm));
+        ym = Math.max(0, Math.min(ROOM.h - dM, ym));
+      }
+    });
+
+    return {x:xm, y:ym};
+  }
+
+  // Keep a dragged item's rectangle inside the dock box — a plain rectangular
+  // clamp, since the dock is just a staging area with no walls/notches of its own.
+  function clampIntoDock(xm, ym, wM, dM){
+    xm = Math.max(DOCK.x, Math.min(DOCK.x + DOCK.w - wM, xm));
+    ym = Math.max(DOCK.y, Math.min(DOCK.y + DOCK.h - dM, ym));
+    return {x:xm, y:ym};
+  }
+
+  // Which ZONES rect (if any) a point falls in — used to re-tag an item's
+  // displayed zone when it's dragged between the dock and the room.
+  function zoneKeyForPoint(xm, ym){
+    for (var i = 0; i < ZONES.length; i++){
+      var z = ZONES[i];
+      if (xm >= z.x && xm <= z.x + z.w && ym >= z.y && ym <= z.y + z.h) return z.k;
+    }
+    return null;
+  }
+
+  // Dispatcher used by both the main drag and the rotate button: decides room-clamp
+  // vs dock-clamp from where the item's center actually ended up, so dragging an item
+  // across the gap between the building and the dock — either direction — "just works"
+  // instead of needing a separate mode switch. Also keeps e.zone in sync so the table
+  // and tooltip don't keep showing a stale zone after a swap.
+  function clampEquipment(e, xm, ym, wM, dM){
+    var centerX = xm + wM/2, centerY = ym + dM/2;
+    var clamped;
+    if (centerX > ROOM.w){
+      clamped = clampIntoDock(xm, ym, wM, dM);
+      e.zone = "DOCK";
+    } else {
+      clamped = clampIntoRoom(xm, ym, wM, dM);
+      var zk = zoneKeyForPoint(clamped.x + wM/2, clamped.y + dM/2);
+      if (zk) e.zone = zk;
+    }
+    return clamped;
+  }
+
+  // ---------- Add/remove equipment copies (e.g. a 2nd oven or freezer) ----------
+  // Triggered from the table's "操作" column, not the SVG — equipment blocks range
+  // from huge (oven) to tiny (番重置き場), and a reliably-clickable button needs more
+  // room than the smallest ones have.
+  function stripUnitSuffix(name){
+    return name.replace(/\s*\(\d+台目\)\s*$/, "");
+  }
+  function duplicateEquipment(idx){
+    var src = EQUIPMENT[idx];
+    if (!src) return;
+    var baseName = stripUnitSuffix(src.name);
+    var count = EQUIPMENT.filter(function(e){ return stripUnitSuffix(e.name) === baseName; }).length;
+    var copy = Object.assign({}, src, {
+      name: baseName + "(" + (count + 1) + "台目)",
+      util: src.util.slice(),
+      isCopy: true
+    });
+    // offset a touch so it doesn't land exactly on top of the original, then clamp
+    // it the same way a drag would (room or dock, whichever its new center lands in)
+    var fp = footprint(copy);
+    var clamped = clampEquipment(copy, copy.x + 0.15, copy.y + 0.15, fp.wM, fp.dM);
+    copy.x = clamped.x; copy.y = clamped.y;
+    EQUIPMENT.push(copy);
+    savePositions();
+    build2D();
+    build3D();
+    buildTable();
+  }
+  function deleteEquipment(idx){
+    if (idx < BASE_COUNT) return; // the original catalog items aren't deletable from the UI
+    EQUIPMENT.splice(idx, 1);
+    savePositions();
+    build2D();
+    build3D();
+    buildTable();
+  }
+
+  // ---------- Equipment info: hover tooltip (mouse) + tap sheet (touch) ----------
+  // Shared by both the 2D plan and the 3D view — each caller just hands over a
+  // list of {el, idx}. A mouse gets the cursor-following tooltip on hover; a
+  // phone/tablet has no hover state, so a tap (not a drag/scroll) there opens
+  // a bottom sheet instead. Both read the same three text lines.
+  function equipInfoLines(e){
+    var statusLabel = STATUS_LABEL[e.status] || e.status;
+    var utilTxt = e.util.length ? e.util.map(function(u){ return UTIL_LABEL[u]; }).join("・") : "なし";
+    return {
+      name: e.name,
+      dim: e.w + "×" + e.d + "×" + e.h + "mm" + (e.rot === 90 ? "(90°回転)" : ""),
+      row: "ゾーン " + e.zone + "・" + statusLabel + " / 設備: " + utilTxt
+    };
+  }
+
+  function attachTooltipHandlers(items){
+    var tip = document.getElementById("eqTooltip");
+    if (!tip) return;
+    items.forEach(function(item){
+      var node = item.el, idx = item.idx;
+      node.addEventListener("pointerenter", function(ev){
+        if (ev.pointerType && ev.pointerType !== "mouse") return; // touch: handled by the tap sheet instead
+        if (node.classList.contains("dragging")) return;
+        showTooltip(tip, EQUIPMENT[idx], ev.clientX, ev.clientY);
+      });
+      node.addEventListener("pointermove", function(ev){
+        if (ev.pointerType && ev.pointerType !== "mouse") return;
+        if (node.classList.contains("dragging")) return;
+        positionTooltip(tip, ev.clientX, ev.clientY);
+      });
+      node.addEventListener("pointerleave", function(){ hideTooltip(tip); });
+      node.addEventListener("pointerdown", function(){ hideTooltip(tip); });
+    });
+  }
+  function showTooltip(tip, e, clientX, clientY){
+    var info = equipInfoLines(e);
+    tip.innerHTML =
+      '<span class="tt-name"></span>' +
+      '<span class="tt-dim"></span>' +
+      '<span class="tt-row"></span>';
+    tip.querySelector(".tt-name").textContent = info.name;
+    tip.querySelector(".tt-dim").textContent = info.dim;
+    tip.querySelector(".tt-row").textContent = info.row;
+    positionTooltip(tip, clientX, clientY);
+    tip.classList.add("show");
+  }
+  function positionTooltip(tip, clientX, clientY){
+    var pad = 16;
+    tip.style.left = (clientX + pad) + "px";
+    tip.style.top = (clientY + pad) + "px";
+    requestAnimationFrame(function(){
+      var r = tip.getBoundingClientRect();
+      if (r.right > window.innerWidth) tip.style.left = Math.max(4, clientX - r.width - pad) + "px";
+      if (r.bottom > window.innerHeight) tip.style.top = Math.max(4, clientY - r.height - pad) + "px";
+    });
+  }
+  function hideTooltip(tip){ tip.classList.remove("show"); }
+
+  // Tap-to-show info sheet — attached independently of any drag handling, so
+  // it works the same whether the element it's on is draggable (2D) or not
+  // (3D). A "tap" is a pointer down→up with barely any movement in between;
+  // more movement than that means the user was dragging the item (2D) or
+  // panning/scrolling the view, and the sheet stays closed.
+  var TAP_MOVE_TOLERANCE = 6; // px, in screen space
+  function attachTapInfoHandlers(items){
+    items.forEach(function(item){
+      var node = item.el, idx = item.idx;
+      var start = null;
+      node.addEventListener("pointerdown", function(ev){
+        start = {x: ev.clientX, y: ev.clientY, type: ev.pointerType};
+      });
+      node.addEventListener("pointerup", function(ev){
+        if (!start) return;
+        var moved = Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > TAP_MOVE_TOLERANCE;
+        var wasTouch = start.type && start.type !== "mouse";
+        start = null;
+        if (!moved && wasTouch) showInfoSheet(EQUIPMENT[idx]);
+      });
+      node.addEventListener("pointercancel", function(){ start = null; });
+    });
+  }
+  function showInfoSheet(e){
+    var sheet = document.getElementById("eqInfoSheet");
+    if (!sheet) return;
+    var info = equipInfoLines(e);
+    document.getElementById("isName").textContent = info.name;
+    document.getElementById("isDim").textContent = info.dim;
+    document.getElementById("isRow").textContent = info.row;
+    sheet.classList.add("show");
+  }
+  function hideInfoSheet(){
+    var sheet = document.getElementById("eqInfoSheet");
+    if (sheet) sheet.classList.remove("show");
+  }
+  function initInfoSheet(){
+    var sheet = document.getElementById("eqInfoSheet");
+    var closeBtn = document.getElementById("isClose");
+    if (!sheet || !closeBtn) return;
+    closeBtn.addEventListener("pointerup", function(ev){ ev.stopPropagation(); hideInfoSheet(); });
+    // tapping anywhere outside the sheet (and outside an equipment block,
+    // which opens/updates it on its own) closes it
+    document.addEventListener("pointerdown", function(ev){
+      if (!sheet.classList.contains("show")) return;
+      if (sheet.contains(ev.target)) return;
+      if (ev.target.closest && ev.target.closest(".equip-group,.equip3d-group")) return;
+      hideInfoSheet();
+    });
+  }
+
+  function attachDragHandlers(svg, equipGroups, px, py){
+    equipGroups.forEach(function(item){
+      var g = item.g, idx = item.idx;
+      suppressNativeTouch(g);
+
+      g.addEventListener("pointerdown", function(ev){
+        ev.preventDefault();
+        try { g.setPointerCapture(ev.pointerId); } catch (err) { /* capture is a nice-to-have here, not load-bearing — document listeners below do the real tracking */ }
+        g.classList.add("dragging");
+        var pt = toSvgPoint(svg, ev.clientX, ev.clientY);
+        var cur = readTranslate(g);
+        var dragState = {startPt:pt, startX:cur.x, startY:cur.y};
+
+        startPointerTracking(
+          function onMove(mv){
+            var pt2 = toSvgPoint(svg, mv.clientX, mv.clientY);
+            var nx = dragState.startX + (pt2.x - dragState.startPt.x);
+            var ny = dragState.startY + (pt2.y - dragState.startPt.y);
+            g.setAttribute("transform", "translate(" + nx + "," + ny + ")");
+          },
+          function onEnd(){
+            g.classList.remove("dragging");
+            var cur2 = readTranslate(g);
+            // back to meters, snap to the 10cm grid, clamp inside the room (or the dock —
+            // see clampEquipment — which also re-tags e.zone when it crosses between them)
+            var e = EQUIPMENT[idx];
+            var fp = footprint(e);
+            var xm = (cur2.x - M2.l) / S2;
+            var ym = (cur2.y - M2.t) / S2;
+            xm = Math.round(xm / GRID_SNAP) * GRID_SNAP;
+            ym = Math.round(ym / GRID_SNAP) * GRID_SNAP;
+            var prevZone = e.zone;
+            var clamped = clampEquipment(e, xm, ym, fp.wM, fp.dM);
+            xm = clamped.x; ym = clamped.y;
+            e.x = xm;
+            e.y = ym;
+            g.setAttribute("transform", "translate(" + px(xm) + "," + py(ym) + ")");
+            savePositions();
+            build3D(); // keep the 3D view in sync, even while its tab is hidden
+            if (e.zone !== prevZone) buildTable(); // dock↔room swap changed its zone label
+          }
+        );
+      });
+
+      // rotate button — a click (not a drag) toggles 0°/90°; stopPropagation keeps
+      // it from also starting the group's own drag handler above
+      if (item.rotBtn){
+        item.rotBtn.addEventListener("pointerdown", function(ev){ ev.stopPropagation(); });
+        item.rotBtn.addEventListener("pointerup", function(ev){
+          ev.stopPropagation();
+          var e = EQUIPMENT[idx];
+          e.rot = (e.rot === 90) ? 0 : 90;
+          var fp = footprint(e);
+          var clamped = clampEquipment(e, e.x, e.y, fp.wM, fp.dM);
+          e.x = clamped.x; e.y = clamped.y;
+          savePositions();
+          build2D();
+          build3D();
+          buildTable();
+        });
+      }
+    });
+  }
+
+  // ---------- Drag-to-move / resize zones ----------
+  var ZONE_MIN = 0.3; // minimum zone width/height, meters
+
+  function attachZoneHandlers(svg, zoneItems, px, py){
+    zoneItems.forEach(function(item){
+      var rect = item.rect, zi = item.zi;
+      suppressNativeTouch(rect);
+
+      rect.addEventListener("pointerdown", function(ev){
+        ev.preventDefault();
+        try { rect.setPointerCapture(ev.pointerId); } catch (err) { /* nice-to-have only — see attachDragHandlers */ }
+        rect.classList.add("dragging");
+        var pt = toSvgPoint(svg, ev.clientX, ev.clientY);
+        var dragState = {startPt:pt, startX:parseFloat(rect.getAttribute("x")), startY:parseFloat(rect.getAttribute("y"))};
+
+        startPointerTracking(
+          function onMove(mv){
+            var pt2 = toSvgPoint(svg, mv.clientX, mv.clientY);
+            var nx = dragState.startX + (pt2.x - dragState.startPt.x);
+            var ny = dragState.startY + (pt2.y - dragState.startPt.y);
+            rect.setAttribute("x", nx);
+            rect.setAttribute("y", ny);
+          },
+          function onEnd(){
+            rect.classList.remove("dragging");
+            var z = ZONES[zi];
+            var xm = (parseFloat(rect.getAttribute("x")) - M2.l) / S2;
+            var ym = (parseFloat(rect.getAttribute("y")) - M2.t) / S2;
+            xm = Math.round(xm / GRID_SNAP) * GRID_SNAP;
+            ym = Math.round(ym / GRID_SNAP) * GRID_SNAP;
+            xm = Math.max(0, Math.min(ROOM.w - z.w, xm));
+            ym = Math.max(0, Math.min(ROOM.h - z.h, ym));
+            z.x = xm; z.y = ym;
+            saveZones();
+            build2D();
+            build3D();
+          }
+        );
+      });
+    });
+  }
+
+  function attachZoneResizeHandlers(svg, zoneItems, px, py){
+    zoneItems.forEach(function(item){
+      var handle = item.handle, rect = item.rect, zi = item.zi;
+      if (!handle) return;
+      suppressNativeTouch(handle);
+
+      handle.addEventListener("pointerdown", function(ev){
+        ev.preventDefault();
+        ev.stopPropagation();
+        try { handle.setPointerCapture(ev.pointerId); } catch (err) { /* nice-to-have only — see attachDragHandlers */ }
+        var pt = toSvgPoint(svg, ev.clientX, ev.clientY);
+        var resizeState = {
+          startPt:pt,
+          startW:parseFloat(rect.getAttribute("width")),
+          startH:parseFloat(rect.getAttribute("height")),
+          rx:parseFloat(rect.getAttribute("x")),
+          ry:parseFloat(rect.getAttribute("y"))
+        };
+
+        startPointerTracking(
+          function onMove(mv){
+            var pt2 = toSvgPoint(svg, mv.clientX, mv.clientY);
+            var nw = Math.max(ZONE_MIN*S2, resizeState.startW + (pt2.x - resizeState.startPt.x));
+            var nh = Math.max(ZONE_MIN*S2, resizeState.startH + (pt2.y - resizeState.startPt.y));
+            rect.setAttribute("width", nw);
+            rect.setAttribute("height", nh);
+            handle.setAttribute("x", resizeState.rx + nw - ZONE_HANDLE_SIZE);
+            handle.setAttribute("y", resizeState.ry + nh - ZONE_HANDLE_SIZE);
+          },
+          function onEnd(){
+            var z = ZONES[zi];
+            var wM = parseFloat(rect.getAttribute("width")) / S2;
+            var hM = parseFloat(rect.getAttribute("height")) / S2;
+            wM = Math.max(ZONE_MIN, Math.round(wM / GRID_SNAP) * GRID_SNAP);
+            hM = Math.max(ZONE_MIN, Math.round(hM / GRID_SNAP) * GRID_SNAP);
+            wM = Math.min(wM, ROOM.w - z.x);
+            hM = Math.min(hM, ROOM.h - z.y);
+            z.w = wM; z.h = hM;
+            saveZones();
+            build2D();
+            build3D();
+          }
+        );
+      });
+    });
+  }
+
+  // ======================================================================
+  // 3D ISOMETRIC
+  // ======================================================================
+  var ISO_S = 44;   // px per meter footprint
+  var ISO_HS = 44;  // px per meter height
+  var COS30 = Math.cos(Math.PI/6), SIN30 = 0.5;
+  var WALL_H = 2.3;
+
+  var KIND_BASE_3D = {
+    cold:"#7FA6C9", prod:"#DD9A87", pack:"#93C49F", sup:"#C8B494", util:"#74C9BC", person:"#9B92C4", pillar:"#8E897E", wall:"#7E8892"
+  };
+  function shade(hex, pct){
+    var n = parseInt(hex.slice(1), 16);
+    var r = (n>>16) + Math.round(255*pct/100);
+    var g = ((n>>8)&255) + Math.round(255*pct/100);
+    var b = (n&255) + Math.round(255*pct/100);
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    return "#" + ((1<<24) + (r<<16) + (g<<8) + b).toString(16).slice(1);
+  }
+
+  function project(xm, ym, zm){
+    var X = xm*ISO_S, Y = ym*ISO_S, Z = zm*ISO_HS;
+    return [ (X - Y)*COS30, (X + Y)*SIN30 - Z ];
+  }
+
+  function build3D(){
+    var svg = document.getElementById("svg3d");
+    clearSvg(svg);
+    buildIconDefs(svg);
+    var scene = el("g", {id:"iso-scene"}, svg);
+
+    // Track the projected bounding box manually while drawing, rather than
+    // calling scene.getBBox() at the end: this SVG lives inside a
+    // display:none tab panel until the user switches to it, and getBBox()
+    // on an undisplayed element returns a degenerate (often zero-size) box
+    // in every major browser — which would blow up the auto-fit viewBox.
+    var bb = {minX:Infinity, minY:Infinity, maxX:-Infinity, maxY:-Infinity};
+    function trackPt(sx, sy){
+      if (sx < bb.minX) bb.minX = sx;
+      if (sy < bb.minY) bb.minY = sy;
+      if (sx > bb.maxX) bb.maxX = sx;
+      if (sy > bb.maxY) bb.maxY = sy;
+    }
+
+    function poly(parent, pts3d, fill, opts){
+      opts = opts || {};
+      var d = pts3d.map(function(p, i){
+        var sp = project(p[0], p[1], p[2]);
+        trackPt(sp[0], sp[1]);
+        return (i===0?"M":"L") + sp[0].toFixed(1) + " " + sp[1].toFixed(1);
+      }).join(" ") + " Z";
+      return el("path", Object.assign({d:d, fill:fill, stroke:opts.stroke||"none", "stroke-width":opts.sw||1, opacity:opts.opacity!==undefined?opts.opacity:1}, opts.extra||{}), parent);
+    }
+
+    // floor base — the true traced outline
+    poly(scene, ROOM_POLY.map(function(p){ return [p[0],p[1],0]; }), "#F4EFE7");
+
+    // zone floor tints
+    ZONES.forEach(function(z){
+      var base = KIND_BASE_3D[z.kind];
+      var pts = [[z.x,z.y,0],[z.x+z.w,z.y,0],[z.x+z.w,z.y+z.h,0],[z.x,z.y+z.h,0]];
+      poly(scene, pts, shade(base, 42), {opacity:0.55});
+    });
+
+    // dock floor plate — a plain dashed-edge platform outside the building, just
+    // enough to give the alternate candidate machine(s) something to visually rest on
+    (function(){
+      var pts = [[DOCK.x,DOCK.y,0],[DOCK.x+DOCK.w,DOCK.y,0],[DOCK.x+DOCK.w,DOCK.y+DOCK.h,0],[DOCK.x,DOCK.y+DOCK.h,0]];
+      poly(scene, pts, "#EDE4D7", {opacity:0.4, stroke:"#C9C0B2", sw:1, extra:{"stroke-dasharray":"6 4"}});
+    })();
+
+    // walls — one quad per outline edge; the only gap left open is the real,
+    // on-site-confirmed entrance, a door-width notch cut into the south wall edge
+    function samePt(p,q){ return Math.abs(p[0]-q[0])<0.01 && Math.abs(p[1]-q[1])<0.01; }
+    function wallQuad(wa, wb){
+      var edx = wb[0]-wa[0], edy = wb[1]-wa[1];
+      var shadePct = (Math.abs(edy) > Math.abs(edx)) ? -6 : 0;
+      if (edx < -0.001 || edy < -0.001) shadePct -= 8;
+      poly(scene, [[wa[0],wa[1],0],[wb[0],wb[1],0],[wb[0],wb[1],WALL_H],[wa[0],wa[1],WALL_H]], shade(wallFill, shadePct), {stroke:"#CFC2AC", sw:1});
+    }
+    var wallFill = "#EDE4D7";
+    var southA = [8.69, ROOM.h], southB = [0.00, ROOM.h]; // the one edge the door sits on
+    for (var wi=0; wi<ROOM_POLY.length; wi++){
+      var wa = ROOM_POLY[wi], wb = ROOM_POLY[(wi+1)%ROOM_POLY.length];
+      var isSouthWall = (samePt(wa,southA) && samePt(wb,southB));
+      if (isSouthWall){
+        // split at the door: wall … gap … wall (door runs from ENTRANCE.x to +w;
+        // wa is the high-x end of this edge, so the near-wa sub-wall ends at the
+        // door's high-x side)
+        var d0 = [ENTRANCE.x + ENTRANCE.w, ROOM.h], d1 = [ENTRANCE.x, ROOM.h];
+        wallQuad(wa, d0);
+        wallQuad(d1, wb);
+        continue;
+      }
+      wallQuad(wa, wb);
+    }
+
+    // equipment, painter's algorithm: draw back-to-front (smaller x+y first)
+    var order = EQUIPMENT.map(function(e,i){ return i; });
+    order.sort(function(a,b){
+      return (EQUIPMENT[a].x + EQUIPMENT[a].y) - (EQUIPMENT[b].x + EQUIPMENT[b].y);
+    });
+
+    var equip3dItems = [];
+    order.forEach(function(idx){
+      var e = EQUIPMENT[idx];
+      var fp3 = footprint(e);
+      var x = e.x, y = e.y, w = fp3.wM, d = fp3.dM, h = e.h/1000;
+      var base = KIND_BASE_3D[e.kind];
+      var topC = shade(base, 20), southC = shade(base, -10), eastC = shade(base, -26);
+
+      // one <g> per item so a single hover listener covers all of its faces + badge
+      var eg = el("g", {class:"equip3d-group", "data-idx":idx}, scene);
+      equip3dItems.push({el:eg, idx:idx});
+
+      // top face
+      poly(eg, [[x,y,h],[x+w,y,h],[x+w,y+d,h],[x,y+d,h]], topC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
+      // south (front-left) face
+      poly(eg, [[x,y+d,0],[x+w,y+d,0],[x+w,y+d,h],[x,y+d,h]], southC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
+      // east (front-right) face
+      poly(eg, [[x+w,y,0],[x+w,y+d,0],[x+w,y+d,h],[x+w,y,h]], eastC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
+
+      // number badge on top face center
+      var centerTop = project(x+w/2, y+d/2, h);
+      var r = Math.min(w,d)*ISO_S*0.26;
+      r = Math.max(6.5, Math.min(10, r));
+      el("circle", {cx:centerTop[0], cy:centerTop[1], r:r, fill:"#2B1B14", opacity:0.88}, eg);
+      trackPt(centerTop[0]-r, centerTop[1]-r);
+      trackPt(centerTop[0]+r, centerTop[1]+r);
+      var bt = el("text", {x:centerTop[0], y:centerTop[1]+r*0.35, "text-anchor":"middle", "font-size":r*1.05, fill:"#FBF9F6", "font-weight":700, "font-family":"IBM Plex Mono, monospace"}, eg);
+      bt.textContent = (idx+1);
+    });
+    attachTooltipHandlers(equip3dItems);
+    attachTapInfoHandlers(equip3dItems);
+
+    // dock label — drawn last (after the equipment loop above), so a tall item
+    // sitting in the dock can never paint over it the way it did when this was
+    // drawn back with the floor plate
+    (function(){
+      var lp = project(DOCK.x + DOCK.w/2, DOCK.y - 0.18, 0);
+      var labelHalfW = DOCK.name.length * 6.5; // rough half-width in px so the auto-fit doesn't clip the text
+      trackPt(lp[0] - labelHalfW, lp[1] - 10);
+      trackPt(lp[0] + labelHalfW, lp[1] + 4);
+      var dlbl = el("text", {x:lp[0], y:lp[1], "text-anchor":"middle", "font-size":10, "font-weight":700, fill:"var(--ink-faint)"}, scene);
+      dlbl.textContent = DOCK.name;
+    })();
+
+    // fit viewBox to content using the manually-tracked bounding box
+    var pad = 26;
+    var bx = bb.minX - pad, by = bb.minY - pad;
+    var bw = (bb.maxX - bb.minX) + 2*pad, bh = (bb.maxY - bb.minY) + 2*pad;
+    svg.setAttribute("viewBox", bx + " " + by + " " + bw + " " + bh);
+    svg.setAttribute("width", bw);
+    svg.setAttribute("height", bh);
+  }
+
+  // ======================================================================
+  // Legends & Table
+  // ======================================================================
+  function buildLegend2D(){
+    var wrap = document.getElementById("legend2d");
+    var kinds = ["prod","cold","pack","util","sup","person","pillar","wall"];
+    kinds.forEach(function(k){
+      var item = document.createElement("div"); item.className = "legend-item";
+      item.innerHTML = '<span class="swatch" style="background:var(--'+k+'-fill); border-color:var(--'+k+'-line)"></span>' + KIND_LABEL[k];
+      wrap.appendChild(item);
+    });
+    var utils = ["power","water","drain","gas","air"];
+    utils.forEach(function(u){
+      var item = document.createElement("div"); item.className = "legend-item";
+      item.innerHTML = '<svg class="legend-icon" viewBox="0 0 24 24"><use href="#ic-'+u+'"/></svg>' + UTIL_LABEL[u];
+      wrap.appendChild(item);
+    });
+  }
+  function buildLegend3D(){
+    var wrap = document.getElementById("legend3d");
+    var kinds = ["prod","cold","pack","util","sup","person","pillar","wall"];
+    kinds.forEach(function(k){
+      var item = document.createElement("div"); item.className = "legend-item";
+      item.innerHTML = '<span class="swatch" style="background:'+KIND_BASE_3D[k]+'; border-color:'+shade(KIND_BASE_3D[k],-30)+'"></span>' + KIND_LABEL[k];
+      wrap.appendChild(item);
+    });
+  }
+  function buildTable(){
+    var body = document.getElementById("eqTableBody");
+    clearSvg(body); // works for any element, not just svg — just empties it
+    EQUIPMENT.forEach(function(e, idx){
+      var tr = document.createElement("tr");
+
+      var tdN = document.createElement("td");
+      tdN.innerHTML = '<span class="badge-num">'+(idx+1)+'</span>';
+      tr.appendChild(tdN);
+
+      var tdName = document.createElement("td");
+      tdName.textContent = e.name;
+      tr.appendChild(tdName);
+
+      var tdDim = document.createElement("td");
+      tdDim.className = "num";
+      tdDim.textContent = e.w + "×" + e.d + "×" + e.h + (e.rot === 90 ? " (90°回転)" : "");
+      tr.appendChild(tdDim);
+
+      var tdZone = document.createElement("td");
+      tdZone.className = "zone-pill";
+      tdZone.textContent = e.zone + "・" + ZONE_NAME[e.zone];
+      tr.appendChild(tdZone);
+
+      var tdStatus = document.createElement("td");
+      tdStatus.innerHTML = '<span class="pill '+e.status+'">'+STATUS_LABEL[e.status]+'</span>';
+      tr.appendChild(tdStatus);
+
+      var tdUtil = document.createElement("td");
+      if (e.util.length){
+        tdUtil.innerHTML = '<span class="util-icons">' + e.util.map(function(u){
+          return '<svg viewBox="0 0 24 24"><use href="#ic-'+u+'"/></svg>';
+        }).join("") + '</span>';
+      } else {
+        tdUtil.textContent = "—";
+      }
+      tr.appendChild(tdUtil);
+
+      // electrical capacity — "〜" prefix marks a same-class typical/estimated figure
+      // rather than a maker's own official spec-sheet number for that exact model
+      // (see the EQUIPMENT array's comment); "—" for items with no electrical load
+      var tdKw = document.createElement("td");
+      tdKw.className = "num";
+      var isDoryoku = e.power === "doryoku";
+      if (isDoryoku) tdKw.className += " kw-doryoku";
+      if (typeof e.kw === "number"){
+        tdKw.textContent = (isDoryoku ? "⚡" : "") + (e.kwConfirmed ? "" : "〜") + e.kw.toFixed(2).replace(/\.?0+$/, "") + "kW";
+        if (e.zone === "DOCK") tdKw.title = "仮置き場(比較用)のため合計には含めていません";
+        else if (isDoryoku) tdKw.title = e.powerConfirmed ? "仕様書で確認済み: 動力(三相200V)が必要" : "目安: 動力(三相200V)が必要な可能性が高いクラスの機器(未確認)";
+      } else {
+        tdKw.textContent = "—";
+      }
+      tr.appendChild(tdKw);
+      if (isDoryoku) tr.className = "row-doryoku";
+
+      // actions — duplicate any item (e.g. to try a 2nd oven or freezer); delete
+      // only shows for a copy, so the fixed catalog list can't be trimmed from here
+      var tdAction = document.createElement("td");
+      tdAction.className = "action-cell";
+      var dupBtn = document.createElement("button");
+      dupBtn.type = "button";
+      dupBtn.className = "action-btn dup-btn";
+      dupBtn.textContent = "コピーを追加";
+      dupBtn.addEventListener("click", function(){ duplicateEquipment(idx); });
+      tdAction.appendChild(dupBtn);
+      if (e.isCopy){
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "action-btn del-btn";
+        delBtn.textContent = "削除";
+        delBtn.addEventListener("click", function(){ deleteEquipment(idx); });
+        tdAction.appendChild(delBtn);
+      }
+      tr.appendChild(tdAction);
+
+      body.appendChild(tr);
+    });
+
+    // total electrical capacity — only equipment actually placed in the room counts;
+    // whichever candidate currently sits in the "仮置き場" (DOCK) is, by definition, not
+    // the one in use, so it's left out and the total updates live as items are dragged
+    // across the swap gap, duplicated, or deleted
+    var foot = document.getElementById("eqTableFoot");
+    clearSvg(foot);
+    var inUse = EQUIPMENT.filter(function(e){ return e.zone !== "DOCK" && typeof e.kw === "number"; });
+    var total = inUse.reduce(function(sum, e){ return sum + e.kw; }, 0);
+    var anyEstimate = inUse.some(function(e){ return !e.kwConfirmed; });
+    var ftr = document.createElement("tr");
+    ftr.className = "total-row";
+    var ftd1 = document.createElement("td");
+    ftd1.colSpan = 6;
+    ftd1.textContent = "合計使用電気容量(仮置き場の機器を除く)";
+    ftr.appendChild(ftd1);
+    var ftd2 = document.createElement("td");
+    ftd2.className = "num";
+    ftd2.textContent = (anyEstimate ? "〜" : "") + total.toFixed(2).replace(/\.?0+$/, "") + "kW";
+    ftr.appendChild(ftd2);
+    var ftd3 = document.createElement("td");
+    ftr.appendChild(ftd3);
+    // same total, mirrored into a standalone summary card above the table so it's
+    // visible immediately on a phone without needing to scroll the table sideways
+    // (the table itself can be wide — 8 columns — and used to clip instead of scroll)
+    var kwSummaryEl = document.getElementById("kwSummaryValue");
+    if (kwSummaryEl){
+      kwSummaryEl.textContent = (anyEstimate ? "〜" : "") + total.toFixed(2).replace(/\.?0+$/, "") + "kW";
+    }
+    foot.appendChild(ftr);
+  }
+
+  // ======================================================================
+  // Tabs
+  // ======================================================================
+  function initTabs(){
+    var tabs = document.querySelectorAll(".tab");
+    tabs.forEach(function(tab){
+      tab.addEventListener("click", function(){
+        tabs.forEach(function(t){ t.classList.remove("active"); });
+        tab.classList.add("active");
+        document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("active"); });
+        document.getElementById("view-" + tab.dataset.view).classList.add("active");
+      });
+    });
+  }
+
+  function initReset(){
+    var btn = document.getElementById("resetBtn");
+    btn.addEventListener("click", function(){
+      EQUIPMENT.length = BASE_COUNT; // drop any added copies — back to the fixed catalog
+      EQUIPMENT.forEach(function(e, i){
+        e.x = EQUIPMENT_DEFAULT[i].x;
+        e.y = EQUIPMENT_DEFAULT[i].y;
+        e.rot = EQUIPMENT_DEFAULT[i].rot;
+        e.zone = EQUIPMENT_DEFAULT[i].zone; // undo any dock↔room swap too
+      });
+      ZONES.forEach(function(z, i){
+        z.x = ZONES_DEFAULT[i].x; z.y = ZONES_DEFAULT[i].y;
+        z.w = ZONES_DEFAULT[i].w; z.h = ZONES_DEFAULT[i].h;
+      });
+      try { localStorage.removeItem(STORAGE_KEY); } catch (err) { /* ignore */ }
+      try { localStorage.removeItem(ZONE_STORAGE_KEY); } catch (err) { /* ignore */ }
+      build2D();
+      build3D();
+      buildTable();
+    });
+  }
+
+  build2D();
+  build3D();
+  buildLegend2D();
+  buildLegend3D();
+  buildTable();
+  initTabs();
+  initReset();
+  initInfoSheet();
+})();
+</script>
+</body>
+</html>
