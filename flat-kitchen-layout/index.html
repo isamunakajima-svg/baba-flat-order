@@ -1590,6 +1590,24 @@
       var solidFill = (e.kind === "pillar" || isWall);
       el("rect", {class:"equip-rect", x:0, y:0, width:w0, height:d0, rx:(personCorner ? w0/2 : 2), ry:(personCorner ? d0/2 : 2), fill:(solidFill ? "var(--"+e.kind+"-fill)" : "var(--paper-raised)"), stroke:"var(--"+e.kind+"-line)", "stroke-width":1.6}, g);
 
+      // person marker: a simple rounded humanoid glyph on top of the circular base
+      // above, so it reads unmistakably as "a person" instead of a plain dot that
+      // could be mistaken for round equipment (a tub, a scale, a drum). Round line
+      // caps/joins on a thick stroke keep the head/arms/legs looking soft and
+      // rounded rather than like thin wireframe sticks.
+      if (personCorner){
+        var pg = el("g", {style:"pointer-events:none;"}, g);
+        el("circle", {cx:w0/2, cy:d0*0.27, r:w0*0.155, fill:"var(--person-line)"}, pg);
+        el("path", {
+          d:"M"+(w0*0.30)+" "+(d0*0.47)+" L"+(w0*0.5)+" "+(d0*0.35)+" L"+(w0*0.70)+" "+(d0*0.47)+
+            " M"+(w0*0.5)+" "+(d0*0.35)+" L"+(w0*0.5)+" "+(d0*0.65)+
+            " M"+(w0*0.5)+" "+(d0*0.65)+" L"+(w0*0.31)+" "+(d0*0.90)+
+            " M"+(w0*0.5)+" "+(d0*0.65)+" L"+(w0*0.69)+" "+(d0*0.90),
+          fill:"none", stroke:"var(--person-line)", "stroke-width":Math.max(2, w0*0.15),
+          "stroke-linecap":"round", "stroke-linejoin":"round"
+        }, pg);
+      }
+
       // deployOutline — a dashed, non-interactive outline showing an item's maximum
       // extent when something attached to it swings/folds out during use (e.g. the
       // reverse sheeter's wings on コールドテーブル180②), so the clearance it needs
@@ -2706,6 +2724,41 @@
       return el("path", Object.assign({d:d, fill:fill, stroke:opts.stroke||"none", "stroke-width":opts.sw||1, opacity:opts.opacity!==undefined?opts.opacity:1}, opts.extra||{}), parent);
     }
 
+    // Chamfered (octagon-cross-section) prism — the one place in this otherwise
+    // all-rectangular isometric illustration that needs to read as "rounded": the
+    // person marker's torso/head/limbs below. A true cylinder would need curved
+    // path data this style never uses anywhere else, so an 8-sided chamfered box
+    // is the cheap approximation — cutting each corner turns a cube into something
+    // closer to a barrel, and a per-edge lighting gradient (shadeForNormal) sells
+    // the roundness further by suggesting a continuously curving surface.
+    function chamferOctagon(cx, cy, halfW, halfD, chamfer){
+      var cw = halfW*chamfer, cd = halfD*chamfer;
+      return [
+        [cx-halfW+cw, cy-halfD], [cx+halfW-cw, cy-halfD], // north edge, L→R
+        [cx+halfW, cy-halfD+cd], [cx+halfW, cy+halfD-cd], // east edge
+        [cx+halfW-cw, cy+halfD], [cx-halfW+cw, cy+halfD], // south edge, R→L
+        [cx-halfW, cy+halfD-cd], [cx-halfW, cy-halfD+cd]  // west edge
+      ];
+    }
+    function shadeForNormal(nx, ny){
+      // a fixed key-light direction (matching the existing box scheme's own bias —
+      // top brightest, east darkest, south in between) mapped onto however many
+      // side faces an edge list has, so any N-sided prism shades consistently
+      var len = Math.sqrt(nx*nx + ny*ny) || 1;
+      var dot = (nx/len)*(-0.925) + (ny/len)*(-0.381);
+      return 32*dot + 1.2;
+    }
+    function chamferPrism(parent, cx, cy, halfW, halfD, z0, z1, baseColor, chamfer){
+      var pts = chamferOctagon(cx, cy, halfW, halfD, chamfer != null ? chamfer : 0.4);
+      var faceOpts = {stroke:"#2B1B14", sw:0.5, extra:{"stroke-opacity":0.22}};
+      poly(parent, pts.map(function(p){ return [p[0], p[1], z1]; }), shade(baseColor, 20), faceOpts);
+      for (var i=0; i<pts.length; i++){
+        var a = pts[i], b = pts[(i+1)%pts.length];
+        var nx = b[1]-a[1], ny = -(b[0]-a[0]);
+        poly(parent, [[a[0],a[1],z0],[b[0],b[1],z0],[b[0],b[1],z1],[a[0],a[1],z1]], shade(baseColor, shadeForNormal(nx,ny)), faceOpts);
+      }
+    }
+
     // floor base — the true traced outline
     poly(scene, ROOM_POLY.map(function(p){ return [p[0],p[1],0]; }), "#F4EFE7");
 
@@ -2798,24 +2851,24 @@
       equip3dItems.push({el:eg, idx:idx});
 
       if (e.kind === "person"){
-        // 通路幅確認用の「人」マーカーは、他の機器と同じ箱型だと紛らわしいので、
-        // 同じ占有footprint(x,y,w,d,h)の中に収まる簡易な人型(頭+胴体の2段)で描く。
-        // バッジ(番号)の位置は従来通りh(=headTop)を使うので変更不要。
         var cx = x + w/2, cy = y + d/2;
-        var bodyHalf = Math.min(w,d) * 0.26, headHalf = Math.min(w,d) * 0.16;
-        var bodyTop = h * 0.60, headBase = h * 0.64, headTop = h;
-        var skinC = "#E3BE97", skinTopC = shade(skinC, 14), skinSideC = shade(skinC, -16);
-        var FACE = {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}};
+        var m = Math.min(w,d);
+        var personBase = KIND_BASE_3D.person;
+        var skinC = "#E3BE97";
+        var pantsC = shade(personBase, -16);
 
-        var bx0 = cx - bodyHalf, bx1 = cx + bodyHalf, by0 = cy - bodyHalf, by1 = cy + bodyHalf;
-        poly(eg, [[bx0,by0,bodyTop],[bx1,by0,bodyTop],[bx1,by1,bodyTop],[bx0,by1,bodyTop]], topC, FACE);
-        poly(eg, [[bx0,by1,0],[bx1,by1,0],[bx1,by1,bodyTop],[bx0,by1,bodyTop]], southC, FACE);
-        poly(eg, [[bx1,by0,0],[bx1,by1,0],[bx1,by1,bodyTop],[bx1,by0,bodyTop]], eastC, FACE);
+        var legTop = h*0.50, torsoTop = h*0.80, headBase = h*0.83, headTop = h;
+        var legHalf = m*0.115, legOffset = m*0.145;
+        var torsoHalf = m*0.28;
+        var armHalf = m*0.085, armOffset = torsoHalf + armHalf*0.85, armTop = torsoTop*0.97, armBottom = legTop*0.92;
+        var headHalf = m*0.165;
 
-        var hx0 = cx - headHalf, hx1 = cx + headHalf, hy0 = cy - headHalf, hy1 = cy + headHalf;
-        poly(eg, [[hx0,hy0,headTop],[hx1,hy0,headTop],[hx1,hy1,headTop],[hx0,hy1,headTop]], skinTopC, FACE);
-        poly(eg, [[hx0,hy1,headBase],[hx1,hy1,headBase],[hx1,hy1,headTop],[hx0,hy1,headTop]], skinC, FACE);
-        poly(eg, [[hx1,hy0,headBase],[hx1,hy1,headBase],[hx1,hy1,headTop],[hx1,hy0,headTop]], skinSideC, FACE);
+        chamferPrism(eg, cx-legOffset, cy, legHalf, legHalf, 0, legTop, pantsC, 0.3);
+        chamferPrism(eg, cx+legOffset, cy, legHalf, legHalf, 0, legTop, pantsC, 0.3);
+        chamferPrism(eg, cx, cy, torsoHalf, torsoHalf, legTop, torsoTop, personBase, 0.4);
+        chamferPrism(eg, cx-armOffset, cy, armHalf, armHalf, armBottom, armTop, skinC, 0.3);
+        chamferPrism(eg, cx+armOffset, cy, armHalf, armHalf, armBottom, armTop, skinC, 0.3);
+        chamferPrism(eg, cx, cy, headHalf, headHalf, headBase, headTop, skinC, 0.45);
       } else {
         // top face
         poly(eg, [[x,y,h],[x+w,y,h],[x+w,y+d,h],[x,y+d,h]], topC, {stroke:"#2B1B14", sw:0.6, extra:{"stroke-opacity":0.25}});
