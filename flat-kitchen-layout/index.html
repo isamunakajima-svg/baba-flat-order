@@ -227,6 +227,9 @@
   .wall-tool-btn.active:hover{color:#fff;}
   .clearance-tool-group{display:flex; align-items:center; gap:6px;}
   .clearance-tool-group .wall-tool-btn.active{background:var(--status-estimate); border-color:var(--status-estimate);}
+
+  .undo-tool-group{display:flex; align-items:center; gap:6px;}
+  .undo-tool-group .reset-btn[disabled]{opacity:.5; cursor:default; pointer-events:none;}
   .clearance-threshold{
     appearance:none; border:1px solid var(--line-strong); background:var(--paper-raised); color:var(--ink-soft);
     font:inherit; font-weight:600; font-size:12px; padding:6px 10px; border-radius:7px; cursor:pointer;
@@ -495,11 +498,15 @@
           <button class="reset-btn" id="exportPng2dBtn" type="button" title="現在の2D配置図をPNG画像として保存します">PNG画像で保存</button>
           <button class="reset-btn" id="exportPdf2dBtn" type="button" title="印刷ダイアログを開きます。「PDFとして保存」を選ぶと図面をPDF化できます">印刷/PDFで保存</button>
         </div>
+        <div class="undo-tool-group">
+          <button class="reset-btn" id="undoBtn" type="button" title="直前の操作を取り消します(最大10手)" disabled>↶ 元に戻す</button>
+          <button class="reset-btn" id="redoBtn" type="button" title="取り消した操作をやり直します" disabled>↷ やり直す</button>
+        </div>
         <button class="reset-btn" id="resetBtn" type="button">初期配置に戻す</button>
       </div>
     </div>
     <div class="svg-wrap"><svg id="svg2d" xmlns="http://www.w3.org/2000/svg"></svg></div>
-    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。「引き戸を追加」ボタンを押してから壁の上でタップ(または少しなぞって幅を指定)すると、その部分が開口になり、戸が壁の中(戸袋)に引き込まれた簡易的な見た目で引き戸が配置されます。既存の引き戸をタップすると削除できます。「寸法を測る」ボタンを押してから2点間をなぞると、その距離を線と数値で表示できます(既存の寸法線をタップすると削除できます)。どのボタンも、もう一度押すと通常の操作に戻ります。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
+    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。「引き戸を追加」ボタンを押してから壁の上でタップ(または少しなぞって幅を指定)すると、その部分が開口になり、戸が壁の中(戸袋)に引き込まれた簡易的な見た目で引き戸が配置されます。既存の引き戸をタップすると削除できます。「寸法を測る」ボタンを押してから2点間をなぞると、その距離を線と数値で表示できます(既存の寸法線をタップすると削除できます)。どのボタンも、もう一度押すと通常の操作に戻ります。「壁を追加」「消しゴム」は、指を離さず一方向になぞると最初の位置から一直線になるよう自動補正されるので、まっすぐなぞるだけでズレなく壁を描けます。操作を間違えたときは「↶ 元に戻す」(最大10手)、取り消しすぎたときは「↷ やり直す」で戻せます。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
     <div class="legend-row" id="legend2d"></div>
     <div class="kw-summary">
       <span class="ks-label">合計使用電気容量(仮置き場の機器を除く)</span>
@@ -1382,6 +1389,75 @@
       body: JSON.stringify({token: GAS_TOKEN, data: payload})
     }).catch(function(){ /* offline/transient — fine, this device's own state is unaffected */ });
   }
+
+  // ---------- Undo / Redo ----------
+  // Snapshot-based, not action-based: every undoable gesture (equipment drag, wall
+  // paint/erase, door/measurement place-or-delete, rotate, duplicate/delete,
+  // custom-equipment add, even "初期配置に戻す") just captures the FULL layout state
+  // — the same cloudPayload() shape already used for cross-device sync — right
+  // before it touches anything, via beginUndoableChange()/commitUndoableChange()
+  // around the existing mutation code. commitUndoableChange() only pushes that
+  // snapshot onto the stack if something actually changed, so an accidental
+  // no-op drag doesn't waste a history slot. This needs no per-tool undo logic of
+  // its own and stays correct automatically as new tools are added, since they
+  // already all funnel through cloudPayload()/applyCloudPayload().
+  var UNDO_MAX = 10;
+  var undoHistory = [];
+  var redoHistory = [];
+  var undoPending = null;
+  function snapshotState(){ return JSON.stringify(cloudPayload()); }
+  function beginUndoableChange(){ undoPending = snapshotState(); }
+  function commitUndoableChange(){
+    if (undoPending === null) return;
+    var before = undoPending;
+    undoPending = null;
+    if (snapshotState() === before) return; // nothing actually changed — don't clutter the history
+    undoHistory.push(before);
+    if (undoHistory.length > UNDO_MAX) undoHistory.shift();
+    redoHistory.length = 0; // a fresh change invalidates whatever redo path existed
+    updateUndoRedoButtons();
+  }
+  function applyRestoredState(json){
+    applyCloudPayload(JSON.parse(json));
+    build2D();
+    build3D();
+    buildTable();
+    savePositions(); saveZones(); saveWalls(); saveDoors(); saveMeasurements(); // persist + re-share with other devices
+    renderClearanceCheck();
+    updateUndoRedoButtons();
+  }
+  function undo(){
+    if (!undoHistory.length) return;
+    redoHistory.push(snapshotState());
+    if (redoHistory.length > UNDO_MAX) redoHistory.shift();
+    applyRestoredState(undoHistory.pop());
+  }
+  function redo(){
+    if (!redoHistory.length) return;
+    undoHistory.push(snapshotState());
+    if (undoHistory.length > UNDO_MAX) undoHistory.shift();
+    applyRestoredState(redoHistory.pop());
+  }
+  function updateUndoRedoButtons(){
+    var u = document.getElementById("undoBtn"), r = document.getElementById("redoBtn");
+    if (u) u.disabled = undoHistory.length === 0;
+    if (r) r.disabled = redoHistory.length === 0;
+  }
+  function initUndoRedo(){
+    var u = document.getElementById("undoBtn"), r = document.getElementById("redoBtn");
+    if (u) u.addEventListener("click", undo);
+    if (r) r.addEventListener("click", redo);
+    // Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z (or +Y) for anyone on a keyboard — the buttons
+    // above remain the primary, touch-friendly way to do this.
+    document.addEventListener("keydown", function(ev){
+      if (!(ev.ctrlKey || ev.metaKey)) return;
+      var k = ev.key.toLowerCase();
+      if (k === "z" && !ev.shiftKey){ ev.preventDefault(); undo(); }
+      else if ((k === "z" && ev.shiftKey) || k === "y"){ ev.preventDefault(); redo(); }
+    });
+    updateUndoRedoButtons();
+  }
+
   function pullFromCloud(isInitial){
     if (!cloudSyncEnabled) return;
     var url = GAS_URL + "?token=" + encodeURIComponent(GAS_TOKEN) + "&_=" + Date.now();
@@ -1395,6 +1471,12 @@
         build2D();
         build3D();
         buildTable();
+        // another device just changed the shared layout — this device's undo/redo
+        // history no longer lines up with a single consistent timeline, so drop it
+        // rather than risk "undo" clobbering someone else's change
+        undoHistory.length = 0;
+        redoHistory.length = 0;
+        updateUndoRedoButtons();
       } else if (isInitial && !cloudSeeded){
         // 共有データがまだ何もない(このツールを初めて開いた) — 今のこのデバイスの
         // localStorageの内容をそのまま種として保存し、他のデバイスが拾えるようにする
@@ -1860,31 +1942,23 @@
     var pt = toSvgPoint(svg, clientX, clientY);
     return { x:(pt.x - M2.l) / S2, y:(pt.y - M2.t) / S2 };
   }
-  // Paints/erases every cell the segment (x0,y0)→(x1,y1) crosses, not just its two
-  // endpoints — needed because a fast finger/mouse drag can jump several cells
-  // between consecutive pointermove events. Returns true if anything changed, so
-  // the caller only has to redraw the wall layer when it actually needs to.
-  function paintCellsAlong(x0, y0, x1, y1, erase){
-    var canvasW = Math.max(ROOM.w, DOCK.x + DOCK.w);
-    var canvasH = Math.max(ROOM.h, DOCK.y + DOCK.h);
-    var maxGx = Math.floor(canvasW / WALL_CELL) - 1, maxGy = Math.floor(canvasH / WALL_CELL) - 1;
-    var dx = x1 - x0, dy = y1 - y0;
-    var dist = Math.sqrt(dx*dx + dy*dy);
-    var steps = Math.max(1, Math.ceil(dist / (WALL_CELL*0.4)));
-    var changed = false;
-    for (var i = 0; i <= steps; i++){
-      var t = i / steps;
-      var gx = Math.floor((x0 + dx*t) / WALL_CELL);
-      var gy = Math.floor((y0 + dy*t) / WALL_CELL);
-      if (gx < 0 || gy < 0 || gx > maxGx || gy > maxGy) continue; // off the canvas — ignore
-      var k = cellKey(gx, gy);
-      if (erase){
-        if (WALL_CELLS.has(k)){ WALL_CELLS.delete(k); changed = true; }
-      } else {
-        if (!WALL_CELLS.has(k)){ WALL_CELLS.add(k); changed = true; }
-      }
+  // The set of grid cells making up a straight wall run from the stroke's starting
+  // cell to (gx,gy): a full row when the stroke has locked to the horizontal axis,
+  // a full column when locked to vertical, or just the starting cell while the axis
+  // is still undecided. Used by attachWallPaintHandlers below to keep an entire
+  // drag confined to one straight line instead of literally following the pointer.
+  function wallStrokeLineCells(startGx, startGy, axis, gx, gy){
+    var cells = new Set();
+    if (axis === "h"){
+      var x0 = Math.min(startGx, gx), x1 = Math.max(startGx, gx);
+      for (var cgx = x0; cgx <= x1; cgx++) cells.add(cellKey(cgx, startGy));
+    } else if (axis === "v"){
+      var y0 = Math.min(startGy, gy), y1 = Math.max(startGy, gy);
+      for (var cgy = y0; cgy <= y1; cgy++) cells.add(cellKey(startGx, cgy));
+    } else {
+      cells.add(cellKey(startGx, startGy));
     }
-    return changed;
+    return cells;
   }
   function attachWallPaintHandlers(svg, rectEl){
     suppressNativeTouch(rectEl); // see suppressNativeTouch's own comment — without this,
@@ -1894,17 +1968,62 @@
     rectEl.addEventListener("pointerdown", function(ev){
       if (wallEditMode !== "wall" && wallEditMode !== "erase") return; // door mode has its own handler below
       if (ev.cancelable) ev.preventDefault();
+      beginUndoableChange();
       var erase = wallEditMode === "erase";
-      var lastPt = modelPointFromClient(svg, ev.clientX, ev.clientY);
-      if (paintCellsAlong(lastPt.x, lastPt.y, lastPt.x, lastPt.y, erase)) renderWallLayer();
+      var canvasW = Math.max(ROOM.w, DOCK.x + DOCK.w);
+      var canvasH = Math.max(ROOM.h, DOCK.y + DOCK.h);
+      var maxGx = Math.floor(canvasW / WALL_CELL) - 1, maxGy = Math.floor(canvasH / WALL_CELL) - 1;
+      function toGrid(p){
+        return {
+          gx: Math.max(0, Math.min(maxGx, Math.floor(p.x / WALL_CELL))),
+          gy: Math.max(0, Math.min(maxGy, Math.floor(p.y / WALL_CELL)))
+        };
+      }
+      var g0 = toGrid(modelPointFromClient(svg, ev.clientX, ev.clientY));
+      // A real finger/mouse drag along "one direction" still wobbles a cell or two on
+      // the other axis — painting literally wherever the pointer sits (the old
+      // behavior) turned that wobble into a staircase in the wall itself. Instead,
+      // once the drag clearly commits to a direction (>=2 cells along one axis), the
+      // whole stroke locks to a single straight row/column through the starting
+      // cell and stays locked for the rest of the drag: "draw a straight line from
+      // where you started", the same idea as holding shift in a drawing app, just
+      // automatic since there's no shift key on a touchscreen.
+      var axis = null;
+      var addedCells = new Set();   // cells WE added this stroke (paint mode) — only these are ever retracted
+      var removedCells = new Set(); // cells WE removed this stroke (erase mode) — only these are ever restored
+      function applyLine(gx, gy){
+        var lineCells = wallStrokeLineCells(g0.gx, g0.gy, axis, gx, gy);
+        var changed = false;
+        if (erase){
+          lineCells.forEach(function(k){
+            if (!removedCells.has(k) && WALL_CELLS.has(k)){ WALL_CELLS.delete(k); removedCells.add(k); changed = true; }
+          });
+          var toRestore = [];
+          removedCells.forEach(function(k){ if (!lineCells.has(k)) toRestore.push(k); });
+          toRestore.forEach(function(k){ WALL_CELLS.add(k); removedCells.delete(k); changed = true; });
+        } else {
+          lineCells.forEach(function(k){
+            if (!addedCells.has(k) && !WALL_CELLS.has(k)){ WALL_CELLS.add(k); addedCells.add(k); changed = true; }
+          });
+          var toRemove = [];
+          addedCells.forEach(function(k){ if (!lineCells.has(k)) toRemove.push(k); });
+          toRemove.forEach(function(k){ WALL_CELLS.delete(k); addedCells.delete(k); changed = true; });
+        }
+        if (changed) renderWallLayer();
+      }
+      applyLine(g0.gx, g0.gy);
       startPointerTracking(function(mv){
-        var np = modelPointFromClient(svg, mv.clientX, mv.clientY);
-        if (paintCellsAlong(lastPt.x, lastPt.y, np.x, np.y, erase)) renderWallLayer();
-        lastPt = np;
+        var g1 = toGrid(modelPointFromClient(svg, mv.clientX, mv.clientY));
+        if (axis === null){
+          var dgx = g1.gx - g0.gx, dgy = g1.gy - g0.gy;
+          if (Math.max(Math.abs(dgx), Math.abs(dgy)) >= 2) axis = Math.abs(dgx) >= Math.abs(dgy) ? "h" : "v";
+        }
+        applyLine(g1.gx, g1.gy);
       }, function(){
         saveWalls();
         build3D(); // keep the 3D view in sync, even while its tab is hidden
         renderClearanceCheck(); // walls just moved — re-check gaps against them
+        commitUndoableChange();
       });
     });
   }
@@ -1915,6 +2034,7 @@
     rectEl.addEventListener("pointerdown", function(ev){
       if (wallEditMode !== "door") return;
       if (ev.cancelable) ev.preventDefault();
+      beginUndoableChange();
       var p0 = modelPointFromClient(svg, ev.clientX, ev.clientY);
 
       for (var i = DOORS.length - 1; i >= 0; i--){
@@ -1924,6 +2044,7 @@
           saveDoors();
           build3D();
           renderClearanceCheck();
+          commitUndoableChange();
           return; // tapped an existing door — remove it, don't also start drawing one
         }
       }
@@ -1976,6 +2097,7 @@
         saveDoors();
         build3D();
         renderClearanceCheck(); // a wall span may have just opened up under the door
+        commitUndoableChange();
       });
     });
   }
@@ -1985,6 +2107,7 @@
     rectEl.addEventListener("pointerdown", function(ev){
       if (wallEditMode !== "measure") return;
       if (ev.cancelable) ev.preventDefault();
+      beginUndoableChange();
       var p0 = modelPointFromClient(svg, ev.clientX, ev.clientY);
 
       for (var i = MEASUREMENTS.length - 1; i >= 0; i--){
@@ -1993,6 +2116,7 @@
           MEASUREMENTS.splice(i, 1);
           renderMeasureLayer();
           saveMeasurements();
+          commitUndoableChange();
           return; // tapped an existing line — remove it, don't also start a new one
         }
       }
@@ -2013,6 +2137,7 @@
           renderMeasureLayer();
           saveMeasurements();
         }
+        commitUndoableChange();
       });
     });
   }
@@ -2148,6 +2273,7 @@
   function duplicateEquipment(idx){
     var src = EQUIPMENT[idx];
     if (!src) return;
+    beginUndoableChange();
     var baseName = stripUnitSuffix(src.name);
     var count = EQUIPMENT.filter(function(e){ return stripUnitSuffix(e.name) === baseName; }).length;
     var copy = Object.assign({}, src, {
@@ -2165,14 +2291,17 @@
     build2D();
     build3D();
     buildTable();
+    commitUndoableChange();
   }
   function deleteEquipment(idx){
     if (idx < BASE_COUNT) return; // the original catalog items aren't deletable from the UI
+    beginUndoableChange();
     EQUIPMENT.splice(idx, 1);
     savePositions();
     build2D();
     build3D();
     buildTable();
+    commitUndoableChange();
   }
 
   // ---------- Custom equipment add form ----------
@@ -2185,6 +2314,7 @@
   // there's no way to know a free spot inside the room — the user drags it in from
   // there, same gesture already used for everything else staged in the dock.
   function addCustomEquipment(spec){
+    beginUndoableChange();
     var dockCount = EQUIPMENT.filter(function(e){ return e.zone === "DOCK"; }).length;
     var item = {
       name: spec.name, w: spec.w, d: spec.d, h: spec.h,
@@ -2203,6 +2333,7 @@
     build2D();
     build3D();
     buildTable();
+    commitUndoableChange();
   }
   function initCustomEquipmentForm(){
     var overlay = document.getElementById("customEqOverlay");
@@ -2504,6 +2635,7 @@
 
       g.addEventListener("pointerdown", function(ev){
         ev.preventDefault();
+        beginUndoableChange();
         try { g.setPointerCapture(ev.pointerId); } catch (err) { /* capture is a nice-to-have here, not load-bearing — document listeners below do the real tracking */ }
         g.classList.add("dragging");
         var pt = toSvgPoint(svg, ev.clientX, ev.clientY);
@@ -2538,6 +2670,7 @@
             build3D(); // keep the 3D view in sync, even while its tab is hidden
             renderClearanceCheck(); // re-check gaps now that this item moved
             if (e.zone !== prevZone) buildTable(); // dock↔room swap changed its zone label
+            commitUndoableChange();
           }
         );
       });
@@ -2548,6 +2681,7 @@
         item.rotBtn.addEventListener("pointerdown", function(ev){ ev.stopPropagation(); });
         item.rotBtn.addEventListener("pointerup", function(ev){
           ev.stopPropagation();
+          beginUndoableChange();
           var e = EQUIPMENT[idx];
           e.rot = (e.rot === 90) ? 0 : 90;
           var fp = footprint(e);
@@ -2557,6 +2691,7 @@
           build2D();
           build3D();
           buildTable();
+          commitUndoableChange();
         });
       }
     });
@@ -2572,6 +2707,7 @@
 
       rect.addEventListener("pointerdown", function(ev){
         ev.preventDefault();
+        beginUndoableChange();
         try { rect.setPointerCapture(ev.pointerId); } catch (err) { /* nice-to-have only — see attachDragHandlers */ }
         rect.classList.add("dragging");
         var pt = toSvgPoint(svg, ev.clientX, ev.clientY);
@@ -2598,6 +2734,7 @@
             saveZones();
             build2D();
             build3D();
+            commitUndoableChange();
           }
         );
       });
@@ -2613,6 +2750,7 @@
       handle.addEventListener("pointerdown", function(ev){
         ev.preventDefault();
         ev.stopPropagation();
+        beginUndoableChange();
         try { handle.setPointerCapture(ev.pointerId); } catch (err) { /* nice-to-have only — see attachDragHandlers */ }
         var pt = toSvgPoint(svg, ev.clientX, ev.clientY);
         var resizeState = {
@@ -2645,6 +2783,7 @@
             saveZones();
             build2D();
             build3D();
+            commitUndoableChange();
           }
         );
       });
@@ -3102,6 +3241,7 @@
   function initReset(){
     var btn = document.getElementById("resetBtn");
     btn.addEventListener("click", function(){
+      beginUndoableChange();
       EQUIPMENT.length = BASE_COUNT; // drop any added copies — back to the fixed catalog
       EQUIPMENT.forEach(function(e, i){
         e.x = EQUIPMENT_DEFAULT[i].x;
@@ -3124,6 +3264,7 @@
       build2D();
       build3D();
       buildTable();
+      commitUndoableChange();
     });
   }
 
@@ -3140,6 +3281,7 @@
   initClearanceTool();
   initCustomEquipmentForm();
   initExportTools();
+  initUndoRedo();
 })();
 </script>
 </body>
