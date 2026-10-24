@@ -483,7 +483,15 @@
         <div class="wall-tool-group">
           <button class="reset-btn wall-tool-btn" id="wallAddBtn" type="button" title="指でなぞった場所に壁を描き足します">壁を追加</button>
           <button class="reset-btn wall-tool-btn" id="wallEraseBtn" type="button" title="指でなぞった壁を少しずつ消します">消しゴム</button>
-          <button class="reset-btn wall-tool-btn" id="doorAddBtn" type="button" title="壁の上でタップ、または指でなぞった分だけ引き戸(開いた状態)を配置します。既存の引き戸をタップすると削除できます">引き戸を追加</button>
+          <button class="reset-btn wall-tool-btn" id="doorAddBtn" type="button" title="壁の上でタップすると、右の幅で引き戸(開いた状態)を配置します。指でなぞると幅を変えられます(標準的な幅の近くで自動的にピタッと揃います)。既存の引き戸をタップすると削除できます">引き戸を追加</button>
+          <select class="clearance-threshold" id="doorWidthSelect" title="タップで配置する引き戸の幅。なぞって配置する場合も、この近くの幅へ自動で吸着します">
+            <option value="0.6">600mm</option>
+            <option value="0.7">700mm</option>
+            <option value="0.8" selected>800mm</option>
+            <option value="0.9">900mm</option>
+            <option value="1.0">1000mm</option>
+            <option value="1.2">1200mm</option>
+          </select>
           <button class="reset-btn wall-tool-btn" id="measureBtn" type="button" title="2点をなぞるとその間の距離を表示します。既存の寸法線をタップすると削除できます">寸法を測る</button>
         </div>
         <div class="clearance-tool-group">
@@ -506,7 +514,7 @@
       </div>
     </div>
     <div class="svg-wrap"><svg id="svg2d" xmlns="http://www.w3.org/2000/svg"></svg></div>
-    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。「引き戸を追加」ボタンを押してから壁の上でタップ(または少しなぞって幅を指定)すると、その部分が開口になり、戸が壁の中(戸袋)に引き込まれた簡易的な見た目で引き戸が配置されます。既存の引き戸をタップすると削除できます。「寸法を測る」ボタンを押してから2点間をなぞると、その距離を線と数値で表示できます(既存の寸法線をタップすると削除できます)。どのボタンも、もう一度押すと通常の操作に戻ります。「壁を追加」「消しゴム」は、指を離さず一方向になぞると最初の位置から一直線になるよう自動補正されるので、まっすぐなぞるだけでズレなく壁を描けます。操作を間違えたときは「↶ 元に戻す」(最大10手)、取り消しすぎたときは「↷ やり直す」で戻せます。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
+    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。「引き戸を追加」ボタンを押してから壁の上でタップすると、右の幅選択(既定800mm)でその部分が開口になり、戸が壁の中(戸袋)に引き込まれた簡易的な見た目で引き戸が配置されます。指でなぞると幅を自由に変えられ、600/700/800/900/1000/1200mmの近くまでなぞると自動的にその幅にピタッと揃い(なぞっている間、幅がmm数字で表示されます)、方向(横/縦)も最初に動かした向きで固定されるのでブレません。既存の引き戸をタップすると削除できます。「寸法を測る」ボタンを押してから2点間をなぞると、その距離を線と数値で表示できます(既存の寸法線をタップすると削除できます)。どのボタンも、もう一度押すと通常の操作に戻ります。「壁を追加」「消しゴム」は、指を離さず一方向になぞると最初の位置から一直線になるよう自動補正されるので、まっすぐなぞるだけでズレなく壁を描けます。操作を間違えたときは「↶ 元に戻す」(最大10手)、取り消しすぎたときは「↷ やり直す」で戻せます。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
     <div class="legend-row" id="legend2d"></div>
     <div class="kw-summary">
       <span class="ks-label">合計使用電気容量(仮置き場の機器を除く)</span>
@@ -1023,7 +1031,22 @@
   // opening itself is just the gap left in the wall, plus a solid leaf shown
   // retracted into a same-size wall pocket (戸袋) right next to the opening, so
   // it reads as "a sliding door, currently open" at a glance.
-  var DOOR_LEN_DEFAULT = 0.8; // meters — used for a plain tap with no drag
+  var DOOR_WIDTH_PRESETS = [0.6, 0.7, 0.8, 0.9, 1.0, 1.2]; // meters — common sliding-door widths
+  var DOOR_SNAP_TOL = 0.08; // meters — a drag's raw length "magnet-snaps" to the nearest
+                             // preset above once it lands within this of one, so landing on
+                             // a standard size doesn't need pixel-perfect dragging; farther
+                             // away it falls back to the normal 10cm grid
+  var doorWidthM = 0.8; // meters — current width, set via the width dropdown; used both for
+                         // a plain tap (no drag) and as the drag's un-snapped starting point
+  function snapDoorLength(rawLenM){
+    var best = null, bestDist = DOOR_SNAP_TOL;
+    DOOR_WIDTH_PRESETS.forEach(function(p){
+      var dist = Math.abs(rawLenM - p);
+      if (dist <= bestDist){ best = p; bestDist = dist; }
+    });
+    if (best !== null) return best;
+    return Math.max(WALL_CELL, Math.round(rawLenM / WALL_CELL) * WALL_CELL);
+  }
   var DOOR_STORAGE_KEY = "flat-②坂下一丁目-doors-v1";
   var DOORS = []; // {x, y, len, horiz}
   var doorLayerEl = null; // committed doors
@@ -1072,6 +1095,13 @@
   function pointInRect(px_, py_, r){
     return px_ >= r.x && px_ <= r.x+r.w && py_ >= r.y && py_ <= r.y+r.h;
   }
+  // An inflated copy of a rect, for hit-testing a tap against something whose own
+  // footprint is too thin to tap reliably (a door's union rect is only one wall
+  // cell — 10cm — thick on its short axis, so an ordinary tap can legitimately
+  // round to just outside it; see attachDoorHandlers' tap-to-delete check).
+  function padRect(r, pad){
+    return {x:r.x-pad, y:r.y-pad, w:r.w+2*pad, h:r.h+2*pad};
+  }
   // Draws one door (committed, full style) or preview (dashed/translucent ghost
   // while dragging) into `parent`. Shared by the 2D committed layer and the
   // live drag preview.
@@ -1099,6 +1129,18 @@
       else { lx = wallPx(u.x+u.w) + 4; ly = wallPy(u.y+u.h/2) + 3; anchor = "start"; }
       var txt = el("text", {x:lx, y:ly, "text-anchor":anchor, "font-size":7.8, "font-weight":700, fill:"var(--door-line)", style:"pointer-events:none;"}, parent);
       txt.textContent = "引き戸";
+    } else {
+      // live width readout while dragging — there's no other way to tell the exact
+      // width being drawn mid-drag, which was the main complaint about this tool
+      // ("幅の指定がやりにくい"); a chip with the mm value removes the guesswork.
+      var uP = doorUnionRect(d);
+      var cx2 = wallPx(uP.x + uP.w/2), cy2 = wallPy(uP.y) - 11;
+      if (!d.horiz){ cx2 = wallPx(uP.x + uP.w) + 24; cy2 = wallPy(uP.y + uP.h/2); }
+      var label2 = Math.round(d.len*1000) + "mm";
+      var labelW2 = 7.2*label2.length + 10;
+      el("rect", {x:cx2-labelW2/2, y:cy2-10, width:labelW2, height:16, rx:3, fill:"var(--paper-raised)", stroke:"var(--door-line)", "stroke-width":1, opacity:0.95, style:"pointer-events:none;"}, parent);
+      var txt2 = el("text", {x:cx2, y:cy2+2, "text-anchor":"middle", "font-size":10, "font-weight":700, fill:"var(--door-line)", class:"mono", style:"pointer-events:none;"}, parent);
+      txt2.textContent = label2;
     }
   }
   function renderDoorLayer(){
@@ -2038,7 +2080,7 @@
       var p0 = modelPointFromClient(svg, ev.clientX, ev.clientY);
 
       for (var i = DOORS.length - 1; i >= 0; i--){
-        if (pointInRect(p0.x, p0.y, doorUnionRect(DOORS[i]))){
+        if (pointInRect(p0.x, p0.y, padRect(doorUnionRect(DOORS[i]), 0.08))){
           DOORS.splice(i, 1);
           renderDoorLayer();
           saveDoors();
@@ -2051,19 +2093,32 @@
 
       var snappedX0 = Math.round(p0.x / WALL_CELL) * WALL_CELL;
       var snappedY0 = Math.round(p0.y / WALL_CELL) * WALL_CELL;
+      // Lock the drag to whichever axis it clearly commits to, the same fix already
+      // applied to the wall paint tool — recomputing horiz/vert fresh on every move
+      // (the old behavior) made the preview, and therefore the measured width,
+      // flip disconcertingly whenever the drag wandered close to 45°. Below the
+      // commit threshold it's still "a tap" (pre-decided horizontal, default width).
+      var axis = null; // null | "h" | "v"
       function previewFrom(p1){
         var dx = p1.x - p0.x, dy = p1.y - p0.y;
-        var horiz = Math.abs(dx) >= Math.abs(dy);
-        var len = Math.round(Math.abs(horiz ? dx : dy) / WALL_CELL) * WALL_CELL;
-        var tapLike = len < WALL_CELL * 1.5; // barely moved — treat as a plain tap
-        if (tapLike){ horiz = true; len = DOOR_LEN_DEFAULT; }
-        var x, y;
-        if (horiz){
-          x = tapLike ? snappedX0 - len/2 : Math.min(snappedX0, Math.round(p1.x / WALL_CELL) * WALL_CELL);
-          y = snappedY0;
+        if (axis === null && Math.max(Math.abs(dx), Math.abs(dy)) >= WALL_CELL * 1.5){
+          axis = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
+        }
+        var tapLike = axis === null;
+        var horiz = axis !== "v";
+        var len, x, y;
+        if (tapLike){
+          len = doorWidthM;
+          if (horiz){ x = snappedX0 - len/2; y = snappedY0; }
+          else { x = snappedX0; y = snappedY0 - len/2; }
         } else {
-          x = snappedX0;
-          y = tapLike ? snappedY0 - len/2 : Math.min(snappedY0, Math.round(p1.y / WALL_CELL) * WALL_CELL);
+          // magnet-snap the raw dragged length to the nearest standard width when
+          // close to one (snapDoorLength), so a common size "just lands" without
+          // needing a pixel-perfect drag — this was the other main complaint
+          // ("幅の指定がやりにくい")
+          len = snapDoorLength(Math.abs(horiz ? dx : dy));
+          if (horiz){ x = (dx >= 0) ? snappedX0 : snappedX0 - len; y = snappedY0; }
+          else { x = snappedX0; y = (dy >= 0) ? snappedY0 : snappedY0 - len; }
         }
         return {x:x, y:y, len:Math.max(len, WALL_CELL), horiz:horiz};
       }
@@ -2172,6 +2227,10 @@
     if (eraseBtn) eraseBtn.addEventListener("click", function(){ setWallEditMode("erase"); });
     if (doorBtn) doorBtn.addEventListener("click", function(){ setWallEditMode("door"); });
     if (measureBtn) measureBtn.addEventListener("click", function(){ setWallEditMode("measure"); });
+    var doorWidthSelect = document.getElementById("doorWidthSelect");
+    if (doorWidthSelect) doorWidthSelect.addEventListener("change", function(){
+      doorWidthM = parseFloat(doorWidthSelect.value) || doorWidthM;
+    });
   }
 
   // Keep a dragged item's rectangle (xm,ym,wM,dM) inside the true room
