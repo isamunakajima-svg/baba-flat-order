@@ -483,7 +483,7 @@
         <div class="wall-tool-group">
           <button class="reset-btn wall-tool-btn" id="wallAddBtn" type="button" title="指でなぞった場所に壁を描き足します">壁を追加</button>
           <button class="reset-btn wall-tool-btn" id="wallEraseBtn" type="button" title="指でなぞった壁を少しずつ消します">消しゴム</button>
-          <button class="reset-btn wall-tool-btn" id="doorAddBtn" type="button" title="壁の上でタップすると、右の幅で引き戸(開いた状態)を配置します。指でなぞると幅を変えられます(標準的な幅の近くで自動的にピタッと揃います)。既存の引き戸をタップすると削除できます">引き戸を追加</button>
+          <button class="reset-btn wall-tool-btn" id="doorAddBtn" type="button" title="壁の上でタップすると、右の幅で引き戸(開いた状態)を配置します。指でなぞると幅を変えられます(標準的な幅の近くで自動的にピタッと揃います)。既存の引き戸はドラッグで位置を微調整、タップ(動かさず離す)で削除できます">引き戸を追加</button>
           <select class="clearance-threshold" id="doorWidthSelect" title="タップで配置する引き戸の幅。なぞって配置する場合も、この近くの幅へ自動で吸着します">
             <option value="0.6">600mm</option>
             <option value="0.7">700mm</option>
@@ -492,6 +492,7 @@
             <option value="1.0">1000mm</option>
             <option value="1.2">1200mm</option>
           </select>
+          <button class="reset-btn wall-tool-btn" id="doorFlipBtn" type="button" title="これから新しく置く引き戸が「戸袋(戸が収まる側)」をどちら向きにするかを切り替えます。すでに置いた戸は、戸の横の⇄マークをタップすると個別に向きを反転できます">引く向きを反転</button>
           <button class="reset-btn wall-tool-btn" id="measureBtn" type="button" title="2点をなぞるとその間の距離を表示します。既存の寸法線をタップすると削除できます">寸法を測る</button>
         </div>
         <div class="clearance-tool-group">
@@ -514,7 +515,7 @@
       </div>
     </div>
     <div class="svg-wrap"><svg id="svg2d" xmlns="http://www.w3.org/2000/svg"></svg></div>
-    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。「引き戸を追加」ボタンを押してから壁の上でタップすると、右の幅選択(既定800mm)でその部分が開口になり、戸が壁の中(戸袋)に引き込まれた簡易的な見た目で引き戸が配置されます。指でなぞると幅を自由に変えられ、600/700/800/900/1000/1200mmの近くまでなぞると自動的にその幅にピタッと揃い(なぞっている間、幅がmm数字で表示されます)、方向(横/縦)も最初に動かした向きで固定されるのでブレません。既存の引き戸をタップすると削除できます。「寸法を測る」ボタンを押してから2点間をなぞると、その距離を線と数値で表示できます(既存の寸法線をタップすると削除できます)。どのボタンも、もう一度押すと通常の操作に戻ります。「壁を追加」「消しゴム」は、指を離さず一方向になぞると最初の位置から一直線になるよう自動補正されるので、まっすぐなぞるだけでズレなく壁を描けます。操作を間違えたときは「↶ 元に戻す」(最大10手)、取り消しすぎたときは「↷ やり直す」で戻せます。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
+    <p class="note drag-note">機器ブロックはドラッグで移動、左上の<b>⟳</b>ボタンで90°回転できます。ゾーンの枠(点線)もドラッグで移動、右下の■ハンドルをドラッグすると大きさを変えられます。すべて0.1mグリッドにスナップします。右外側の「仮置き場」の機器は、ドラッグで建物内のゾーンBと入れ替えて比較できます(入れ替えるとゾーン表示も自動で切り替わります)。下表の「コピーを追加」ボタンで、オーブンや冷蔵庫などを増設した場合の配置も試せます(追加した分は「削除」で戻せます)。「壁を追加」ボタンを押してから図面をなぞると、その場所に壁を描き足せます(表には出てきません)。「消しゴム」ボタンでなぞった部分だけ壁を少しずつ消せます。「引き戸を追加」ボタンを押してから壁の上でタップすると、右の幅選択(既定800mm)でその部分が開口になり、戸が壁の中(戸袋)に引き込まれた簡易的な見た目で引き戸が配置されます。指でなぞると幅を自由に変えられ、600/700/800/900/1000/1200mmの近くまでなぞると自動的にその幅にピタッと揃い(なぞっている間、幅がmm数字で表示されます)、方向(横/縦)も最初に動かした向きで固定されるのでブレません。戸袋(戸が収まる側)をどちら向きにするかは「引く向きを反転」ボタンで次に置く戸から切り替えられ、すでに置いた戸は横の⇄マークをタップすると個別に反転できます。既存の引き戸はドラッグすると位置を微調整でき(ほかの機器と同じく0.1mグリッドにスナップします)、動かさずタップ(離す)すると削除できます。「寸法を測る」ボタンを押してから2点間をなぞると、その距離を線と数値で表示できます(既存の寸法線をタップすると削除できます)。どのボタンも、もう一度押すと通常の操作に戻ります。「壁を追加」「消しゴム」は、指を離さず一方向になぞると最初の位置から一直線になるよう自動補正されるので、まっすぐなぞるだけでズレなく壁を描けます。操作を間違えたときは「↶ 元に戻す」(最大10手)、取り消しすぎたときは「↷ やり直す」で戻せます。変更は公開リンクを開いているすべての端末に共有されます(ローカルに保存したファイル版は共有対象外です)。「3Dパース」タブを開くと最新の配置で再表示されます。機器にカーソルを近づけると詳細がポップアップします(スマホでは機器をタップすると画面下に詳細が表示されます)。</p>
     <div class="legend-row" id="legend2d"></div>
     <div class="kw-summary">
       <span class="ks-label">合計使用電気容量(仮置き場の機器を除く)</span>
@@ -1038,6 +1039,13 @@
                              // away it falls back to the normal 10cm grid
   var doorWidthM = 0.8; // meters — current width, set via the width dropdown; used both for
                          // a plain tap (no drag) and as the drag's un-snapped starting point
+  var doorFlipDefault = false; // which side a NEWLY placed door's leaf parks on — toggled via
+                                // the "引く向きを反転" button; an already-placed door's own
+                                // direction is flipped individually via its ⇄ badge instead
+  var DOOR_MOVE_TOL = 0.05; // meters — how far a press-and-hold on an existing door has to
+                             // travel before it counts as "dragging it to a new spot" rather
+                             // than "tapping it to delete it"
+  var DOOR_FLIP_HANDLE_R = 0.11; // meters — half-size of the little ⇄ direction badge's tap target
   function snapDoorLength(rawLenM){
     var best = null, bestDist = DOOR_SNAP_TOL;
     DOOR_WIDTH_PRESETS.forEach(function(p){
@@ -1048,7 +1056,7 @@
     return Math.max(WALL_CELL, Math.round(rawLenM / WALL_CELL) * WALL_CELL);
   }
   var DOOR_STORAGE_KEY = "flat-②坂下一丁目-doors-v1";
-  var DOORS = []; // {x, y, len, horiz}
+  var DOORS = []; // {x, y, len, horiz, flip}
   var doorLayerEl = null; // committed doors
   var doorPreviewEl = null; // the one door being dragged right now (ghost preview)
   function loadSavedDoors(){
@@ -1059,13 +1067,13 @@
       if (!Array.isArray(arr)) return;
       arr.forEach(function(d){
         if (d && typeof d.x === "number" && typeof d.y === "number" && typeof d.len === "number"){
-          DOORS.push({x:d.x, y:d.y, len:d.len, horiz:!!d.horiz});
+          DOORS.push({x:d.x, y:d.y, len:d.len, horiz:!!d.horiz, flip:!!d.flip});
         }
       });
     } catch (err) { /* ignore — storage may be unavailable */ }
   }
   function doorsArray(){
-    return DOORS.map(function(d){ return {x:d.x, y:d.y, len:d.len, horiz:d.horiz}; });
+    return DOORS.map(function(d){ return {x:d.x, y:d.y, len:d.len, horiz:d.horiz, flip:!!d.flip}; });
   }
   function saveDoors(){
     try { localStorage.setItem(DOOR_STORAGE_KEY, JSON.stringify(doorsArray())); } catch (err) { /* ignore */ }
@@ -1076,10 +1084,25 @@
   function doorOpeningRect(d){
     return d.horiz ? {x:d.x, y:d.y, w:d.len, h:WALL_CELL} : {x:d.x, y:d.y, w:WALL_CELL, h:d.len};
   }
-  // The leaf's retracted position — a same-size pocket immediately on the
-  // lower-x (or lower-y) side of the opening, representing it slid fully open.
+  // The leaf's retracted position — a same-size pocket immediately on one side
+  // of the opening, representing it slid fully open. By default that's the
+  // lower-x (or lower-y) side; d.flip puts it on the opposite side instead,
+  // which is what "引かれる方向" (which way the leaf parks) actually controls.
   function doorPocketRect(d){
-    return d.horiz ? {x:d.x - d.len, y:d.y, w:d.len, h:WALL_CELL} : {x:d.x, y:d.y - d.len, w:WALL_CELL, h:d.len};
+    if (d.horiz){
+      return d.flip ? {x:d.x + d.len, y:d.y, w:d.len, h:WALL_CELL} : {x:d.x - d.len, y:d.y, w:d.len, h:WALL_CELL};
+    }
+    return d.flip ? {x:d.x, y:d.y + d.len, w:WALL_CELL, h:d.len} : {x:d.x, y:d.y - d.len, w:WALL_CELL, h:d.len};
+  }
+  // Where the little ⇄ direction badge sits — just outside the door's own
+  // footprint so its tap target doesn't overlap the move/delete hit-test below.
+  function doorFlipHandlePoint(d){
+    var u = doorUnionRect(d);
+    return d.horiz ? {x:u.x+u.w/2, y:u.y-0.16} : {x:u.x+u.w+0.16, y:u.y+u.h/2};
+  }
+  function doorFlipHitRect(d){
+    var p = doorFlipHandlePoint(d);
+    return {x:p.x-DOOR_FLIP_HANDLE_R, y:p.y-DOOR_FLIP_HANDLE_R, w:2*DOOR_FLIP_HANDLE_R, h:2*DOOR_FLIP_HANDLE_R};
   }
   // Bounding box of the whole visible symbol (opening + pocket) — used for
   // tap-to-delete hit testing and for de-duplicating overlapping placements.
@@ -1129,6 +1152,15 @@
       else { lx = wallPx(u.x+u.w) + 4; ly = wallPy(u.y+u.h/2) + 3; anchor = "start"; }
       var txt = el("text", {x:lx, y:ly, "text-anchor":anchor, "font-size":7.8, "font-weight":700, fill:"var(--door-line)", style:"pointer-events:none;"}, parent);
       txt.textContent = "引き戸";
+
+      // small ⇄ badge — tapping this exact spot flips which side the leaf
+      // parks on (see attachDoorHandlers), without needing to delete and
+      // replace the whole door
+      var fp = doorFlipHandlePoint(d);
+      var fcx = wallPx(fp.x), fcy = wallPy(fp.y);
+      el("circle", {cx:fcx, cy:fcy, r:7, fill:"var(--paper-raised)", stroke:"var(--door-line)", "stroke-width":1, opacity:0.95, style:"pointer-events:none;"}, parent);
+      var ftxt = el("text", {x:fcx, y:fcy+3, "text-anchor":"middle", "font-size":9, "font-weight":700, fill:"var(--door-line)", style:"pointer-events:none;"}, parent);
+      ftxt.textContent = "⇄";
     } else {
       // live width readout while dragging — there's no other way to tell the exact
       // width being drawn mid-drag, which was the main complaint about this tool
@@ -2079,15 +2111,76 @@
       beginUndoableChange();
       var p0 = modelPointFromClient(svg, ev.clientX, ev.clientY);
 
-      for (var i = DOORS.length - 1; i >= 0; i--){
-        if (pointInRect(p0.x, p0.y, padRect(doorUnionRect(DOORS[i]), 0.08))){
-          DOORS.splice(i, 1);
+      // the ⇄ direction badge takes priority over the move/delete hit-test below —
+      // it's a small dedicated target sitting just outside the door's own footprint
+      for (var fi = DOORS.length - 1; fi >= 0; fi--){
+        if (pointInRect(p0.x, p0.y, doorFlipHitRect(DOORS[fi]))){
+          DOORS[fi].flip = !DOORS[fi].flip;
           renderDoorLayer();
           saveDoors();
           build3D();
-          renderClearanceCheck();
           commitUndoableChange();
-          return; // tapped an existing door — remove it, don't also start drawing one
+          return;
+        }
+      }
+
+      // tapping/dragging an existing door either moves it (drag) or removes it
+      // (a plain tap, same as before) — decided by how far the pointer travels,
+      // the same tap-vs-drag split the equipment blocks already use
+      for (var i = DOORS.length - 1; i >= 0; i--){
+        if (pointInRect(p0.x, p0.y, padRect(doorUnionRect(DOORS[i]), 0.08))){
+          var moving = DOORS[i];
+          DOORS.splice(i, 1);
+          renderDoorLayer();
+          var origX = moving.x, origY = moving.y;
+          var moved = false;
+          function candidateFrom(p1){
+            var dx = p1.x - p0.x, dy = p1.y - p0.y;
+            if (Math.hypot(dx, dy) >= DOOR_MOVE_TOL) moved = true;
+            var nx = Math.round((origX + dx) / WALL_CELL) * WALL_CELL;
+            var ny = Math.round((origY + dy) / WALL_CELL) * WALL_CELL;
+            return {x:nx, y:ny, len:moving.len, horiz:moving.horiz, flip:moving.flip};
+          }
+          var movePreview = candidateFrom(p0);
+          renderDoorPreview(movePreview);
+          startPointerTracking(function(mv){
+            var np = modelPointFromClient(svg, mv.clientX, mv.clientY);
+            movePreview = candidateFrom(np);
+            renderDoorPreview(movePreview);
+          }, function(){
+            renderDoorPreview(null);
+            if (!moved){
+              // never actually dragged — treat it as the old tap-to-delete
+              saveDoors();
+              build3D();
+              renderClearanceCheck();
+              commitUndoableChange();
+              return;
+            }
+            // committing a move: clear anything the new spot now overlaps, drop it
+            // in, and open the wall there too — same as placing a brand-new door
+            for (var j = DOORS.length - 1; j >= 0; j--){
+              if (rectsOverlap(doorUnionRect(DOORS[j]), doorUnionRect(movePreview))) DOORS.splice(j, 1);
+            }
+            DOORS.push(movePreview);
+            var mop = doorOpeningRect(movePreview);
+            var mWallChanged = false;
+            WALL_CELLS.forEach(function(k){
+              var parts = k.split(",");
+              var gx = parseInt(parts[0], 10), gy = parseInt(parts[1], 10);
+              var cx = gx*WALL_CELL, cy = gy*WALL_CELL;
+              if (cx + WALL_CELL > mop.x && cx < mop.x + mop.w && cy + WALL_CELL > mop.y && cy < mop.y + mop.h){
+                WALL_CELLS.delete(k); mWallChanged = true;
+              }
+            });
+            if (mWallChanged){ renderWallLayer(); saveWalls(); }
+            renderDoorLayer();
+            saveDoors();
+            build3D();
+            renderClearanceCheck();
+            commitUndoableChange();
+          });
+          return; // either a move or a delete just started/finished — don't also start drawing a new door
         }
       }
 
@@ -2120,7 +2213,7 @@
           if (horiz){ x = (dx >= 0) ? snappedX0 : snappedX0 - len; y = snappedY0; }
           else { x = snappedX0; y = (dy >= 0) ? snappedY0 : snappedY0 - len; }
         }
-        return {x:x, y:y, len:Math.max(len, WALL_CELL), horiz:horiz};
+        return {x:x, y:y, len:Math.max(len, WALL_CELL), horiz:horiz, flip:doorFlipDefault};
       }
 
       var preview = previewFrom(p0);
@@ -2230,6 +2323,11 @@
     var doorWidthSelect = document.getElementById("doorWidthSelect");
     if (doorWidthSelect) doorWidthSelect.addEventListener("change", function(){
       doorWidthM = parseFloat(doorWidthSelect.value) || doorWidthM;
+    });
+    var doorFlipBtn = document.getElementById("doorFlipBtn");
+    if (doorFlipBtn) doorFlipBtn.addEventListener("click", function(){
+      doorFlipDefault = !doorFlipDefault;
+      doorFlipBtn.classList.toggle("active", doorFlipDefault);
     });
   }
 
