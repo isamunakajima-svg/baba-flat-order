@@ -169,6 +169,7 @@
   .svg-wrap svg{display:block; min-width:640px; width:100%; height:auto;}
   .equip-group{cursor:grab; touch-action:none;}
   .equip-group:active, .equip-group.dragging{cursor:grabbing;}
+  .equip-group.equip-fixed{cursor:default;}
   .equip-group.dragging .equip-rect{stroke-width:2.4;}
   .rotate-btn{cursor:pointer; touch-action:none;}
   .rotate-btn:hover circle{stroke:var(--accent);}
@@ -467,8 +468,8 @@
   <header>
     <p class="eyebrow">FLAT Bakery — 新工場 仮設計図</p>
     <h1>② 坂下一丁目(大野ビル) 厨房レイアウト</h1>
-    <p class="subtitle">物件写真の間取りスケッチを実際の形状どおりに座標トレースし(専有面積131.04㎡に面積を合わせて校正)、現地確認(2026-10-15)で分かった入口・トイレの実際の位置を反映した配置案です。2D配置図と3Dパースは同じ配置データから生成しているため、番号は共通です。</p>
-    <div class="caution"><span>⚠</span><span><b>この図面は「仮」です。</b>建物外形・入口・トイレの位置は現地確認済みですが、正式な採寸ではありません。機器の一部寸法・給排水/電源の要否は引き続き目安です。発注前に正式な採寸と設備業者の確認が必要です。</span></div>
+    <p class="subtitle">物件の求積図(2026-10-26、座標法の数値から再構成)をもとにした実測ベースの外形に、現地確認(2026-10-15)で分かった入口・トイレの実際の位置を反映した配置案です。2D配置図と3Dパースは同じ配置データから生成しているため、番号は共通です。</p>
+    <div class="caution"><span>⚠</span><span><b>この図面は「仮」です。</b>建物外形は物件の求積図(座標法)の数値に基づいていますが、入口・トイレの正確な採寸はまだです。機器の一部寸法・給排水/電源の要否も引き続き目安です。発注前に正式な採寸と設備業者の確認が必要です。</span></div>
     <div class="tabs" role="tablist">
       <button class="tab active" data-view="2d" type="button">2D配置図</button>
       <button class="tab" data-view="3d" type="button">3Dパース</button>
@@ -564,12 +565,11 @@
   <footer>
     <h2>前提・注意事項</h2>
     <ul>
-      <li><b>外形:</b>物件写真の間取りスケッチをピクセル単位でトレースし、実際の形状(北西角の面取り・北東側の凹み・階段室側の面取り)を再現したうえで、ポリゴンの面積が専有面積131.04㎡と一致するよう縮尺を校正しています。直線のみで構成される簡易図面からの再現のため、正確な採寸値ではありません</li>
+      <li><b>外形(2026-10-26更新):</b>物件の求積図(座標法の表)に記載の数値から各辺の実測値を1つずつ読み取り、座標を再構成しています。北西角の面取り(横2.50m×縦2.00m)、北東側の段差(下2.00m→右3.30m)、南東側の切り欠き(面取り部分: 横1.70m×縦1.17mの直角三角形+その先に横3.92m・縦0.83mの段差)まで反映済みで、計算上の面積は131.0409㎡と登記簿上の専有面積131.04㎡にほぼ完全に一致しています。以前の版は物件写真のスケッチを面積だけ合わせて概算トレースしたものでしたが、今回実測ベースの数値に置き換えました</li>
       <li><b>入口(現地確認済み):</b>2026-10-15の現地確認で、入口は図面下辺(南壁)中央よりやや左寄りに自動ドア1か所のみと判明しました。以前の推定(北西角の面取り部分)は誤りだったため修正しています。北西角は用途未定の建物形状として残しています</li>
       <li><b>トイレ(現地確認済み):</b>北東側の凹みのあたりに、トイレ用の配管設備が現地で確認できました。この一帯をトイレゾーンとしています</li>
       <li><b>更衣室・休憩所:</b>トイレの周囲(主に東側)を更衣室・休憩所としてまとめています。更衣室は入口の自動ドアを入ってすぐの南側一帯(入口の真正面)に配置し、入口から最初に入る部屋として機能するようにしています</li>
-      <li><b>入口の目隠し(提案):</b>自動ドアを開けてすぐ製造エリアが見えてしまわないよう、入口から奥へ約1.5mの位置に目隠しパーティション(点線のオレンジ線)を提案しています。ドア正面を塞ぎ、左右どちらかに回り込むと更衣室に入る動線です。パーティションの先が製造エリアではなく更衣室になるようにしているため、来客対応と衛生動線(入室→更衣→手洗い→製造エリア)を兼ねられます。別案として、更衣は後回しにして休憩所側を目隠しにする配置も可能です — ゾーン枠はドラッグで動かせるので、現地の使い勝手を見ながら調整してください</li>
-      <li><b>階段室側の面取り:</b>図面右下、共用階段とみられる記号の付近で南東角が斜めに切れています。この階段は専有部外(共用)と判断し、面積・什器配置からは除外しています</li>
+      <li><b>階段室側の切り欠き:</b>図面右下、共用階段とみられる記号の付近で南東角が面取り(斜め)+段差で切れています。この階段は専有部外(共用)と判断し、面積・什器配置からは除外しています</li>
       <li><b>目安寸法の機器:</b>ミキサー、オーブン、ミニモルダー、6ドア冷蔵庫、シンク、番重洗浄機はメーカー公開寸法が未確認のため一般的なサイズ感での目安値です</li>
       <li><b>確定寸法の機器:</b>ドウコン、リターダー、コールドテーブル、粉計量機、オシキリDQS2/4・RVS、レオンVX701-A・PR101は、メーカー公式カタログまたは現地実測に基づく確認済み寸法を使用しています</li>
       <li><b>分割・丸め機の比較配置(新規):</b>ゾーンBには候補①レオンVR250ライン(フレックスデバイダーVX701-A+パンチラウンダーPR101)を仮に入れています。候補②オシキリDQS2/4+RVS(1玉230g/最小分割40gで現物テスト済み・問題なし)は建物の外側、右の「仮置き場」に置いてあります。どちらもドラッグで本体側⇄仮置き場を入れ替えられるので、実際の動線を見ながら比較してください。VX701-A・PR101は奥行きが長いため、初期配置では90°回転した状態(⟳ボタンで戻せます)で置いています</li>
@@ -587,44 +587,52 @@
   "use strict";
 
   // ---------- Data (mirrors the drag-tool xlsx for property ②) ----------
-  // Room outline traced directly from the listing's 1F sketch (pixel-by-pixel,
-  // then scaled so the polygon's area matches the stated 専有面積 131.04m²
-  // to within 0.01m²) — not a plain rectangle. Three real features of the
-  // unit are reproduced: the chamfered NW entrance corner, a stepped NE
-  // recess (the unit sets back from the building's full footprint there),
-  // and a chamfered SE corner by the shared stairwell.
-  var ROOM = {w:12.73, h:11.38}; // bounding box, used for sizing/margins/dim lines
+  // Room outline rebuilt from the building's old 求積図(大野ビル資料.pdf, 3ページ目)
+  // survey drawing — 2026-10-26: イサムさんが送ってくれた写真から、1階の求積表(座標法)
+  // の数値を1つずつ読み取り、各辺の長さ・対角(面取り2.50×2.00、切り欠きの斜辺=横1.70・
+  // 縦1.17など)を突き合わせて座標を再構成した。面積は shoelace で131.0409㎡ — 登記簿上
+  // の専有面積131.04㎡とほぼ完全に一致し、座標が正しいことの裏付けになっている。
+  // 求積図の原本の向きが、このツールの既存の向きとズレていたため、最初90°回転させたが、
+  // それでもまだ向きが合わず(自動ドアが下辺の中央寄りに来てしまっていた)、2026-10-26
+  // 追加でさらに180°回転させて確定(本人確認: 自動ドアは下辺の左寄り、トイレの予定地
+  // [建物角の面取り]は右上)。合計270°回転した形になっている。
+  var ROOM = {w:12.00, h:12.15}; // bounding box, used for sizing/margins/dim lines
   var ROOM_POLY = [
-    [2.24, 0.00],   // 北壁 西端(入口庇の立ち上がり)
-    [8.80, 0.00],   // 北壁 東端 — ここから東側が凹む
-    [8.80, 1.57],
-    [12.00,1.57],
-    [12.00,3.36],
-    [12.73,3.81],   // 東壁 開始
-    [12.73,9.25],   // 東壁 終了
-    [8.69, 11.38],  // 南壁 東端 — 階段室側の斜めカット開始
-    [0.00, 11.38],  // 南西角
-    [0.00, 1.68]    // 西壁 上端(入口の斜めカット下端)
+    [12.00,2.50],   // 東壁 上端 — ここから面取りでトイレ予定地(右上)へ
+    [12.00,8.85],   // 東壁(6.35m)
+    [10.00,8.85],   // 角の段差(左に2.00)
+    [10.00,12.15],  // 角の段差(下に3.30) — 南壁 開始
+    [2.00, 12.15],  // 南壁 終了(8.00m) — 面取り開始
+    [0.83, 10.45],  // 斜辺(横1.17・縦1.70、直角三角形の2辺から算出)
+    [0.83, 6.53],   // 3.92m 上へ
+    [0.00, 6.53],   // 0.83m 左へ
+    [0.00, 0.00],   // 西壁(6.53m) — 北壁 開始
+    [10.00,0.00]    // 北壁 終了(10.00m) — ここから面取りで[12.00,2.50]へ戻る
   ];
-  // two rectangular "keep-out" pockets carved out of the bounding box by the
-  // NE recess, used both to draw the cut and to keep dragged equipment out of it
+  // the single rectangular "keep-out" pocket carved out of the bounding box by the
+  // corner recess, used to keep dragged equipment out of it
   var NE_CUTS = [
-    {x:8.80, y:0.00, w:3.93, h:1.57},
-    {x:12.00,y:1.57, w:0.73, h:1.79}
+    {x:10.00, y:8.85, w:2.00, h:3.30}
   ];
   // diagonal corners, as {p1,p2} — equipment is kept on the room side of each line
   var CHAMFERS = [
-    {p1:[0.00,1.68], p2:[2.24,0.00], name:"建物角(用途未定)"},  // NW — confirmed on-site NOT the entrance
-    {p1:[12.73,9.25], p2:[8.69,11.38], name:"階段室側(推定)"}  // SE
+    {p1:[10.00,0.00], p2:[12.00,2.50], name:"建物角(用途未定・トイレ予定地)"},  // confirmed on-site NOT the entrance
+    {p1:[2.00,12.15], p2:[0.83,10.45], name:"階段室側"}  // 建物本体の面取り角(この先に別途、切り欠きが続く)
   ];
 
   // Confirmed on-site (2026-10-15): the only entrance is a single automatic door on the
-  // SOUTH wall, slightly left of center — not the NW corner this sheet originally guessed.
-  var ENTRANCE = {x:4.00, w:1.60, wall:"south", name:"入口(両開き自動ドア)"};
+  // SOUTH wall, toward the LEFT side (本人確認 2026-10-26: 下辺の左寄り). ENTRANCE.x below
+  // is a best-fit placement on the new (post-rotation) south wall — not yet re-confirmed
+  // on-site against the rotated shape, so nudge it if the real distance from the corner
+  // is known.
+  // 旧コンビニ退去後の物件のため、自動ドアはコンビニ規模の店舗でよく使われる
+  // 引き分け式(両側にスライドして開く)2枚建てを想定。枠幅1,800mm前後が一般的で、
+  // 有効開口(実際に人が通れる幅)は目安60-65%で約1,080-1,170mm程度(複数人同時通行の
+  // 目安1,200mmにはやや届かないが、小規模店舗の出入口としては標準的な範囲)。
+  var ENTRANCE = {x:3.30, w:1.80, wall:"south", name:"入口(両開き自動ドア・コンビニ標準幅目安)"};
   // A light suggestion, not a real wall: a short partition just inside the door so the
   // production floor isn't directly visible when it opens, forming a small foyer that
   // doubles as the way into the locker room either side of it (see footer notes).
-  var SUGGESTED_PARTITION = {x1:3.40, y1:9.90, x2:6.20, y2:9.90, name:"目隠しパーティション(提案)"};
 
   // Equipment "swap dock": a staging area OUTSIDE the real room, drawn to the
   // right of the building, where an alternate candidate machine can sit so it
@@ -652,7 +660,7 @@
     {k:"F", name:"焼成",                            x:4.30, y:7.20, w:5.00, h:1.30, kind:"prod"},
     {k:"G", name:"番重洗浄・包装前処理",            x:4.30, y:8.50, w:2.80, h:1.10, kind:"pack"},
     {k:"H", name:"包装・出荷",                      x:7.10, y:8.50, w:4.20, h:1.30, kind:"pack"},
-    {k:"I", name:"トイレ(配管あり・現地確認済み)",  x:8.90, y:1.70, w:3.10, h:1.60, kind:"sup"},
+    {k:"I", name:"トイレ(配管あり・建物角の面取りに移設)", x:9.00, y:1.25, w:2.00, h:2.50, kind:"sup"},
     // J(更衣室)の幅を7.10→5.60に縮小(2026-10-22)し、空いた東側を新ゾーンL(出荷置き場)に
     // 割り当てた。入口(x4.00〜5.60、南壁)を出てすぐ左が更衣室、右が出荷置き場になるよう、
     // ちょうど入口の東端(x5.60)をJ/Lの境界に合わせている — 詳細はL、および末尾の
@@ -667,9 +675,9 @@
   // 2026-10-22: 食品工場のゾーニング/異物混入防止の相談を受けて追加。配送業者が完成品を
   // 受け取る際に製造エリア(清潔区域)へ立ち入らせないための専用スペース — 入口を入って
   // すぐ右側(更衣室の反対側)に配置し、スタッフが製造エリア側から梱包済み商品を運び入れ、
-  // 配送員はここまでしか入らない運用を想定。入口の東端(x5.60)をJとの境界に合わせ、
-  // 既存の目隠しパーティション(SUGGESTED_PARTITION)の東半分がこのゾーンの視線もある程度
-  // 遮る位置関係になっている。あくまで参考区画(ドラッグ・リサイズ可能)。
+  // 配送員はここまでしか入らない運用を想定。入口の東端(x5.60)をJとの境界に合わせている。
+  // あくまで参考区画(ドラッグ・リサイズ可能)。目隠しパーティションの提案線は本人が壁等を
+  // 自分で設置する方針のため2026-10-26に削除済み(このゾーン位置の決定には影響しない)。
   ZONES.push({k:"L", name:"出荷置き場(配送受け渡し用)", x:5.60, y:9.60, w:1.50, h:1.78, kind:"pack"});
 
   // w,d,h in mm. x,y in m (top-left). status: confirmed | estimate | new. util: power/water/drain/gas
@@ -793,12 +801,17 @@
     {name:"人(通行確認用)①", w:500, d:500, h:1700, x:6.00, y:4.30, zone:"FREE", kind:"person", status:"ref", util:[], kw:null, kwConfirmed:false, short:"人①"},
     {name:"人(通行確認用)②", w:500, d:500, h:1700, x:6.70, y:4.30, zone:"FREE", kind:"person", status:"ref", util:[], kw:null, kwConfirmed:false, short:"人②"},
 
-    // 構造柱 ×2(2026-10-17) — 現地写真(自動ドア入って奥、写真内で2人が立っている角柱、および
-    // トイレ区画近く・配電盤そばの角柱)から追加。写真から正確な採寸はできないため、位置は
-    // あくまで目安(status:"approx")。太さは本人確認で「おそらく450mm角」とのことなのでw/d=450を
-    // 採用。高さは天井まで(WALL_H=2.3m)で通し。正式な採寸後に位置を要調整。
-    {name:"柱①(構造・位置目安)", w:450, d:450, h:2300, x:6.20, y:5.60, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱①"},
-    {name:"柱②(構造・位置目安)", w:450, d:450, h:2300, x:8.70, y:2.60, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱②"},
+    // 構造柱(2026-10-26更新) — 本人確認により、構造柱は全部で5本。うち4本は外周のガラス面/壁面に
+    // 埋まっていて壁の線としてすでに表現されているため、室内の独立した障害物としては扱わない。
+    // 残り2本は、もともと室内にあった間仕切り壁(今は撤去済み・「内壁が無い状態」)の位置に立って
+    // いたため、間仕切りが無くなった今は室内に露出した独立の柱として扱う必要がある。位置はどちらも
+    // 不動産チラシの1階間取り図(大野ビル資料と同じ原図)に描かれている柱マークを、座標法で再構成
+    // した部屋の座標系(2026-10-26の90°+180°回転後の向き)に、壁の角などの既知の対応点から
+    // アフィン変換(回転+縮尺、最小二乗フィット)で換算した目安値。チラシの縮尺が小さいため、
+    // ±0.3〜0.5m程度の誤差を見込む。太さは従来どおり「おそらく450mm角」を採用。
+    // 以前あった柱①・柱②(現地写真ベースの目安)はこの2本に統合・置き換え。
+    {name:"柱(構造・固定・図面記載①)", w:450, d:450, h:2300, x:2.95, y:5.85, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱①"},
+    {name:"柱(構造・固定・図面記載②)", w:450, d:450, h:2300, x:9.75, y:6.00, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱②"},
 
     // 天板ラック ×2 + 作業台600×900 ×1(2026-10-17追加) — 焼成ゾーン(F)の空きスペースと、
     // まだ何も置いていない包装・出荷ゾーン(H)に配置。精密な製品仕様はまだ無いため status:"new"。
@@ -848,7 +861,14 @@
     // 完成品をスタッフが製造エリア側からここに運び入れ、配送員はこの棚のある場所までしか
     // 立ち入らない運用を想定(ゾーニング/異物混入防止の相談を受けて追加)。電源・給排水は
     // 不要なシェルフなのでkw/utilは空。寸法は粉置き場(シェルフ)と同じ目安サイズ。
-    {name:"出荷棚(配送受け渡し用)", w:900, d:500, h:1800, x:5.80, y:9.75, zone:"L", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"出荷棚"}
+    {name:"出荷棚(配送受け渡し用)", w:900, d:500, h:1800, x:5.80, y:9.75, zone:"L", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"出荷棚"},
+
+    // トイレ模型(洋式便器)(2026-10-26) — 現状は未設置だが、古い図面でこの建物角の面取り
+    // 部分に排水設備があることが写真から確認できたため、ここにトイレを新設する想定で追加。
+    // ゾーンI(トイレ)をこの面取り角(斜めの壁)に寄せて移設したうえで、その角の内側、
+    // 斜め壁に近い位置に便器本体を置いている。寸法は洋式便器の一般的な目安(W400×D700mm)。
+    // 手洗い等は別途必要になる可能性があるが、まずは便器のみ配置。
+    {name:"トイレ(洋式便器・新設)", w:400, d:700, h:800, x:10.40, y:1.50, zone:"I", kind:"sup", status:"new", util:["water","drain"], kw:null, kwConfirmed:false, short:"便器"}
   ];
   // rot: 0 or 90 — which way the item is turned (swaps its footprint's w/d for layout
   // purposes). Most items don't specify one above, so default those to 0 here; a few
@@ -1654,17 +1674,17 @@
     var roomD = ROOM_POLY.map(function(p,i){ return (i===0?"M":"L") + px(p[0]) + " " + py(p[1]); }).join(" ") + " Z";
     el("path", {d:roomD, fill:"none", stroke:"var(--ink)", "stroke-width":2.4, "stroke-linejoin":"round"}, root);
 
-    // NW corner — confirmed on-site this is NOT the entrance; labelled neutrally
-    var etx = px(0.18), ety = py(1.08);
+    // building corner chamfer (toilet-to-be) — confirmed on-site this is NOT the entrance
+    var etx = px(9.0), ety = py(1.3);
     var etext = el("text", {x:etx, y:ety, "font-size":7.8, fill:"var(--ink-faint)"}, root);
     etext.textContent = "建物角";
     var etext2 = el("text", {x:etx, y:ety+10, "font-size":7.8, fill:"var(--ink-faint)"}, root);
-    etext2.textContent = "(用途未定)";
+    etext2.textContent = "(トイレ予定)";
 
-    // stairwell-side chamfer label (SE)
-    var stx = px(9.9), sty = py(10.55);
+    // stairwell-side chamfer label
+    var stx = px(1.3), sty = py(11.3);
     var stext = el("text", {x:stx, y:sty, "font-size":7.8, "text-anchor":"middle", fill:"var(--ink-faint)"}, root);
-    stext.textContent = "階段室側(推定)";
+    stext.textContent = "階段室側";
 
     // the real entrance — a 両開き自動ドア (two-panel sliding automatic door) symbol
     // on the south wall, confirmed on-site: two panels sliding apart from the
@@ -1680,14 +1700,6 @@
       el("line", {x1:midX+6, y1:arrowY, x2:midX+16, y2:arrowY, stroke:"var(--ink-faint)", "stroke-width":1, "marker-end":"url(#dimArrow)"}, root);
       var elbl = el("text", {x:midX, y:dy+14, "text-anchor":"middle", "font-size":8.5, "font-weight":700, fill:"var(--notch-line)"}, root);
       elbl.textContent = ENTRANCE.name;
-    })();
-
-    // suggested sight-blocking partition just inside the door (see footer notes) — a
-    // proposal, not a measured wall, so it's drawn as a light dashed line only
-    (function(){
-      var p = SUGGESTED_PARTITION;
-      el("line", {x1:px(p.x1), y1:py(p.y1), x2:px(p.x2), y2:py(p.y2), stroke:"var(--accent)", "stroke-width":2, "stroke-dasharray":"5 4", opacity:0.75}, root);
-      el("text", {x:px((p.x1+p.x2)/2), y:py(p.y1)-6, "text-anchor":"middle", "font-size":7.8, "font-weight":700, fill:"var(--accent)"}, root).textContent = p.name;
     })();
 
     // equipment swap dock — a staging box OUTSIDE the building outline, drawn plainly
@@ -1725,7 +1737,8 @@
       var w0 = fp.wM*S2, d0 = fp.dM*S2;
       var x0 = px(e.x), y0 = py(e.y);
 
-      var g = el("g", {class:"equip-group", "data-idx":idx, transform:"translate(" + x0 + "," + y0 + ")"}, root);
+      var isFixedStructure = e.kind === "pillar"; // building structure, not draggable — see attachDragHandlers
+      var g = el("g", {class:"equip-group" + (isFixedStructure ? " equip-fixed" : ""), "data-idx":idx, transform:"translate(" + x0 + "," + y0 + ")"}, root);
       // invisible, enlarged hit-rect drawn first (so it sits under everything else but
       // still receives pointer events) — on a phone, a small item (400x600mm renders
       // around only ~15px wide once the diagram is scaled down to fit) is very easy to
@@ -2788,6 +2801,10 @@
   function attachDragHandlers(svg, equipGroups, px, py){
     equipGroups.forEach(function(item){
       var g = item.g, idx = item.idx;
+      // structural columns (kind:"pillar") are part of the building, not movable
+      // equipment — skip wiring up drag entirely so they read as fixed/locked in
+      // place (no rotate button either, already suppressed via noRotate above)
+      if (EQUIPMENT[idx].kind === "pillar") return;
       suppressNativeTouch(g);
 
       g.addEventListener("pointerdown", function(ev){
@@ -3082,7 +3099,7 @@
       poly(scene, [[wa[0],wa[1],0],[wb[0],wb[1],0],[wb[0],wb[1],WALL_H],[wa[0],wa[1],WALL_H]], shade(wallFill, shadePct), {stroke:"#CFC2AC", sw:1});
     }
     var wallFill = "#EDE4D7";
-    var southA = [8.69, ROOM.h], southB = [0.00, ROOM.h]; // the one edge the door sits on
+    var southA = [10.00, ROOM.h], southB = [2.00, ROOM.h]; // the one edge the door sits on
     for (var wi=0; wi<ROOM_POLY.length; wi++){
       var wa = ROOM_POLY[wi], wb = ROOM_POLY[(wi+1)%ROOM_POLY.length];
       var isSouthWall = (samePt(wa,southA) && samePt(wb,southB));
