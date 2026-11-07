@@ -371,13 +371,26 @@
   .print-export-root .print-date{margin:0 0 14px; font-size:11.5px; color:var(--ink-faint);}
   @media print{
     @page{ size:landscape; margin:12mm; }
-    body *{visibility:hidden;}
-    .print-export-root, .print-export-root *{visibility:visible;}
+    /* display:none (not visibility:hidden) on the rest of the app — visibility:hidden
+       keeps an invisible element's box in the page's layout flow, so the live app's
+       own (much taller) layout was still what got paginated, spilling the actual
+       printed content across many extra, mostly-blank pages. display:none removes
+       everything else from layout entirely, so the page collapses to just
+       print-export-root's own (small, explicitly-sized) height — this, together with
+       the mm-sized clone in printCurrentView(), is what makes the export land on
+       exactly one page. Only direct children of body need this; print-export-root's
+       own children were never hidden in the first place. */
+    body > *{display:none;}
     .print-export-root{
       display:block !important; position:absolute; left:0; top:0; width:100%;
       font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN",sans-serif;
+      break-inside:avoid; page-break-inside:avoid;
     }
-    .print-export-root svg{width:100%; height:auto;}
+    /* fallback only — printCurrentView() normally sets an explicit mm width/height
+       inline (which wins over this), sized to fit one page regardless of how the
+       device/browser interprets @page's orientation. This 100%/auto pair is just
+       a safety net for the rare case that inline sizing didn't get applied. */
+    .print-export-root svg{width:100%; height:auto; break-inside:avoid; page-break-inside:avoid;}
   }
 </style>
 </head>
@@ -2677,6 +2690,8 @@
   // whichever view is currently active, plus a small title/date header, then opens
   // the browser's print dialog — "保存先" → "PDFに保存" there is the actual PDF export;
   // there's no PDF library bundled in this file, so the print pipeline does the work.
+  var PRINT_SAFE_W_MM = 186; // A4の短辺(210mm)から左右マージン12mm×2を引いた値
+  var PRINT_SAFE_H_MM = 168; // 同じ短辺基準の高さ枠から、見出し(タイトル+日付)の分を差し引いた値
   function printCurrentView(){
     var activeView = document.querySelector(".view.active");
     var svgEl = activeView && activeView.querySelector("svg");
@@ -2685,8 +2700,20 @@
     var titleEl = activeView.querySelector(".panel-head h2");
     var title = titleEl ? titleEl.textContent : "配置図";
     var clone = cloneSvgWithResolvedColors(svgEl);
+    var vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+    var aspect = (vb && vb.width && vb.height) ? (vb.width / vb.height) : 1;
+    var outWmm, outHmm;
+    if (aspect >= PRINT_SAFE_W_MM / PRINT_SAFE_H_MM){
+      outWmm = PRINT_SAFE_W_MM; outHmm = outWmm / aspect;
+    } else {
+      outHmm = PRINT_SAFE_H_MM; outWmm = outHmm * aspect;
+    }
     clone.removeAttribute("width");
-    clone.removeAttribute("height"); // let the print CSS's width:100% take over, viewBox keeps the aspect ratio
+    clone.removeAttribute("height"); // mm単位のインラインstyleで置き換える。viewBoxはそのまま縦横比を保つ
+    clone.style.width = outWmm + "mm";
+    clone.style.height = outHmm + "mm";
+    clone.style.display = "block";
+    clone.style.margin = "0 auto"; // 横向きで印刷された場合、余った横幅の中で中央に寄せる
     root.innerHTML = "";
     var h = document.createElement("h2");
     h.textContent = "FLAT Bakery — " + title;
