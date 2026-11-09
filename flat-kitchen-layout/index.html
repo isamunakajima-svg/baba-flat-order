@@ -191,6 +191,7 @@
   .eq-tooltip .tt-name{display:block; font-weight:700; font-size:12.5px; margin-bottom:4px;}
   .eq-tooltip .tt-dim{display:block; font-family:"IBM Plex Mono",monospace; font-size:11.5px; opacity:.82;}
   .eq-tooltip .tt-row{margin-top:4px; opacity:.82; font-size:11.5px;}
+  .eq-tooltip .tt-note{display:block; margin-top:4px; font-size:11.5px; opacity:.82; font-style:italic;}
 
   /* Tap-to-show info sheet — the touch-friendly counterpart to the hover
      tooltip above. A phone has no hover state, so tapping an equipment
@@ -211,6 +212,7 @@
   }
   .eq-infosheet .is-dim{margin-top:6px; font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-soft);}
   .eq-infosheet .is-row{margin-top:5px; font-size:12.5px; color:var(--ink-soft);}
+  .eq-infosheet .is-note{margin-top:5px; font-size:12.5px; color:var(--ink); font-style:italic;}
 
   .iso-wrap{
     background:#F4EFE7; border:1px solid var(--line); border-radius:14px;
@@ -294,6 +296,13 @@
   }
   tfoot .total-row td:first-child{text-align:right; color:var(--ink-soft); font-weight:600;}
   tfoot .total-row td.num{color:var(--accent); font-size:14px;}
+  .note-cell{min-width:140px;}
+  .note-input{
+    width:100%; min-width:130px; box-sizing:border-box; font:inherit; font-size:12.5px;
+    padding:5px 7px; border:1px solid var(--line); border-radius:6px;
+    background:var(--paper-raised); color:var(--ink);
+  }
+  .note-input:focus{outline:2px solid var(--accent); outline-offset:1px;}
   .action-cell{white-space:nowrap;}
   .action-btn{
     appearance:none; border:1px solid var(--line-strong); background:var(--paper-raised); color:var(--ink-soft);
@@ -306,7 +315,7 @@
 
   /* Custom equipment add form — a centered modal (not the bottom sheet used for
      tap-info) since this has several fields and benefits from more room on screen */
-  .custom-eq-trigger-row{margin:4px 0 14px;}
+  .custom-eq-trigger-row{margin:4px 0 14px; display:flex; flex-wrap:wrap; gap:8px;}
   .custom-eq-trigger{font-weight:700;}
   .custom-eq-overlay{
     position:fixed; inset:0; z-index:95; background:rgba(26,18,13,.42);
@@ -403,6 +412,7 @@
   </div>
   <div class="is-dim" id="isDim"></div>
   <div class="is-row" id="isRow"></div>
+  <div class="is-note" id="isNote"></div>
 </div>
 <div class="custom-eq-overlay" id="customEqOverlay">
   <div class="custom-eq-modal" role="dialog" aria-modal="true" aria-labelledby="customEqTitle">
@@ -537,13 +547,14 @@
     </div>
     <div class="custom-eq-trigger-row">
       <button class="reset-btn custom-eq-trigger" id="customEqOpenBtn" type="button">+ カスタム機器を追加</button>
+      <button class="reset-btn" id="addGenericShelfBtn" type="button">+ 汎用棚を追加</button>
     </div>
     <p class="table-hint">→ 表は横にスクロールできます(容量(kW)列は右側)</p>
     <div class="table-wrap">
       <div class="table-scroll">
         <table>
           <thead>
-            <tr><th>#</th><th>機器名</th><th>寸法 W×D×H (mm)</th><th>ゾーン</th><th>状態</th><th>設備</th><th>容量(kW)</th><th>操作</th></tr>
+            <tr><th>#</th><th>機器名</th><th>寸法 W×D×H (mm)</th><th>ゾーン</th><th>状態</th><th>設備</th><th>容量(kW)</th><th>メモ・用途</th><th>操作</th></tr>
           </thead>
           <tbody id="eqTableBody"></tbody>
           <tfoot id="eqTableFoot"></tfoot>
@@ -925,6 +936,7 @@
             EQUIPMENT[p.i].y = p.y;
             if (p.rot === 90) EQUIPMENT[p.i].rot = 90;
             if (typeof p.zone === "string") EQUIPMENT[p.i].zone = p.zone;
+            if (typeof p.note === "string") EQUIPMENT[p.i].note = p.note;
           }
         });
       }
@@ -937,7 +949,8 @@
             rot:(p.rot === 90 ? 90 : 0), isCopy:true,
             kw:(typeof p.kw === "number" ? p.kw : null), kwConfirmed:!!p.kwConfirmed,
             short:(typeof p.short === "string" ? p.short : p.name),
-            power:(p.power === "doryoku" ? "doryoku" : undefined), powerConfirmed:!!p.powerConfirmed
+            power:(p.power === "doryoku" ? "doryoku" : undefined), powerConfirmed:!!p.powerConfirmed,
+            note:(typeof p.note === "string" ? p.note : "")
           });
         });
       }
@@ -946,11 +959,11 @@
   function savePositions(){
     try {
       var baseData = EQUIPMENT.slice(0, BASE_COUNT).map(function(e, i){
-        return {i:i, x:e.x, y:e.y, rot:e.rot, zone:e.zone};
+        return {i:i, x:e.x, y:e.y, rot:e.rot, zone:e.zone, note:e.note || ""};
       });
       var extraData = EQUIPMENT.slice(BASE_COUNT).map(function(e){
         return {name:e.name, w:e.w, d:e.d, h:e.h, x:e.x, y:e.y, zone:e.zone,
-                kind:e.kind, status:e.status, util:e.util.slice(), rot:e.rot,
+                kind:e.kind, status:e.status, util:e.util.slice(), rot:e.rot, note:e.note || "",
                 kw:e.kw, kwConfirmed:e.kwConfirmed, short:e.short,
                 power:e.power, powerConfirmed:e.powerConfirmed};
       });
@@ -1146,6 +1159,46 @@
   function doorFlipHitRect(d){
     var p = doorFlipHandlePoint(d);
     return {x:p.x-DOOR_FLIP_HANDLE_R, y:p.y-DOOR_FLIP_HANDLE_R, w:2*DOOR_FLIP_HANDLE_R, h:2*DOOR_FLIP_HANDLE_R};
+  }
+  // ---- wall-cell helpers for the ⇄ flip fix below ----
+  // Grid range (inclusive) a rect's cells fall in. Rects here always come from a
+  // door's x/y/len, which are already snapped to the WALL_CELL grid (presets are
+  // all multiples of 0.1m), so a plain round is safe — no fractional-cell case to
+  // worry about.
+  function wallCellRange(rect){
+    return {
+      gx0: Math.round(rect.x / WALL_CELL), gx1: Math.round((rect.x + rect.w) / WALL_CELL) - 1,
+      gy0: Math.round(rect.y / WALL_CELL), gy1: Math.round((rect.y + rect.h) / WALL_CELL) - 1
+    };
+  }
+  function anyWallCellUnder(rect){
+    var r = wallCellRange(rect);
+    for (var gx = r.gx0; gx <= r.gx1; gx++){
+      for (var gy = r.gy0; gy <= r.gy1; gy++){
+        if (WALL_CELLS.has(cellKey(gx, gy))) return true;
+      }
+    }
+    return false;
+  }
+  function clearWallCellsUnder(rect){
+    var r = wallCellRange(rect), changed = false;
+    for (var gx = r.gx0; gx <= r.gx1; gx++){
+      for (var gy = r.gy0; gy <= r.gy1; gy++){
+        var k = cellKey(gx, gy);
+        if (WALL_CELLS.has(k)){ WALL_CELLS.delete(k); changed = true; }
+      }
+    }
+    return changed;
+  }
+  function restoreWallCellsUnder(rect){
+    var r = wallCellRange(rect), changed = false;
+    for (var gx = r.gx0; gx <= r.gx1; gx++){
+      for (var gy = r.gy0; gy <= r.gy1; gy++){
+        var k = cellKey(gx, gy);
+        if (!WALL_CELLS.has(k)){ WALL_CELLS.add(k); changed = true; }
+      }
+    }
+    return changed;
   }
   // Bounding box of the whole visible symbol (opening + pocket) — used for
   // tap-to-delete hit testing and for de-duplicating overlapping placements.
@@ -1433,13 +1486,13 @@
     return {
       equipment: {
         base: EQUIPMENT.slice(0, BASE_COUNT).map(function(e, i){
-          return {i:i, x:e.x, y:e.y, rot:e.rot, zone:e.zone};
+          return {i:i, x:e.x, y:e.y, rot:e.rot, zone:e.zone, note:e.note || ""};
         }),
         extra: EQUIPMENT.slice(BASE_COUNT).map(function(e){
           return {name:e.name, w:e.w, d:e.d, h:e.h, x:e.x, y:e.y, zone:e.zone,
                   kind:e.kind, status:e.status, util:e.util.slice(), rot:e.rot,
                   kw:e.kw, kwConfirmed:e.kwConfirmed, short:e.short,
-                  power:e.power, powerConfirmed:e.powerConfirmed};
+                  power:e.power, powerConfirmed:e.powerConfirmed, note:e.note || ""};
         })
       },
       zones: ZONES.map(function(z, i){ return {i:i, x:z.x, y:z.y, w:z.w, h:z.h}; }),
@@ -1458,6 +1511,7 @@
             EQUIPMENT[p.i].x = p.x; EQUIPMENT[p.i].y = p.y;
             EQUIPMENT[p.i].rot = (p.rot === 90) ? 90 : 0;
             if (typeof p.zone === "string") EQUIPMENT[p.i].zone = p.zone;
+            EQUIPMENT[p.i].note = (typeof p.note === "string") ? p.note : "";
           }
         });
       }
@@ -1470,7 +1524,8 @@
             rot:(p.rot === 90 ? 90 : 0), isCopy:true,
             kw:(typeof p.kw === "number" ? p.kw : null), kwConfirmed:!!p.kwConfirmed,
             short:(typeof p.short === "string" ? p.short : p.name),
-            power:(p.power === "doryoku" ? "doryoku" : undefined), powerConfirmed:!!p.powerConfirmed
+            power:(p.power === "doryoku" ? "doryoku" : undefined), powerConfirmed:!!p.powerConfirmed,
+            note:(typeof p.note === "string" ? p.note : "")
           });
         });
       }
@@ -2175,10 +2230,33 @@
       // it's a small dedicated target sitting just outside the door's own footprint
       for (var fi = DOORS.length - 1; fi >= 0; fi--){
         if (pointInRect(p0.x, p0.y, doorFlipHitRect(DOORS[fi]))){
-          DOORS[fi].flip = !DOORS[fi].flip;
+          var fd = DOORS[fi];
+          var oldOpening = doorOpeningRect(fd);
+          var oldPocket = doorPocketRect(fd);
+          var wasOnWall = anyWallCellUnder(oldPocket); // only this door's own pocket side
+                                                        // tells us whether it sits on a real
+                                                        // wall run at all (see helper above)
+          // Flipping swaps which half is the open part and which is the door part —
+          // it must NOT move or resize the overall opening+pocket run (that was the
+          // bug: the pocket used to relocate to the far side of a still-fixed opening,
+          // stretching the whole assembly outward instead of just swapping halves).
+          // Shifting the anchor by one door-length as we toggle keeps the new opening
+          // sitting exactly where the old pocket was, and vice versa.
+          if (fd.horiz) { fd.x += fd.flip ? fd.len : -fd.len; }
+          else { fd.y += fd.flip ? fd.len : -fd.len; }
+          fd.flip = !fd.flip;
+          var wallChanged = false;
+          if (wasOnWall){
+            // old opening is now the pocket side — the wall there comes back; the
+            // new opening (= old pocket) punches the hole instead, same as placement
+            if (restoreWallCellsUnder(oldOpening)) wallChanged = true;
+            if (clearWallCellsUnder(doorOpeningRect(fd))) wallChanged = true;
+          }
+          if (wallChanged){ renderWallLayer(); saveWalls(); }
           renderDoorLayer();
           saveDoors();
           build3D();
+          renderClearanceCheck(); // the opening just moved — circulation may have changed
           commitUndoableChange();
           return;
         }
@@ -2540,7 +2618,8 @@
       rot: 0, isCopy: true,
       kw: spec.kw, kwConfirmed: false,
       short: spec.name,
-      power: spec.doryoku ? "doryoku" : undefined, powerConfirmed: false
+      power: spec.doryoku ? "doryoku" : undefined, powerConfirmed: false,
+      note: spec.note || ""
     };
     var fp = footprint(item);
     var clamped = clampEquipment(item, item.x, item.y, fp.wM, fp.dM);
@@ -2552,6 +2631,30 @@
     buildTable();
     commitUndoableChange();
   }
+
+  // ---------- Generic shelf quick-add ----------
+  // A shortcut for the common case of "just need another plain shelf somewhere" —
+  // skips the custom-equipment modal entirely and adds one with sensible default
+  // dimensions (900×450×H1800, a typical stainless wire/steel shelving unit),
+  // auto-numbered (汎用棚①②③…) like the catalog's own duplicate-numbered items.
+  // Each one gets dropped in the dock like any custom item; what it's actually
+  // used for is then written into the "メモ・用途" column of the table below.
+  var CIRCLED_NUMS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
+  function circledNum(n){ return (n >= 1 && n <= 20) ? CIRCLED_NUMS[n-1] : "(" + n + ")"; }
+  function addGenericShelf(){
+    var existing = EQUIPMENT.filter(function(e){ return e.name.indexOf("汎用棚") === 0; }).length;
+    addCustomEquipment({
+      name: "汎用棚" + circledNum(existing + 1),
+      w: 900, d: 450, h: 1800,
+      kind: "pack", status: "new", util: [], kw: null, doryoku: false
+    });
+  }
+  function initGenericShelfButton(){
+    var btn = document.getElementById("addGenericShelfBtn");
+    if (!btn) return;
+    btn.addEventListener("click", addGenericShelf);
+  }
+
   function initCustomEquipmentForm(){
     var overlay = document.getElementById("customEqOverlay");
     var openBtn = document.getElementById("customEqOpenBtn");
@@ -2761,7 +2864,8 @@
     return {
       name: e.name,
       dim: e.w + "×" + e.d + "×" + e.h + "mm" + (e.rot === 90 ? "(90°回転)" : ""),
-      row: "ゾーン " + e.zone + "・" + statusLabel + " / 設備: " + utilTxt
+      row: "ゾーン " + e.zone + "・" + statusLabel + " / 設備: " + utilTxt,
+      note: e.note || ""
     };
   }
 
@@ -2789,10 +2893,12 @@
     tip.innerHTML =
       '<span class="tt-name"></span>' +
       '<span class="tt-dim"></span>' +
-      '<span class="tt-row"></span>';
+      '<span class="tt-row"></span>' +
+      (info.note ? '<span class="tt-note"></span>' : '');
     tip.querySelector(".tt-name").textContent = info.name;
     tip.querySelector(".tt-dim").textContent = info.dim;
     tip.querySelector(".tt-row").textContent = info.row;
+    if (info.note) tip.querySelector(".tt-note").textContent = "メモ: " + info.note;
     positionTooltip(tip, clientX, clientY);
     tip.classList.add("show");
   }
@@ -2838,6 +2944,11 @@
     document.getElementById("isName").textContent = info.name;
     document.getElementById("isDim").textContent = info.dim;
     document.getElementById("isRow").textContent = info.row;
+    var noteEl = document.getElementById("isNote");
+    if (noteEl){
+      noteEl.textContent = info.note ? ("メモ: " + info.note) : "";
+      noteEl.style.display = info.note ? "" : "none";
+    }
     sheet.classList.add("show");
   }
   function hideInfoSheet(){
@@ -3530,6 +3641,25 @@
       tr.appendChild(tdKw);
       if (isDoryoku) tr.className = "row-doryoku";
 
+      // free-text memo/用途 — mainly for things like custom-added shelves, where the
+      // name alone ("汎用棚①") doesn't say what's stored there. Any item can carry one.
+      var tdNote = document.createElement("td");
+      tdNote.className = "note-cell";
+      var noteInput = document.createElement("input");
+      noteInput.type = "text";
+      noteInput.className = "note-input";
+      noteInput.placeholder = "用途・メモを入力";
+      noteInput.value = e.note || "";
+      noteInput.addEventListener("focus", function(){ beginUndoableChange(); });
+      noteInput.addEventListener("input", function(){ e.note = noteInput.value; });
+      noteInput.addEventListener("change", function(){
+        e.note = noteInput.value;
+        savePositions();
+        commitUndoableChange();
+      });
+      tdNote.appendChild(noteInput);
+      tr.appendChild(tdNote);
+
       // actions — duplicate any item (e.g. to try a 2nd oven or freezer); delete
       // only shows for a copy, so the fixed catalog list can't be trimmed from here
       var tdAction = document.createElement("td");
@@ -3573,6 +3703,7 @@
     ftd2.textContent = (anyEstimate ? "〜" : "") + total.toFixed(2).replace(/\.?0+$/, "") + "kW";
     ftr.appendChild(ftd2);
     var ftd3 = document.createElement("td");
+    ftd3.colSpan = 2;
     ftr.appendChild(ftd3);
     // same total, mirrored into a standalone summary card above the table so it's
     // visible immediately on a phone without needing to scroll the table sideways
@@ -3641,6 +3772,7 @@
   initWallTools();
   initClearanceTool();
   initCustomEquipmentForm();
+  initGenericShelfButton();
   initExportTools();
   initUndoRedo();
 })();
