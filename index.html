@@ -1024,46 +1024,12 @@
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") throw new Error(data.message || "キャンセルに失敗しました。");
 
-        let cancelLineSendSuccess = false;
-        if (liff.isInClient()) {
-          try {
-            await liff.sendMessages([{
-              type: "text",
-              text: `【注文キャンセルのご連絡】\n店舗: ${data.shopName}様\n納品希望日: ${data.deliveryDate}\n発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\n上記の注文をキャンセルしました。`
-            }]);
-            cancelLineSendSuccess = true;
-          } catch (le) {
-            console.warn("LINE送信スキップ:", le);
-            _reportLineSendFailure(shopCode, orderId, "キャンセル確認", (le && le.message) ? le.message : String(le));
-          }
-        } else {
-          console.warn("LIFFがLINEアプリ内で開かれていないため、通常のLINE送信をスキップしました。フォールバック通知を試みます。");
-        }
-
-        // ★2026/09/15修正: submitOrder側と同様、「LINEアプリ内で送信を試みて失敗した場合」だけでなく
-        //   「そもそもLINEアプリ内と判定されなかった場合」も同じフォールバック通知を試みるように統一。
-        if (!cancelLineSendSuccess && data.shopGroupId) {
-          const fallbackMsg = encodeURIComponent(_capMessageForUrlFallback(
-            `【注文キャンセルのご連絡】\n店舗: ${data.shopName}様\n納品希望日: ${data.deliveryDate}\n発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\n上記の注文をキャンセルしました。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`,
-            3500
-          ));
-          try {
-            const fbRes = await fetch(
-              `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
-              { method: 'GET', redirect: 'follow' }
-            );
-            const fbData = await fbRes.json();
-            if (fbData.status === "success") {
-              console.log("店舗グループへキャンセルのフォールバック通知を送信しました");
-            } else {
-              console.warn("キャンセルのフォールバック通知が失敗を返しました:", fbData.message);
-              _reportLineSendFailure(shopCode, orderId, "キャンセル確認フォールバック", fbData.message || "不明なエラー");
-            }
-          } catch (fe) {
-            console.warn("キャンセルのフォールバック通知も失敗:", fe);
-            _reportLineSendFailure(shopCode, orderId, "キャンセル確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
-          }
-        }
+        // ★2026/11/12修正（item59）: 以前はここでliff.sendMessages()によりお客様の端末から
+        //   店舗グループへキャンセル確認を送っていたが、お客様の端末（アプリのバックグラウンド化・
+        //   通信切断等）に完全に依存するため、サイレント障害（ヘンリー原宿店の事例）が発生した。
+        //   キャンセル自体が正常に完了していれば、GAS側（cancelOrderアクション）が
+        //   sendCancelConfirmationToShopで店舗グループへ確実に通知するため、クライアント側からの
+        //   送信・フォールバック通知は不要になった。
 
         spinner.classList.add('hidden');
         historyData = [];
@@ -1071,11 +1037,7 @@
         //   最新の注文状況をサーバーから再取得してマークを更新する。
         refreshOrderedDates();
 
-        if (cancelLineSendSuccess) {
-          showModal("キャンセル完了", `発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\nキャンセルが完了しました。\nLINEグループに通知しました。`, "success");
-        } else {
-          showModal("キャンセル完了（グループ通知は未送信）", `発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\nキャンセル自体は正常に完了しました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、担当者へキャンセルの旨をご一報ください。`, "info");
-        }
+        showModal("キャンセル完了", `発注番号: ${orderId}${itemsText ? "\n" + itemsText : ""}\n\nキャンセルが完了しました。`, "success");
         _resetOkBtn(() => { closeModal(); loadHistory(); });
 
       } catch (error) {
@@ -1451,38 +1413,6 @@
     }
 
     // ============================================================
-    //  ★新規追加: notifyShopGroupへのフォールバック通知はGETリクエスト
-    //  （URLクエリパラメータ）で送るため、注文内容が多いと稀にURLの長さ上限に
-    //  触れる可能性がある。エンコード後の文字数が上限を超える場合は、
-    //  末尾を省略して安全な長さに収める（無言で失敗・途中で切れて送信、を防ぐ）。
-    // ============================================================
-    function _capMessageForUrlFallback(message, maxEncodedLength) {
-      if (encodeURIComponent(message).length <= maxEncodedLength) return message;
-      const OMIT_NOTE = "\n…（以下省略。詳細は発注画面の「注文履歴」タブをご確認ください）";
-      let trimmed = message;
-      while (trimmed.length > 0 && encodeURIComponent(trimmed + OMIT_NOTE).length > maxEncodedLength) {
-        trimmed = trimmed.slice(0, -200);
-      }
-      return trimmed + OMIT_NOTE;
-    }
-
-    // ============================================================
-    //  liff.sendMessages失敗時にGAS経由で管理者へ報告する
-    // ============================================================
-    async function _reportLineSendFailure(shopCodeVal, orderId, context, errorMsg) {
-      try {
-        const url = `${GAS_WEB_APP_URL}?action=notifyLineFailure`
-          + `&shopCode=${encodeURIComponent(shopCodeVal || "")}`
-          + `&orderId=${encodeURIComponent(orderId || "")}`
-          + `&context=${encodeURIComponent(context || "")}`
-          + `&errorMsg=${encodeURIComponent(errorMsg || "")}`;
-        await fetch(url, { method: 'GET', redirect: 'follow' });
-      } catch (e) {
-        console.warn("LINE送信失敗の報告自体にも失敗:", e);
-      }
-    }
-
-    // ============================================================
     //  GASへのデータ送信 → 複数配送日分を1回のリクエストで送る
     // ============================================================
     async function sendDataToGas(orders, notes, grandTotal) {
@@ -1530,159 +1460,13 @@
             const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
             if (data.status !== "success") throw new Error(data.message || "サーバーエラーが発生しました。");
 
-            const DAYS_JP  = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-            const orderUrl = `https://liff.line.me/${LIFF_ID}?shop=${encodeURIComponent(shopCode)}`;
-
-            const dateBlocks = [];
-            orders.forEach(o => {
-              const d = new Date(o.deliveryDate + "T00:00:00");
-              dateBlocks.push({
-                type: "text",
-                text: `📅 ${o.deliveryDate}${DAYS_JP[d.getDay()]}`,
-                size: "sm", weight: "bold", color: "#92400e", margin: "md"
-              });
-              let dateExTax = 0;
-              o.items.forEach(item => {
-                dateExTax += Number(item.subtotal || 0);
-                dateBlocks.push({
-                  type: "box", layout: "baseline", margin: "xs",
-                  contents: [
-                    { type: "text", text: `・${item.productName}`, size: "xs", color: "#333333", flex: 4, wrap: true },
-                    { type: "text", text: `× ${item.quantity}個`, size: "xs", color: "#333333", flex: 2, align: "end" },
-                    { type: "text", text: `¥${item.subtotal.toLocaleString()}`, size: "xs", color: "#666666", flex: 2, align: "end" }
-                  ]
-                });
-              });
-              const dateTax       = Math.floor(dateExTax * 0.08);
-              const dateTotalInTax = dateExTax + dateTax;
-              dateBlocks.push({
-                type: "box", layout: "baseline", margin: "sm",
-                contents: [
-                  { type: "text", text: "この日の税込合計", size: "xs", color: "#888888", flex: 3 },
-                  { type: "text", text: `¥${dateTotalInTax.toLocaleString()}`, size: "xs", color: "#b45309", flex: 3, align: "end", weight: "bold" }
-                ]
-              });
-            });
-
-            if (notes) {
-              dateBlocks.push({ type: "text", text: `備考: ${notes}`, size: "xs", color: "#888888", margin: "md", wrap: true });
-            }
-
-            const totalSummaryBlock = orders.length === 1
-              ? [
-                  { type: "separator", margin: "md" },
-                  {
-                    type: "box", layout: "baseline", margin: "md",
-                    contents: [
-                      { type: "text", text: "税込合計", size: "sm", color: "#333333", flex: 3, weight: "bold" },
-                      { type: "text", text: `¥${grandTotal.toLocaleString()}`, size: "sm", color: "#b45309", flex: 3, align: "end", weight: "bold" }
-                    ]
-                  }
-                ]
-              : [];
-
-            const confirmFlex = {
-              type: "flex",
-              altText: `【ご注文ありがとうございます】${data.shopName}様 / ${orders.length}日分`,
-              contents: {
-                type: "bubble",
-                styles: { header: { backgroundColor: "#92400e" } },
-                header: {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    { type: "text", text: "🍞 ご注文ありがとうございます", color: "#ffffff", size: "sm", weight: "bold" }
-                  ]
-                },
-                body: {
-                  type: "box",
-                  layout: "vertical",
-                  spacing: "sm",
-                  contents: [
-                    {
-                      type: "box", layout: "baseline",
-                      contents: [
-                        { type: "text", text: "店舗名", size: "xs", color: "#888888", flex: 2 },
-                        { type: "text", text: `${data.shopName}様`, size: "sm", color: "#333333", flex: 5, weight: "bold", wrap: true }
-                      ]
-                    },
-                    { type: "separator", margin: "md" },
-                    ...dateBlocks,
-                    ...totalSummaryBlock
-                  ]
-                },
-                footer: {
-                  type: "box",
-                  layout: "vertical",
-                  contents: [
-                    {
-                      type: "button",
-                      style: "primary",
-                      color: "#b45309",
-                      height: "sm",
-                      action: { type: "uri", label: "📋 次回の発注はこちら", uri: orderUrl }
-                    }
-                  ]
-                }
-              }
-            };
-
-            let lineSendSuccess = false;
-            if (liff.isInClient()) {
-              try {
-                await liff.sendMessages([confirmFlex]);
-                console.log("LINE送信成功");
-                lineSendSuccess = true;
-              } catch (le) {
-                console.warn("LINE送信失敗:", le);
-                _reportLineSendFailure(shopCode, data.batchId, "発注確認", (le && le.message) ? le.message : String(le));
-              }
-            } else {
-              console.warn("LIFFがLINEアプリ内で開かれていないため、通常のLINE送信をスキップしました。フォールバック通知を試みます。");
-            }
-
-            // ★2026/09/15修正: 以前は「LINEアプリ内で送信を試みて失敗した場合」しかフォールバック通知
-            //   （notifyShopGroup経由のテキスト送信）を行っていなかった。そのため、LINEアプリ内と
-            //   判定されなかったケース（ブックマークやホーム画面への追加など、LINEのトークの
-            //   「次回の発注はこちらから」ボタンを経由せずに開かれた場合）は、通常送信もフォール
-            //   バックも一切試みられず、グループへの通知が完全に無音でスキップされてしまっていた
-            //   （実際に原宿店でこの症状が発生し、常に「グループ通知は未送信」になっていた）。
-            //   ここを「通常送信が成功しなかった場合は理由を問わず必ずフォールバックを試みる」形に統一する。
-            if (!lineSendSuccess && data.shopGroupId) {
-              const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
-              let orderDetailText = "";
-              orders.forEach(o => {
-                const d = new Date(o.deliveryDate + "T00:00:00");
-                orderDetailText += `\n■ ${o.deliveryDate}${DAYS_JP[d.getDay()]}\n`;
-                o.items.forEach(item => {
-                  if (item.productId === "delivery") {
-                    orderDetailText += `　・${item.productName} ¥${item.price.toLocaleString()}（税抜）\n`;
-                  } else {
-                    orderDetailText += `　・${item.productName} × ${item.quantity}個\n`;
-                  }
-                });
-              });
-              const fallbackMsg = encodeURIComponent(_capMessageForUrlFallback(
-                `【ご注文を受け付けました】\n\n${data.shopName}様\n${orderDetailText}\n税込合計: ¥${grandTotal.toLocaleString()}\n\nご注文内容は発注画面の「注文履歴」タブからもご確認いただけます。\n\n※このメッセージはシステムからの自動送信です。\nFLAT Bakery`,
-                3500
-              ));
-              try {
-                const fbRes = await fetch(
-                  `${GAS_WEB_APP_URL}?action=notifyShopGroup&groupId=${encodeURIComponent(data.shopGroupId)}&message=${fallbackMsg}`,
-                  { method: 'GET', redirect: 'follow' }
-                );
-                const fbData = await fbRes.json();
-                if (fbData.status === "success") {
-                  console.log("店舗グループへフォールバック通知を送信しました");
-                } else {
-                  console.warn("フォールバック通知が失敗を返しました:", fbData.message);
-                  _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", fbData.message || "不明なエラー");
-                }
-              } catch(fe) {
-                console.warn("フォールバック通知も失敗:", fe);
-                _reportLineSendFailure(shopCode, data.batchId, "発注確認フォールバック", (fe && fe.message) ? fe.message : String(fe));
-              }
-            }
+            // ★2026/11/12修正（item59）: 以前はここでliff.sendMessages()によりお客様の端末から
+            //   Flexメッセージ（カード形式の発注確認）を店舗グループへ送っていたが、お客様の端末
+            //   （アプリのバックグラウンド化・通信切断等）に完全に依存するため、注文自体は正常に
+            //   記録されたのに確認もエラー通知も一切届かないサイレント障害（ヘンリー原宿店の事例）
+            //   が発生した。注文が正常に受け付けられていれば、GAS側（submitOrderアクション）が
+            //   sendOrderConfirmationToShopで店舗グループへ同じ見た目のカードを確実に送るため、
+            //   クライアント側からの送信・フォールバック通知は不要になった。
 
             historyData   = [];
             selectedDates = [];
@@ -1695,11 +1479,7 @@
 
             const orderIdsText = (data.orders || []).map(o => o.orderId).join(", ") || data.batchId;
 
-            if (lineSendSuccess) {
-              showModal("発注完了 ✅", `発注番号: ${orderIdsText}\n店舗名: ${data.shopName}様\n\n${orders.length}日分のご注文を受け付けました！\nLINEグループに明細を投稿しました。`, "success");
-            } else {
-              showModal("発注完了（グループ通知は未送信）", `発注番号: ${orderIdsText}\n店舗名: ${data.shopName}様\n\nご注文自体は正常に受け付けられました。\n\nただし、このLINEグループへの通知送信ができませんでした。\nお手数ですが、この画面をLINEグループのトーク内から開き直してご確認いただくか、担当者へ発注内容をご一報ください。`, "info");
-            }
+            showModal("発注完了 ✅", `発注番号: ${orderIdsText}\n店舗名: ${data.shopName}様\n\n${orders.length}日分のご注文を受け付けました！`, "success");
             _resetOkBtn(() => { closeModal(); location.reload(); });
             return;
 
