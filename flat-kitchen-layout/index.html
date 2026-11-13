@@ -601,6 +601,7 @@
       <li><b>焼成ゾーンの電気容量比較(2026-10-21):</b>キューブエア×4台(合計31.2kW)に対し、デッキオーブン「コンド」(6枚差・1段、CO1.1212)×1台+キューブエア×2台(合計10.9+15.6=26.5kW)の組み合わせの方が電気容量を抑えられるため、こちらをゾーンFの現行配置としています。退避させたキューブエア③④は仮置き場に置いてあるので、ドラッグでいつでも4台案に戻せます</li>
       <li><b>番重洗浄機をガス式に変更(2026-10-21):</b>電気容量削減のため、電気式(目安)からタニコー TDWG-A4DB3(ガスブースター内蔵の小型ドアタイプ洗浄機)に差し替えました。電気消費は1.7kWまで下がりますが、新たにガス配管(給排気含む)が必要になる点と、ラックサイズが番重の実寸に収まるかはメーカー・販売店への確認が必要な点にご注意ください</li>
       <li><b>出荷置き場(ゾーンL)を新設(2026-10-22):</b>食品工場のゾーニング(清浄区域・準清潔区域・汚染区域の区分け)と異物混入防止の考え方に基づき、配送業者が製造エリア(清潔区域)に立ち入らずに完成品を受け取れる専用スペースを入口の東側に追加しました。更衣室(ゾーンJ)の幅を7.10→5.60mに縮小し、空いた東側(入口を出てすぐ右)を出荷置き場に割り当てています — 入口から見て左が更衣室、右が出荷置き場になる動線です。スタッフが製造エリア側から梱包済み商品を出荷棚まで運び、配送員はそこまでしか立ち入らない運用を想定しています。ただし施設基準の詳細(専用区画の要否・寸法等)は自治体の条例によるため、着工前に板橋区保健所へ図面持参での事前相談を推奨します</li>
+      <li><b>新規機材の追加(2026-11-13):</b>イサムさんの機材一覧をもとに、コールドテーブル150・コールドテーブル180①を実機の型番(それぞれホシザキ RFT-150SDG-R・RFT-180SDG)の仕様に更新しました。あわせて新規搬入予定の冷凍冷蔵庫(HRF-63A-ED)・製氷機(IM-95TM)・4面冷凍庫(401YSS-NP-EX)を仮置き場に追加しています(配置場所は未定のためドラッグしてご利用ください)。食器洗浄機(UC-L 2.0)は本採用が保留中とのことで、同じく仮置き場に参考として置いています。電子レンジ(NE-1802TA)は使用しないとのことで追加していません</li>
     </ul>
   </footer>
 
@@ -673,7 +674,10 @@
   // retired here when the "コンド(6枚差・1段)×1+キューブエア×2" combo became the active zone F
   // layout (see EQUIPMENT array, キューブエア comment). Still well under ROOM.h=11.38, so
   // CANVAS_H is unaffected by this bump either.
-  var DOCK = {x: ROOM.w + 0.6, y: 0.00, w: 2.00, h: 8.20, name: "仮置き場(比較用・オシキリ案)"};
+  // h bumped again 8.20→11.40 (2026-11-13) to additionally fit 4 pieces of newly-acquired
+  // equipment staged here pending the owner's placement decision — see EQUIPMENT array's
+  // end-of-list comment (冷凍冷蔵庫/製氷機/4面冷凍庫/食器洗浄機, 2026-11-13).
+  var DOCK = {x: ROOM.w + 0.6, y: 0.00, w: 2.00, h: 11.40, name: "仮置き場(比較用・オシキリ案)"};
 
   var ZONES = [
     {k:"A", name:"仕込み・ミキシング",              x:2.24, y:0.00, w:6.56, h:1.57, kind:"prod"},
@@ -733,7 +737,14 @@
   // finalizing the electrical design. Left unset (undefined) for everything else not called out
   // above, assumed to run on an ordinary 電灯 outlet.
   var EQUIPMENT = [
-    {name:"コールドテーブル150(仕込み台・固定)", w:1500,d:600, h:800,  x:2.34, y:0.20, zone:"A", kind:"cold", status:"confirmed", util:["power"], kw:0.25, kwConfirmed:false, short:"コールド\nテーブル150"},
+    // 2026-11-13: 実機の型番が判明(ホシザキ RFT-150SDG-1-R、新規搬入予定)したため、目安値
+    // だった寸法・容量を型番ベースの値に更新。幅は元の目安(1500mm)と一致、奥行750mm・高さ
+    // 900mmは販売店ページ掲載値(幅1500×奥行750×高さ800mm)よりやや大きいが、ユーザー提供の
+    // 機材一覧の数値を採用(現物確認前の暫定値のため、搬入前に実測推奨)。内容積は冷蔵197L・
+    // 冷凍209Lで、メーカー公称値と一致。電源は単相100V(動力不要)。消費電力は冷却時0.20kW/
+    // 霜取時0.50kWのうち、安全側で高い方(霜取時)を採用 — 販売店ページ記載でメーカー公式
+    // 仕様書ではないため kwConfirmed は false のまま。
+    {name:"コールドテーブル150(ホシザキ RFT-150SDG-R・仕込み台)", w:1500,d:750, h:900,  x:2.34, y:0.20, zone:"A", kind:"cold", status:"confirmed", util:["power"], kw:0.50, kwConfirmed:false, short:"コールド\nテーブル150\n(RFT-150)"},
     {name:"ミキサー(愛工舎 マイティE90)",        w:700, d:900, h:1000, x:4.00, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:["power"], kw:4.4,  kwConfirmed:true, short:"ミキサー", power:"doryoku"},
     {name:"シンク",                               w:750, d:600, h:850,  x:4.80, y:0.20, zone:"A", kind:"util", status:"estimate",  util:["water","drain"], kw:null, kwConfirmed:false, short:"シンク"},
     {name:"粉置き場(シェルフ)",                   w:900, d:500, h:1800, x:5.65, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:[], kw:null, kwConfirmed:false, short:"粉置き場"},
@@ -755,7 +766,14 @@
     // 加温・冷却の両モードを1台でこなせる機種のため、別項目のリターダーと機能が重なる可能性あり
     // (要user確認・未統合)。
     {name:"ドウコン(愛工舎 ドウレック・A-DPII-3222A)",  w:770, d:1190,h:1950, x:0.20, y:3.50, zone:"C", kind:"cold", status:"confirmed", util:["power"], kw:1.21, kwConfirmed:true, short:"ドウレック", power:"doryoku", powerConfirmed:true},
-    {name:"コールドテーブル180①(面台作業)",       w:1800,d:600, h:800,  x:0.95, y:3.50, zone:"C", kind:"cold", status:"confirmed", util:["power"], kw:0.25, kwConfirmed:false, short:"コールド\nテーブル180①"},
+    // 2026-11-13: 実機の型番が判明(ホシザキ RFT-180SDG-1、新規搬入予定)したため、目安値
+    // だった寸法・容量を型番ベースの値に更新。幅は元の目安(1800mm)と一致、奥行750mm・高さ
+    // 900mmは販売店ページ掲載値(幅1800×奥行750×高さ800mm)よりやや大きいが、ユーザー提供の
+    // 機材一覧の数値を採用(現物確認前の暫定値のため、搬入前に実測推奨)。内容積は冷蔵330L・
+    // 冷凍189Lで、メーカー公称値と一致。電源は単相100V(動力不要)。消費電力は冷却時0.22kW/
+    // 霜取時0.51kWのうち、安全側で高い方(霜取時)を採用 — 販売店ページ記載でメーカー公式
+    // 仕様書ではないため kwConfirmed は false のまま。
+    {name:"コールドテーブル180①(ホシザキ RFT-180SDG・面台作業)", w:1800,d:750, h:900,  x:0.95, y:3.50, zone:"C", kind:"cold", status:"confirmed", util:["power"], kw:0.51, kwConfirmed:false, short:"コールド\nテーブル180①\n(RFT-180)"},
     {name:"リターダー",                           w:820, d:1210,h:2000, x:2.95, y:3.50, zone:"C", kind:"cold", status:"confirmed", util:["power"], kw:0.8, kwConfirmed:false, short:"リターダー", power:"doryoku"},
 
     // リバースシーター = 高円寺で使用中の「スーパーシーター」(型番SFB500X710、羽根短め)と
@@ -902,7 +920,31 @@
     // ゾーンI(トイレ)をこの面取り角(斜めの壁)に寄せて移設したうえで、その角の内側、
     // 斜め壁に近い位置に便器本体を置いている。寸法は洋式便器の一般的な目安(W400×D700mm)。
     // 手洗い等は別途必要になる可能性があるが、まずは便器のみ配置。
-    {name:"トイレ(洋式便器・新設)", w:400, d:700, h:800, x:10.40, y:1.50, zone:"I", kind:"sup", status:"new", util:["water","drain"], kw:null, kwConfirmed:false, short:"便器"}
+    {name:"トイレ(洋式便器・新設)", w:400, d:700, h:800, x:10.40, y:1.50, zone:"I", kind:"sup", status:"new", util:["water","drain"], kw:null, kwConfirmed:false, short:"便器"},
+
+    // 2026-11-13: イサムさんの機材一覧(工場機材シート)から追加。置き場所はまだ決まって
+    // いないため、ひとまず仮置き場に並べてあります — ドラッグして好きなゾーンに配置して
+    // ください。寸法は元Excel記載値(搬入前に現物寸法・搬入経路の確認が必要、とのメモあり)
+    // のため status は "estimate" とし、型番から分かった範囲の仕様を併記しています。
+    // 同シートにあった以下2点は今回は追加していません:
+    //   ・電子レンジ(NE-1802TA) — 使用しないとのことで完全に除外
+    //   ・アンダーカウンター食器洗浄機(UC-L 2.0) — 本採用は保留とのことで、こちらも参考用に
+    //     仮置き場に出していますが(次のエントリ)、使うかどうか未定の扱いです
+    {name:"冷凍冷蔵庫(ホシザキ HRF-63A-ED)", w:625, d:800, h:2010, x:13.43, y:8.10, zone:"DOCK", kind:"cold", status:"estimate", util:["power"], kw:0.41, kwConfirmed:false, short:"冷凍冷蔵庫\n(HRF-63A)"},
+    // 製氷機 IM-95TM: ホシザキ公式ページ上の近縁モデル(IM-95TM-1-80、アンダーカウンター
+    // タイプ)の消費電力(製氷時460〜530W)を参考値として採用。型番表記がわずかに異なるため
+    // (TM-1-80 vs シート記載のTM)kwConfirmedはfalseのまま。給水・排水が必要。
+    {name:"製氷機(ホシザキ IM-95TM)", w:1000, d:600, h:900, x:13.43, y:9.05, zone:"DOCK", kind:"cold", status:"estimate", util:["power","water","drain"], kw:0.53, kwConfirmed:false, short:"製氷機\n(IM-95TM)"},
+    // 4面冷凍庫 401YSS-NP-EX: ウェブ上では近縁と思われる大和冷機工業401SS-NP-EX(現行型式
+    // LNXA-1281SS-N)が見つかったが、型番の"Y"の有無が一致せず、かつ奥行がシート記載650mm
+    // に対しそちらは800mmで差異あり(シートには「現物確認」とのメモがあるため、650mmは
+    // 実測値の可能性が高く採用)。型番・寸法とも未確定要素が残るため status:estimate のまま。
+    {name:"4面冷凍庫(大和冷機 401YSS-NP-EX)", w:1200, d:650, h:1905, x:13.43, y:9.80, zone:"DOCK", kind:"cold", status:"estimate", util:["power"], kw:0.59, kwConfirmed:false, short:"4面冷凍庫\n(401YSS)"},
+    // 食器洗浄機 UC-L 2.0(ウィンターハルター): 本採用は保留中だが、将来使う可能性がある
+    // とのことで参考用に仮置き場へ。三相200V(シートのメモ・販売店ページの両方で確認)。
+    // 消費電力は洗浄ポンプ単体で約0.6kWという記載のみ見つかり、すすぎ用ヒーター等を含めた
+    // 総消費電力は不明なため kw は空欄のまま(採用判断時に仕様書で要確認)。
+    {name:"食器洗浄機(ウィンターハルター UC-L 2.0・保留中)", w:600, d:617, h:860, x:13.43, y:10.60, zone:"DOCK", kind:"util", status:"estimate", util:["power","water","drain"], kw:null, kwConfirmed:false, short:"食洗機\n(UC-L・保留)", power:"doryoku", powerConfirmed:true}
   ];
   // rot: 0 or 90 — which way the item is turned (swaps its footprint's w/d for layout
   // purposes). Most items don't specify one above, so default those to 0 here; a few
