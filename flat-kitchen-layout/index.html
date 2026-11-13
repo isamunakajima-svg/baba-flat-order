@@ -548,6 +548,7 @@
     <div class="custom-eq-trigger-row">
       <button class="reset-btn custom-eq-trigger" id="customEqOpenBtn" type="button">+ カスタム機器を追加</button>
       <button class="reset-btn" id="addGenericShelfBtn" type="button">+ 汎用棚を追加</button>
+      <button class="reset-btn" id="exportEquipXlsxBtn" type="button" title="実際に室内に配置されている機器のみをExcel(.xlsx)ファイルとして書き出します(仮置き場の機器は含みません)">使用機器一覧をExcelで書き出す</button>
     </div>
     <p class="table-hint">→ 表は横にスクロールできます(容量(kW)列は右側)</p>
     <div class="table-wrap">
@@ -2893,6 +2894,209 @@
     });
     if (pdf2d) pdf2d.addEventListener("click", printCurrentView);
     if (pdf3d) pdf3d.addEventListener("click", printCurrentView);
+    var xlsxBtn = document.getElementById("exportEquipXlsxBtn");
+    if (xlsxBtn) xlsxBtn.addEventListener("click", function(){
+      var today = new Date();
+      var ymd = today.getFullYear() + String(today.getMonth()+1).padStart(2,"0") + String(today.getDate()).padStart(2,"0");
+      downloadBlob(buildEquipmentListXlsxBlob(), "FLATbakery_使用機器一覧_" + ymd + ".xlsx");
+    });
+  }
+
+  // ---------- 使用機器一覧 Excel(.xlsx) 書き出し ----------
+  // 外部ライブラリを読み込まず(このファイルは単一HTMLで完結させる方針のため)、ZIP+XML
+  // からなるxlsxの最小構成を素のJSで直接組み立てている。圧縮はせず(store方式、
+  // compression method 0)、CRC32だけテーブル方式で計算 — Excel/Googleスプレッドシート
+  // どちらでも問題なく開けることを確認済み。
+  function crc32(bytes){
+    if (!crc32.table){
+      var t = new Uint32Array(256);
+      for (var n = 0; n < 256; n++){
+        var c = n;
+        for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        t[n] = c >>> 0;
+      }
+      crc32.table = t;
+    }
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) crc = crc32.table[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+  function u16le(n){ return [n & 0xFF, (n >>> 8) & 0xFF]; }
+  function u32le(n){ return [n & 0xFF, (n >>> 8) & 0xFF, (n >>> 16) & 0xFF, (n >>> 24) & 0xFF]; }
+  // Builds an uncompressed (store-method) ZIP from `files` ([{name, data(string)}]) and
+  // returns it as a Uint8Array — enough structure (local headers + central directory +
+  // end-of-central-directory record) for any standard zip/xlsx reader, Excel included.
+  function buildZip(files){
+    var localParts = [], centralParts = [], offset = 0;
+    files.forEach(function(f){
+      var nameBytes = new TextEncoder().encode(f.name);
+      var dataBytes = new TextEncoder().encode(f.data);
+      var crc = crc32(dataBytes), size = dataBytes.length;
+      var localHeader = new Uint8Array([].concat(
+        u32le(0x04034b50), u16le(20), u16le(0), u16le(0), u16le(0), u16le(0x21),
+        u32le(crc), u32le(size), u32le(size), u16le(nameBytes.length), u16le(0)
+      ));
+      var localEntry = new Uint8Array(localHeader.length + nameBytes.length + dataBytes.length);
+      localEntry.set(localHeader, 0);
+      localEntry.set(nameBytes, localHeader.length);
+      localEntry.set(dataBytes, localHeader.length + nameBytes.length);
+      localParts.push(localEntry);
+
+      var centralHeader = new Uint8Array([].concat(
+        u32le(0x02014b50), u16le(20), u16le(20), u16le(0), u16le(0), u16le(0), u16le(0x21),
+        u32le(crc), u32le(size), u32le(size), u16le(nameBytes.length), u16le(0), u16le(0),
+        u16le(0), u16le(0), u32le(0), u32le(offset)
+      ));
+      var centralEntry = new Uint8Array(centralHeader.length + nameBytes.length);
+      centralEntry.set(centralHeader, 0);
+      centralEntry.set(nameBytes, centralHeader.length);
+      centralParts.push(centralEntry);
+
+      offset += localEntry.length;
+    });
+    var centralDirOffset = offset;
+    var centralDirSize = centralParts.reduce(function(s,p){ return s + p.length; }, 0);
+    var eocd = new Uint8Array([].concat(
+      u32le(0x06054b50), u16le(0), u16le(0), u16le(files.length), u16le(files.length),
+      u32le(centralDirSize), u32le(centralDirOffset), u16le(0)
+    ));
+    var out = new Uint8Array(offset + centralDirSize + eocd.length), p = 0;
+    localParts.forEach(function(part){ out.set(part, p); p += part.length; });
+    centralParts.forEach(function(part){ out.set(part, p); p += part.length; });
+    out.set(eocd, p);
+    return out;
+  }
+  function xlsxEscape(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&apos;").replace(/\r?\n/g," / ");
+  }
+  function xlsxCellStr(ref, text, styleIdx){
+    return '<c r="'+ref+'"'+(styleIdx?' s="'+styleIdx+'"':'')+' t="inlineStr"><is><t xml:space="preserve">'+xlsxEscape(text)+'</t></is></c>';
+  }
+  function xlsxCellNum(ref, num, styleIdx){
+    if (num == null || num === "") return '<c r="'+ref+'"'+(styleIdx?' s="'+styleIdx+'"':'')+'/>';
+    return '<c r="'+ref+'"'+(styleIdx?' s="'+styleIdx+'"':'')+'><v>'+num+'</v></c>';
+  }
+  // Builds the 使用機器一覧 (equipment actually placed in the room — 仮置き場/DOCK
+  // excluded, same filter as the kW summary total) as a standalone .xlsx Blob.
+  // The "#" column intentionally keeps each item's full EQUIPMENT array index+1 (not a
+  // re-numbered sequential count) so it still matches the circled number badges in the
+  // 2D/3D diagrams, even though DOCK items make the exported list's numbering skip around.
+  function buildEquipmentListXlsxBlob(){
+    var COLS = ["A","B","C","D","E","F","G","H","I","J"];
+    var headers = ["#","機器名","幅(mm)","奥行(mm)","高さ(mm)","ゾーン","状態","設備","容量(kW)","メモ・用途"];
+    var r = 1;
+    var rowsXml = ['<row r="'+r+'">'+headers.map(function(h,i){ return xlsxCellStr(COLS[i]+r, h, 1); }).join('')+'</row>'];
+    r++;
+    var totalKw = 0, anyEstimate = false;
+    EQUIPMENT.forEach(function(e, idx){
+      if (e.zone === "DOCK") return;
+      var zoneTxt = e.zone + "・" + (ZONE_NAME[e.zone] || "");
+      var statusTxt = STATUS_LABEL[e.status] || e.status;
+      var utilTxt = (e.util && e.util.length) ? e.util.map(function(u){ return UTIL_LABEL[u] || u; }).join("・") : "—";
+      var kwVal = null;
+      if (typeof e.kw === "number"){ kwVal = e.kw; totalKw += e.kw; if (!e.kwConfirmed) anyEstimate = true; }
+      var cells = [
+        xlsxCellNum(COLS[0]+r, idx+1),
+        xlsxCellStr(COLS[1]+r, e.name),
+        xlsxCellNum(COLS[2]+r, e.w),
+        xlsxCellNum(COLS[3]+r, e.d),
+        xlsxCellNum(COLS[4]+r, e.h),
+        xlsxCellStr(COLS[5]+r, zoneTxt),
+        xlsxCellStr(COLS[6]+r, statusTxt),
+        xlsxCellStr(COLS[7]+r, utilTxt),
+        kwVal != null ? xlsxCellNum(COLS[8]+r, kwVal) : xlsxCellStr(COLS[8]+r, "—"),
+        xlsxCellStr(COLS[9]+r, e.note || "")
+      ];
+      rowsXml.push('<row r="'+r+'">'+cells.join('')+'</row>');
+      r++;
+    });
+    var totalCells = [
+      xlsxCellStr(COLS[0]+r, "", 1),
+      xlsxCellStr(COLS[1]+r, "合計使用電気容量(仮置き場の機器を除く)", 1),
+      xlsxCellStr(COLS[2]+r, "", 1), xlsxCellStr(COLS[3]+r, "", 1), xlsxCellStr(COLS[4]+r, "", 1),
+      xlsxCellStr(COLS[5]+r, "", 1), xlsxCellStr(COLS[6]+r, "", 1), xlsxCellStr(COLS[7]+r, "", 1),
+      xlsxCellNum(COLS[8]+r, Math.round(totalKw*100)/100, 1),
+      xlsxCellStr(COLS[9]+r, anyEstimate ? "(未確定値を含む目安)" : "", 1)
+    ];
+    rowsXml.push('<row r="'+r+'">'+totalCells.join('')+'</row>');
+    var dims = "A1:" + COLS[9] + r;
+
+    var sheetXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+      '<dimension ref="'+dims+'"/>'+
+      '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+
+      '<cols>'+
+        '<col min="1" max="1" width="5" customWidth="1"/>'+
+        '<col min="2" max="2" width="38" customWidth="1"/>'+
+        '<col min="3" max="5" width="9" customWidth="1"/>'+
+        '<col min="6" max="6" width="24" customWidth="1"/>'+
+        '<col min="7" max="7" width="8" customWidth="1"/>'+
+        '<col min="8" max="8" width="16" customWidth="1"/>'+
+        '<col min="9" max="9" width="10" customWidth="1"/>'+
+        '<col min="10" max="10" width="26" customWidth="1"/>'+
+      '</cols>'+
+      '<sheetData>'+rowsXml.join('')+'</sheetData>'+
+      '</worksheet>';
+
+    var nowIso = new Date().toISOString().replace(/\.\d+Z$/, "Z");
+    var contentTypesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+      '<Default Extension="xml" ContentType="application/xml"/>'+
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+      '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'+
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+      '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>'+
+      '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>'+
+      '</Types>';
+    var rootRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'+
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>'+
+      '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>'+
+      '</Relationships>';
+    var workbookXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+      '<sheets><sheet name="使用機器一覧" sheetId="1" r:id="rId1"/></sheets>'+
+      '</workbook>';
+    var workbookRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+      '</Relationships>';
+    var stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+      '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'+
+      '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>'+
+      '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'+
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+      '<cellXfs count="2">'+
+        '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+
+        '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'+
+      '</cellXfs>'+
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'+
+      '</styleSheet>';
+    var coreXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'+
+      '<dc:title>使用機器一覧</dc:title><dc:creator>FLAT Bakery 厨房レイアウトツール</dc:creator>'+
+      '<dcterms:created xsi:type="dcterms:W3CDTF">'+nowIso+'</dcterms:created>'+
+      '</cp:coreProperties>';
+    var appXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+      '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>FLAT Bakery Layout Tool</Application></Properties>';
+
+    var zipBytes = buildZip([
+      {name:"[Content_Types].xml", data: contentTypesXml},
+      {name:"_rels/.rels", data: rootRelsXml},
+      {name:"xl/workbook.xml", data: workbookXml},
+      {name:"xl/_rels/workbook.xml.rels", data: workbookRelsXml},
+      {name:"xl/styles.xml", data: stylesXml},
+      {name:"xl/worksheets/sheet1.xml", data: sheetXml},
+      {name:"docProps/core.xml", data: coreXml},
+      {name:"docProps/app.xml", data: appXml}
+    ]);
+    return new Blob([zipBytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
   }
 
   // ---------- Equipment info: hover tooltip (mouse) + tap sheet (touch) ----------
