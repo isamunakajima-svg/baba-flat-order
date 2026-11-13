@@ -549,6 +549,7 @@
       <button class="reset-btn custom-eq-trigger" id="customEqOpenBtn" type="button">+ カスタム機器を追加</button>
       <button class="reset-btn" id="addGenericShelfBtn" type="button">+ 汎用棚を追加</button>
       <button class="reset-btn" id="exportEquipXlsxBtn" type="button" title="実際に室内に配置されている機器のみをExcel(.xlsx)ファイルとして書き出します(仮置き場の機器は含みません)">使用機器一覧をExcelで書き出す</button>
+      <button class="reset-btn" id="exportEquipXlsxKitchenOnlyBtn" type="button" title="番重置き場・天板ラック・出荷棚・粉置き場(シェルフ)・作業台・トイレ・人型/柱の参考表示など、厨房機器そのものではない項目を除いた一覧をExcel(.xlsx)ファイルとして書き出します(仮置き場の機器も含みません)">厨房機器のみ一覧をExcelで書き出す</button>
     </div>
     <p class="table-hint">→ 表は横にスクロールできます(容量(kW)列は右側)</p>
     <div class="table-wrap">
@@ -748,9 +749,9 @@
     {name:"コールドテーブル150(ホシザキ RFT-150SDG-R・仕込み台)", w:1500,d:750, h:900,  x:2.34, y:0.20, zone:"A", kind:"cold", status:"confirmed", util:["power"], kw:0.50, kwConfirmed:false, short:"コールド\nテーブル150\n(RFT-150)"},
     {name:"ミキサー(愛工舎 マイティE90)",        w:700, d:900, h:1000, x:4.00, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:["power"], kw:4.4,  kwConfirmed:true, short:"ミキサー", power:"doryoku"},
     {name:"シンク",                               w:750, d:600, h:850,  x:4.80, y:0.20, zone:"A", kind:"util", status:"estimate",  util:["water","drain"], kw:null, kwConfirmed:false, short:"シンク"},
-    {name:"粉置き場(シェルフ)",                   w:900, d:500, h:1800, x:5.65, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:[], kw:null, kwConfirmed:false, short:"粉置き場"},
+    {name:"粉置き場(シェルフ)",                   w:900, d:500, h:1800, x:5.65, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:[], kw:null, kwConfirmed:false, short:"粉置き場", notEquipment:true},
     {name:"粉計量機",                             w:400, d:600, h:450,  x:6.65, y:0.20, zone:"A", kind:"prod", status:"confirmed", util:["power"], kw:0.1, kwConfirmed:false, short:"粉計量機"},
-    {name:"番重置き場①(仕込み場付近)",            w:400, d:600, h:600,  x:7.10, y:0.20, zone:"A", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重①"},
+    {name:"番重置き場①(仕込み場付近)",            w:400, d:600, h:600,  x:7.10, y:0.20, zone:"A", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重①", notEquipment:true},
 
     // 分割・丸め機 比較中(2026-10-17〜): ゾーンBには候補①レオンVR250ライン(VX701-A+PR101)を
     // 仮に入れてあります。候補②オシキリDQS2/4+RVSは下の「仮置き場(DOCK)」に出してあるので、
@@ -804,8 +805,8 @@
     // 一切変えていないので、ドラッグでいつでもゾーンFに戻せる(他の候補スワップと同じ仕組み)。
     {name:"オーブン(エコノ 10枚差し)①",           w:1200,d:1100,h:1700, x:13.43, y:3.70, zone:"DOCK", kind:"prod", status:"estimate",  util:["power","water","drain"], kw:15.0, kwConfirmed:false, short:"オーブン①", power:"doryoku"},
     {name:"オーブン(エコノ 10枚差し)②",           w:1200,d:1100,h:1700, x:13.43, y:4.90, zone:"DOCK", kind:"prod", status:"estimate",  util:["power","water","drain"], kw:15.0, kwConfirmed:false, short:"オーブン②", power:"doryoku"},
-    {name:"番重置き場②(オーブン付近)",            w:400, d:600, h:600,  x:7.00, y:7.30, zone:"F", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重②"},
-    {name:"番重置き場③(オーブン付近)",            w:400, d:600, h:600,  x:7.50, y:7.30, zone:"F", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重③"},
+    {name:"番重置き場②(オーブン付近)",            w:400, d:600, h:600,  x:7.00, y:7.30, zone:"F", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重②", notEquipment:true},
+    {name:"番重置き場③(オーブン付近)",            w:400, d:600, h:600,  x:7.50, y:7.30, zone:"F", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重③", notEquipment:true},
 
     // 番重洗浄機を電気式(目安)からガス式(タニコー TDWG-A4DB3・小型ドアタイプ洗浄機)へ差し替え
     // (2026-10-21)。電気容量削減が目的で、ガスブースター内蔵のため電気消費が大幅に下がる
@@ -818,8 +819,8 @@
     // (メーカーページには皿・丼・カップ等の食器基準の収容数しか記載がなく、番重が物理的に
     // 収まるかはメーカー・販売店へ別途確認が必要)。
     {name:"番重洗浄機(タニコー TDWG-A4DB3・ガス式)", w:600, d:660, h:1390, x:4.40, y:8.60, zone:"G", kind:"util", status:"confirmed", util:["water","drain","power","gas"], kw:1.7, kwConfirmed:false, short:"番重\n洗浄機\n(ガス)", power:"doryoku", powerConfirmed:true},
-    {name:"番重置き場④(洗浄機付近)",              w:400, d:600, h:600,  x:5.50, y:8.60, zone:"G", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重④"},
-    {name:"番重置き場⑤(洗浄機付近)",              w:400, d:600, h:600,  x:6.00, y:8.60, zone:"G", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重⑤"},
+    {name:"番重置き場④(洗浄機付近)",              w:400, d:600, h:600,  x:5.50, y:8.60, zone:"G", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重④", notEquipment:true},
+    {name:"番重置き場⑤(洗浄機付近)",              w:400, d:600, h:600,  x:6.00, y:8.60, zone:"G", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重⑤", notEquipment:true},
 
     // 比較用候補② オシキリ DQS2/4 + RVS — 建物の外、右側の仮置き場(DOCK)に配置。
     // 1玉230g/最小分割40gで現物テスト済み(2026-10-16、問題なし)の寸法確定値。
@@ -841,8 +842,8 @@
     // で equip-rect の rx/ry を分岐)。回転しても見た目が変わらないので回転ボタンは出さない。
     // 初期位置は室内中央の何もない通路(ゾーンC/Bとゾーントイレ・Fの間)に隣接させて配置 — 2体が
     // 隙間なく並ぶと幅1.0mになるので、そのまま「すれ違い幅の目安」としても使える。
-    {name:"人(通行確認用)①", w:500, d:500, h:1700, x:6.00, y:4.30, zone:"FREE", kind:"person", status:"ref", util:[], kw:null, kwConfirmed:false, short:"人①"},
-    {name:"人(通行確認用)②", w:500, d:500, h:1700, x:6.70, y:4.30, zone:"FREE", kind:"person", status:"ref", util:[], kw:null, kwConfirmed:false, short:"人②"},
+    {name:"人(通行確認用)①", w:500, d:500, h:1700, x:6.00, y:4.30, zone:"FREE", kind:"person", status:"ref", util:[], kw:null, kwConfirmed:false, short:"人①", notEquipment:true},
+    {name:"人(通行確認用)②", w:500, d:500, h:1700, x:6.70, y:4.30, zone:"FREE", kind:"person", status:"ref", util:[], kw:null, kwConfirmed:false, short:"人②", notEquipment:true},
 
     // 構造柱(2026-10-26更新) — 本人確認により、構造柱は全部で5本。うち4本は外周のガラス面/壁面に
     // 埋まっていて壁の線としてすでに表現されているため、室内の独立した障害物としては扱わない。
@@ -853,14 +854,14 @@
     // アフィン変換(回転+縮尺、最小二乗フィット)で換算した目安値。チラシの縮尺が小さいため、
     // ±0.3〜0.5m程度の誤差を見込む。太さは従来どおり「おそらく450mm角」を採用。
     // 以前あった柱①・柱②(現地写真ベースの目安)はこの2本に統合・置き換え。
-    {name:"柱(構造・固定・図面記載①)", w:450, d:450, h:2300, x:2.95, y:5.85, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱①"},
-    {name:"柱(構造・固定・図面記載②)", w:450, d:450, h:2300, x:9.75, y:6.00, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱②"},
+    {name:"柱(構造・固定・図面記載①)", w:450, d:450, h:2300, x:2.95, y:5.85, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱①", notEquipment:true},
+    {name:"柱(構造・固定・図面記載②)", w:450, d:450, h:2300, x:9.75, y:6.00, zone:"FREE", kind:"pillar", status:"approx", util:[], kw:null, kwConfirmed:false, short:"柱②", notEquipment:true},
 
     // 天板ラック ×2 + 作業台600×900 ×1(2026-10-17追加) — 焼成ゾーン(F)の空きスペースと、
     // まだ何も置いていない包装・出荷ゾーン(H)に配置。精密な製品仕様はまだ無いため status:"new"。
-    {name:"天板ラック①",     w:400, d:600, h:1700, x:8.00, y:7.30, zone:"F", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"天板\nラック①"},
-    {name:"天板ラック②",     w:400, d:600, h:1700, x:8.50, y:7.30, zone:"F", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"天板\nラック②"},
-    {name:"作業台600×900",   w:600, d:900, h:800,  x:7.20, y:8.60, zone:"H", kind:"prod", status:"new", util:[], kw:null, kwConfirmed:false, short:"作業台"},
+    {name:"天板ラック①",     w:400, d:600, h:1700, x:8.00, y:7.30, zone:"F", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"天板\nラック①", notEquipment:true},
+    {name:"天板ラック②",     w:400, d:600, h:1700, x:8.50, y:7.30, zone:"F", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"天板\nラック②", notEquipment:true},
+    {name:"作業台600×900",   w:600, d:900, h:800,  x:7.20, y:8.60, zone:"H", kind:"prod", status:"new", util:[], kw:null, kwConfirmed:false, short:"作業台", notEquipment:true},
 
     // 壁(仕切り)ストック ×2(2026-10-17) — 間仕切り壁を検討中とのことで、現物の壁オブジェクトを
     // 建物の外(仮置き場と同じDOCKエリア)に置いておき、下表の「コピーを追加」で必要な数だけ
@@ -869,8 +870,8 @@
     // (壁は薄いので、通常のw0>24&&d0>24という回転ボタンの表示条件は満たさないため、
     // kind:"wall"だけ別条件で常に回転ボタンを出すようにしてある — build2DのrotBtn参照)。
     // コピー自体は1枚の壁オブジェクトのままなので、長い壁を作るには複数枚を並べて配置する。
-    {name:"壁(50cm)",  w:500,  d:100, h:2300, x:13.43, y:3.00, zone:"DOCK", kind:"wall", status:"confirmed", util:[], kw:null, kwConfirmed:false, short:"壁50"},
-    {name:"壁(100cm)", w:1000, d:100, h:2300, x:13.43, y:3.40, zone:"DOCK", kind:"wall", status:"confirmed", util:[], kw:null, kwConfirmed:false, short:"壁100"},
+    {name:"壁(50cm)",  w:500,  d:100, h:2300, x:13.43, y:3.00, zone:"DOCK", kind:"wall", status:"confirmed", util:[], kw:null, kwConfirmed:false, short:"壁50", notEquipment:true},
+    {name:"壁(100cm)", w:1000, d:100, h:2300, x:13.43, y:3.40, zone:"DOCK", kind:"wall", status:"confirmed", util:[], kw:null, kwConfirmed:false, short:"壁100", notEquipment:true},
 
     // キューブエア(愛工舎 CBA5.0406)×4台(2026-10-21) — エコノ10枚差し×2台の代替候補として
     // ゾーンFに追加。公式製品ページ(aicohsha.co.jp)の仕様値: W800×D855×H625mm、三相200V・
@@ -914,14 +915,14 @@
     // 完成品をスタッフが製造エリア側からここに運び入れ、配送員はこの棚のある場所までしか
     // 立ち入らない運用を想定(ゾーニング/異物混入防止の相談を受けて追加)。電源・給排水は
     // 不要なシェルフなのでkw/utilは空。寸法は粉置き場(シェルフ)と同じ目安サイズ。
-    {name:"出荷棚(配送受け渡し用)", w:900, d:500, h:1800, x:5.80, y:9.75, zone:"L", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"出荷棚"},
+    {name:"出荷棚(配送受け渡し用)", w:900, d:500, h:1800, x:5.80, y:9.75, zone:"L", kind:"pack", status:"new", util:[], kw:null, kwConfirmed:false, short:"出荷棚", notEquipment:true},
 
     // トイレ模型(洋式便器)(2026-10-26) — 現状は未設置だが、古い図面でこの建物角の面取り
     // 部分に排水設備があることが写真から確認できたため、ここにトイレを新設する想定で追加。
     // ゾーンI(トイレ)をこの面取り角(斜めの壁)に寄せて移設したうえで、その角の内側、
     // 斜め壁に近い位置に便器本体を置いている。寸法は洋式便器の一般的な目安(W400×D700mm)。
     // 手洗い等は別途必要になる可能性があるが、まずは便器のみ配置。
-    {name:"トイレ(洋式便器・新設)", w:400, d:700, h:800, x:10.40, y:1.50, zone:"I", kind:"sup", status:"new", util:["water","drain"], kw:null, kwConfirmed:false, short:"便器"},
+    {name:"トイレ(洋式便器・新設)", w:400, d:700, h:800, x:10.40, y:1.50, zone:"I", kind:"sup", status:"new", util:["water","drain"], kw:null, kwConfirmed:false, short:"便器", notEquipment:true},
 
     // 2026-11-13: イサムさんの機材一覧(工場機材シート)から追加。置き場所はまだ決まって
     // いないため、ひとまず仮置き場に並べてあります — ドラッグして好きなゾーンに配置して
@@ -2898,7 +2899,13 @@
     if (xlsxBtn) xlsxBtn.addEventListener("click", function(){
       var today = new Date();
       var ymd = today.getFullYear() + String(today.getMonth()+1).padStart(2,"0") + String(today.getDate()).padStart(2,"0");
-      downloadBlob(buildEquipmentListXlsxBlob(), "FLATbakery_使用機器一覧_" + ymd + ".xlsx");
+      downloadBlob(buildEquipmentListXlsxBlob(false), "FLATbakery_使用機器一覧_" + ymd + ".xlsx");
+    });
+    var xlsxKitchenBtn = document.getElementById("exportEquipXlsxKitchenOnlyBtn");
+    if (xlsxKitchenBtn) xlsxKitchenBtn.addEventListener("click", function(){
+      var today2 = new Date();
+      var ymd2 = today2.getFullYear() + String(today2.getMonth()+1).padStart(2,"0") + String(today2.getDate()).padStart(2,"0");
+      downloadBlob(buildEquipmentListXlsxBlob(true), "FLATbakery_厨房機器一覧_" + ymd2 + ".xlsx");
     });
   }
 
@@ -2980,10 +2987,15 @@
   }
   // Builds the 使用機器一覧 (equipment actually placed in the room — 仮置き場/DOCK
   // excluded, same filter as the kW summary total) as a standalone .xlsx Blob.
+  // When kitchenOnly is true, also excludes items flagged notEquipment:true (racks/
+  // shelves/work tables/fixtures/reference figures/structural columns — see the
+  // notEquipment:true entries in the EQUIPMENT array) so the result is just the
+  // actual kitchen/production/refrigeration/utility machines.
   // The "#" column intentionally keeps each item's full EQUIPMENT array index+1 (not a
   // re-numbered sequential count) so it still matches the circled number badges in the
   // 2D/3D diagrams, even though DOCK items make the exported list's numbering skip around.
-  function buildEquipmentListXlsxBlob(){
+  function buildEquipmentListXlsxBlob(kitchenOnly){
+    var sheetTitle = kitchenOnly ? "厨房機器一覧" : "使用機器一覧";
     var COLS = ["A","B","C","D","E","F","G","H","I","J"];
     var headers = ["#","機器名","幅(mm)","奥行(mm)","高さ(mm)","ゾーン","状態","設備","容量(kW)","メモ・用途"];
     var r = 1;
@@ -2992,6 +3004,10 @@
     var totalKw = 0, anyEstimate = false;
     EQUIPMENT.forEach(function(e, idx){
       if (e.zone === "DOCK") return;
+      // 人(通行確認用)・柱(構造) は配置図上の参考オーバーレイであり、そもそも機器ではない
+      // ため、仮置き場(DOCK)フィルタとは別に、どちらの一覧でも常に除外する。
+      if (e.kind === "person" || e.kind === "pillar") return;
+      if (kitchenOnly && e.notEquipment) return;
       var zoneTxt = e.zone + "・" + (ZONE_NAME[e.zone] || "");
       var statusTxt = STATUS_LABEL[e.status] || e.status;
       var utilTxt = (e.util && e.util.length) ? e.util.map(function(u){ return UTIL_LABEL[u] || u; }).join("・") : "—";
@@ -3014,7 +3030,7 @@
     });
     var totalCells = [
       xlsxCellStr(COLS[0]+r, "", 1),
-      xlsxCellStr(COLS[1]+r, "合計使用電気容量(仮置き場の機器を除く)", 1),
+      xlsxCellStr(COLS[1]+r, kitchenOnly ? "合計使用電気容量(厨房機器のみ・仮置き場とラック等を除く)" : "合計使用電気容量(仮置き場の機器を除く)", 1),
       xlsxCellStr(COLS[2]+r, "", 1), xlsxCellStr(COLS[3]+r, "", 1), xlsxCellStr(COLS[4]+r, "", 1),
       xlsxCellStr(COLS[5]+r, "", 1), xlsxCellStr(COLS[6]+r, "", 1), xlsxCellStr(COLS[7]+r, "", 1),
       xlsxCellNum(COLS[8]+r, Math.round(totalKw*100)/100, 1),
@@ -3059,7 +3075,7 @@
       '</Relationships>';
     var workbookXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
       '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
-      '<sheets><sheet name="使用機器一覧" sheetId="1" r:id="rId1"/></sheets>'+
+      '<sheets><sheet name="'+sheetTitle+'" sheetId="1" r:id="rId1"/></sheets>'+
       '</workbook>';
     var workbookRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
       '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
@@ -3080,7 +3096,7 @@
       '</styleSheet>';
     var coreXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
       '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'+
-      '<dc:title>使用機器一覧</dc:title><dc:creator>FLAT Bakery 厨房レイアウトツール</dc:creator>'+
+      '<dc:title>'+sheetTitle+'</dc:title><dc:creator>FLAT Bakery 厨房レイアウトツール</dc:creator>'+
       '<dcterms:created xsi:type="dcterms:W3CDTF">'+nowIso+'</dcterms:created>'+
       '</cp:coreProperties>';
     var appXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
