@@ -1123,15 +1123,25 @@
   loadSavedWalls();
 
   // ---------- Sliding door tool ----------
-  // Placed on top of a freehand wall (or on empty space) via the "引き戸を追加"
-  // button. A door is stored as its OPENING's bounding box {x,y,len,horiz} in
-  // meters — not an EQUIPMENT item, same reasoning as the wall tool: it needs no
-  // electrical capacity and shouldn't show up in the table. Placing one also
-  // clears any WALL_CELLS under its opening, so a wall that was already there
-  // visually "opens up" exactly as asked. Drawn as a simplified schematic: the
-  // opening itself is just the gap left in the wall, plus a solid leaf shown
-  // retracted into a same-size wall pocket (戸袋) right next to the opening, so
-  // it reads as "a sliding door, currently open" at a glance.
+  // Placing a NEW door is done on top of a freehand wall (or on empty space) via
+  // the "引き戸を追加" button/mode. A door is stored as its OPENING's bounding box
+  // {x,y,len,horiz} in meters — not an EQUIPMENT item, same reasoning as the wall
+  // tool: it needs no electrical capacity and shouldn't show up in the table.
+  // Placing one also clears any WALL_CELLS under its opening, so a wall that was
+  // already there visually "opens up" exactly as asked. Drawn as a simplified
+  // schematic: the opening itself is just the gap left in the wall, plus a solid
+  // leaf shown retracted into a same-size wall pocket (戸袋) right next to the
+  // opening, so it reads as "a sliding door, currently open" at a glance.
+  //
+  // Once a door is actually placed, moving it / flipping it is NOT gated behind
+  // 引き戸 mode at all — see attachDoorInteractions below, wired up at the end of
+  // every renderDoorLayer() call. That mode is only for drawing brand-new doors
+  // (attachDoorHandlers, further down); an existing door behaves like any other
+  // piece of equipment: always draggable, with its own explicit ⇄ flip and ×
+  // delete badges. (This used to require 引き戸 mode to even touch, and a plain
+  // tap-without-drag silently deleted the door — both were a frequent source of
+  // accidental deletions/duplicates when someone just wanted to nudge a door a
+  // little, so neither trap exists anymore.)
   var DOOR_WIDTH_PRESETS = [0.6, 0.7, 0.8, 0.9, 1.0, 1.2]; // meters — common sliding-door widths
   var DOOR_SNAP_TOL = 0.08; // meters — a drag's raw length "magnet-snaps" to the nearest
                              // preset above once it lands within this of one, so landing on
@@ -1144,7 +1154,8 @@
                                 // direction is flipped individually via its ⇄ badge instead
   var DOOR_MOVE_TOL = 0.05; // meters — how far a press-and-hold on an existing door has to
                              // travel before it counts as "dragging it to a new spot" rather
-                             // than "tapping it to delete it"
+                             // than "just a tap" (which now simply puts it back, see
+                             // attachDoorInteractions — it no longer deletes anything)
   var DOOR_FLIP_HANDLE_R = 0.11; // meters — half-size of the little ⇄ direction badge's tap target
   function snapDoorLength(rawLenM){
     var best = null, bestDist = DOOR_SNAP_TOL;
@@ -1157,7 +1168,13 @@
   }
   var DOOR_STORAGE_KEY = "flat-②坂下一丁目-doors-v1";
   var DOORS = []; // {x, y, len, horiz, flip}
-  var doorLayerEl = null; // committed doors
+  var doorLayerEl = null; // committed doors — purely visual (pointer-events:none throughout),
+                           // drawn right after the walls so a door still visually sits on
+                           // top of the wall it's cut into
+  var doorControlsEl = null; // the interactive hit-rect/⇄/× controls for each placed door —
+                              // a SEPARATE layer drawn above equipment/zones/everything else
+                              // (see build2D), so a door's controls are always reachable even
+                              // when they happen to sit near/under another item visually
   var doorPreviewEl = null; // the one door being dragged right now (ghost preview)
   function loadSavedDoors(){
     try {
@@ -1203,6 +1220,12 @@
   function doorFlipHitRect(d){
     var p = doorFlipHandlePoint(d);
     return {x:p.x-DOOR_FLIP_HANDLE_R, y:p.y-DOOR_FLIP_HANDLE_R, w:2*DOOR_FLIP_HANDLE_R, h:2*DOOR_FLIP_HANDLE_R};
+  }
+  // Where the little × delete badge sits — just past the ⇄ badge, on the same
+  // outside edge, so the two never overlap each other's tap target.
+  function doorDeleteHandlePoint(d){
+    var fp = doorFlipHandlePoint(d);
+    return d.horiz ? {x:fp.x, y:fp.y-0.22} : {x:fp.x+0.22, y:fp.y};
   }
   // ---- wall-cell helpers for the ⇄ flip fix below ----
   // Grid range (inclusive) a rect's cells fall in. Rects here always come from a
@@ -1292,15 +1315,9 @@
       else { lx = wallPx(u.x+u.w) + 4; ly = wallPy(u.y+u.h/2) + 3; anchor = "start"; }
       var txt = el("text", {x:lx, y:ly, "text-anchor":anchor, "font-size":7.8, "font-weight":700, fill:"var(--door-line)", style:"pointer-events:none;"}, parent);
       txt.textContent = "引き戸";
-
-      // small ⇄ badge — tapping this exact spot flips which side the leaf
-      // parks on (see attachDoorHandlers), without needing to delete and
-      // replace the whole door
-      var fp = doorFlipHandlePoint(d);
-      var fcx = wallPx(fp.x), fcy = wallPy(fp.y);
-      el("circle", {cx:fcx, cy:fcy, r:7, fill:"var(--paper-raised)", stroke:"var(--door-line)", "stroke-width":1, opacity:0.95, style:"pointer-events:none;"}, parent);
-      var ftxt = el("text", {x:fcx, y:fcy+3, "text-anchor":"middle", "font-size":9, "font-weight":700, fill:"var(--door-line)", style:"pointer-events:none;"}, parent);
-      ftxt.textContent = "⇄";
+      // the ⇄/× controls themselves are drawn by renderDoorControls() into the
+      // separate doorControlsEl layer (always on top — see its comment above),
+      // not here, so this purely-visual layer stays pointer-events:none throughout
     } else {
       // live width readout while dragging — there's no other way to tell the exact
       // width being drawn mid-drag, which was the main complaint about this tool
@@ -1319,6 +1336,167 @@
     if (!doorLayerEl) return;
     while (doorLayerEl.firstChild) doorLayerEl.removeChild(doorLayerEl.firstChild);
     DOORS.forEach(function(d){ renderDoorInto(doorLayerEl, d, {}); });
+    renderDoorControls(); // keep the interactive layer (see its own comment) in lockstep
+  }
+  // The interactive hit-rect + ⇄/× badges for every placed door, rendered into
+  // doorControlsEl — deliberately a separate top-of-everything layer (see that
+  // var's comment in build2D) rather than part of renderDoorInto's own output,
+  // so a door's controls are never hidden/unreachable behind nearby equipment.
+  function renderDoorControls(){
+    if (!doorControlsEl) return;
+    while (doorControlsEl.firstChild) doorControlsEl.removeChild(doorControlsEl.firstChild);
+    var doorHitItems = [];
+    DOORS.forEach(function(d){
+      var u = doorUnionRect(d);
+
+      // invisible, enlarged hit-rect for dragging the whole door to a new spot —
+      // same idea as equipment's equip-hit padding, and (unlike the old design)
+      // always interactive: no need to switch into 引き戸 mode first just to
+      // nudge a door that's already placed.
+      var hitPad = 0.12;
+      var hr = padRect(u, hitPad);
+      var hitRectEl = el("rect", {class:"door-hit", x:wallPx(hr.x), y:wallPy(hr.y), width:hr.w*S2, height:hr.h*S2,
+        fill:"transparent", style:"pointer-events:auto; cursor:move;"}, doorControlsEl);
+
+      // ⇄ badge — flips which side the leaf parks on. Also always interactive
+      // now, not just while in 引き戸 mode.
+      var fp = doorFlipHandlePoint(d);
+      var fcx = wallPx(fp.x), fcy = wallPy(fp.y);
+      var flipBadgeEl = el("g", {class:"door-flip-badge", style:"pointer-events:auto; cursor:pointer;"}, doorControlsEl);
+      el("circle", {cx:fcx, cy:fcy, r:7, fill:"var(--paper-raised)", stroke:"var(--door-line)", "stroke-width":1, opacity:0.95, style:"pointer-events:none;"}, flipBadgeEl);
+      var ftxt = el("text", {x:fcx, y:fcy+3, "text-anchor":"middle", "font-size":9, "font-weight":700, fill:"var(--door-line)", style:"pointer-events:none;"}, flipBadgeEl);
+      ftxt.textContent = "⇄";
+      el("circle", {cx:fcx, cy:fcy, r:11, fill:"transparent", style:"pointer-events:auto;"}, flipBadgeEl);
+
+      // × badge — an explicit, deliberate way to remove a door. A plain tap on
+      // the door body used to delete it outright; now that only moves/puts it
+      // back (see attachDoorInteractions), so this is the one real way to delete.
+      var dp = doorDeleteHandlePoint(d);
+      var dcx = wallPx(dp.x), dcy = wallPy(dp.y);
+      var delBadgeEl = el("g", {class:"door-del-badge", style:"pointer-events:auto; cursor:pointer;"}, doorControlsEl);
+      el("circle", {cx:dcx, cy:dcy, r:7, fill:"var(--paper-raised)", stroke:"var(--door-line)", "stroke-width":1, opacity:0.95, style:"pointer-events:none;"}, delBadgeEl);
+      var dtxt = el("text", {x:dcx, y:dcy+3, "text-anchor":"middle", "font-size":9, "font-weight":700, fill:"var(--door-line)", style:"pointer-events:none;"}, delBadgeEl);
+      dtxt.textContent = "×";
+      el("circle", {cx:dcx, cy:dcy, r:11, fill:"transparent", style:"pointer-events:auto;"}, delBadgeEl);
+
+      doorHitItems.push({d:d, hitRect:hitRectEl, flipBadge:flipBadgeEl, delBadge:delBadgeEl});
+    });
+    // re-wire every time: the elements above are brand new each render, so any
+    // previously attached listeners are gone with the old DOM they were on
+    var svgForDoors = document.getElementById("svg2d");
+    if (svgForDoors) attachDoorInteractions(svgForDoors, doorHitItems);
+  }
+  // Always-on interactions for an already-placed door — drag the hit-rect to
+  // move it, tap ⇄ to flip, tap × to delete. Unlike attachDoorHandlers below
+  // (which only runs in 引き戸 placement mode, for drawing brand-new doors),
+  // none of this depends on wallEditMode, the same way equipment can always be
+  // dragged regardless of which tool is currently selected.
+  function attachDoorInteractions(svg, doorHitItems){
+    doorHitItems.forEach(function(item){
+      var d = item.d;
+
+      item.flipBadge.addEventListener("pointerdown", function(ev){ ev.stopPropagation(); });
+      item.flipBadge.addEventListener("pointerup", function(ev){
+        ev.stopPropagation();
+        beginUndoableChange();
+        var oldOpening = doorOpeningRect(d);
+        var oldPocket = doorPocketRect(d);
+        var wasOnWall = anyWallCellUnder(oldPocket);
+        if (d.horiz) { d.x += d.flip ? d.len : -d.len; }
+        else { d.y += d.flip ? d.len : -d.len; }
+        d.flip = !d.flip;
+        var wallChanged = false;
+        if (wasOnWall){
+          if (restoreWallCellsUnder(oldOpening)) wallChanged = true;
+          if (clearWallCellsUnder(doorOpeningRect(d))) wallChanged = true;
+        }
+        if (wallChanged){ renderWallLayer(); saveWalls(); }
+        renderDoorLayer();
+        saveDoors();
+        build3D();
+        renderClearanceCheck();
+        commitUndoableChange();
+      });
+
+      item.delBadge.addEventListener("pointerdown", function(ev){ ev.stopPropagation(); });
+      item.delBadge.addEventListener("pointerup", function(ev){
+        ev.stopPropagation();
+        beginUndoableChange();
+        var idx = DOORS.indexOf(d);
+        if (idx === -1) return;
+        var opening = doorOpeningRect(d);
+        var wasOnWall = anyWallCellUnder(opening) || anyWallCellUnder(doorPocketRect(d));
+        DOORS.splice(idx, 1);
+        // only put a wall back if this door plausibly sat on one — a door placed
+        // on open space (no wall ever cleared for it) should just vanish, not
+        // spawn a brand-new wall where none existed
+        var wallChanged = wasOnWall && restoreWallCellsUnder(opening);
+        if (wallChanged){ renderWallLayer(); saveWalls(); }
+        renderDoorLayer();
+        saveDoors();
+        build3D();
+        renderClearanceCheck();
+        commitUndoableChange();
+      });
+
+      item.hitRect.addEventListener("pointerdown", function(ev){
+        ev.stopPropagation();
+        if (ev.cancelable) ev.preventDefault();
+        beginUndoableChange();
+        var p0 = modelPointFromClient(svg, ev.clientX, ev.clientY);
+        var origX = d.x, origY = d.y;
+        var moved = false;
+        function candidateFrom(p1){
+          var dx = p1.x - p0.x, dy = p1.y - p0.y;
+          if (Math.hypot(dx, dy) >= DOOR_MOVE_TOL) moved = true;
+          var nx = Math.round((origX + dx) / WALL_CELL) * WALL_CELL;
+          var ny = Math.round((origY + dy) / WALL_CELL) * WALL_CELL;
+          return {x:nx, y:ny, len:d.len, horiz:d.horiz, flip:d.flip};
+        }
+        var idx = DOORS.indexOf(d);
+        if (idx === -1) return;
+        DOORS.splice(idx, 1);
+        renderDoorLayer();
+        var movePreview = candidateFrom(p0);
+        renderDoorPreview(movePreview);
+        startPointerTracking(function(mv){
+          var np = modelPointFromClient(svg, mv.clientX, mv.clientY);
+          movePreview = candidateFrom(np);
+          renderDoorPreview(movePreview);
+        }, function(){
+          renderDoorPreview(null);
+          if (!moved){
+            // a plain tap that never actually dragged — put it right back rather
+            // than deleting it (that was the old trap: a tap meant to nudge a
+            // door, or just made while aiming for the ⇄/× badges, silently
+            // removed it instead)
+            DOORS.push(d);
+            renderDoorLayer();
+            commitUndoableChange(); // no-op: nothing actually changed
+            return;
+          }
+          // committing a move: clear anything the new spot now overlaps, drop it
+          // in, open the wall there, and — if this door was on a real wall
+          // before — restore the wall at the spot it just vacated
+          var oldOpeningForWall = doorOpeningRect({x:origX, y:origY, len:d.len, horiz:d.horiz, flip:d.flip});
+          var wasOnWall = anyWallCellUnder(oldOpeningForWall);
+          for (var j = DOORS.length - 1; j >= 0; j--){
+            if (rectsOverlap(doorUnionRect(DOORS[j]), doorUnionRect(movePreview))) DOORS.splice(j, 1);
+          }
+          DOORS.push(movePreview);
+          var mop = doorOpeningRect(movePreview);
+          var mWallChanged = false;
+          if (wasOnWall && restoreWallCellsUnder(oldOpeningForWall)) mWallChanged = true;
+          if (clearWallCellsUnder(mop)) mWallChanged = true;
+          if (mWallChanged){ renderWallLayer(); saveWalls(); }
+          renderDoorLayer();
+          saveDoors();
+          build3D();
+          renderClearanceCheck();
+          commitUndoableChange();
+        });
+      });
+    });
   }
   function renderDoorPreview(d){
     if (!doorPreviewEl) return;
@@ -1591,7 +1769,7 @@
       DOORS.length = 0;
       data.doors.forEach(function(d){
         if (d && typeof d.x === "number" && typeof d.y === "number" && typeof d.len === "number"){
-          DOORS.push({x:d.x, y:d.y, len:d.len, horiz:!!d.horiz});
+          DOORS.push({x:d.x, y:d.y, len:d.len, horiz:!!d.horiz, flip:!!d.flip});
         }
       });
     }
@@ -2075,6 +2253,12 @@
     clearanceLayerEl = el("g", {class:"clearance-layer"}, root);
     renderClearanceCheck();
 
+    // interactive controls (hit-rect + ⇄/× badges) for every placed door — see
+    // the doorControlsEl comment above for why this is a separate top-layer
+    // group rather than living alongside the visual door-layer drawn earlier
+    doorControlsEl = el("g", {class:"door-controls-layer"}, root);
+    renderDoorControls();
+
     // live preview of the door currently being dragged (cleared when nothing's
     // being dragged) — drawn above the committed door layer, below the capture rect
     doorPreviewEl = el("g", {class:"door-preview"}, root);
@@ -2263,108 +2447,16 @@
   // Drag-to-place a sliding door (or tap for a default-width one); tapping/starting
   // a drag on top of an existing door removes it instead. Shares the same capture
   // rect as attachWallPaintHandlers, gated to "door" mode only.
+  // Drawing a brand-new door on top of a wall (or empty space). Editing a door
+  // that's already placed — move/flip/delete — is handled independently by
+  // attachDoorInteractions above and no longer goes through this function at
+  // all (it used to, gated behind wallEditMode, which was the whole problem).
   function attachDoorHandlers(svg, rectEl){
     rectEl.addEventListener("pointerdown", function(ev){
       if (wallEditMode !== "door") return;
       if (ev.cancelable) ev.preventDefault();
       beginUndoableChange();
       var p0 = modelPointFromClient(svg, ev.clientX, ev.clientY);
-
-      // the ⇄ direction badge takes priority over the move/delete hit-test below —
-      // it's a small dedicated target sitting just outside the door's own footprint
-      for (var fi = DOORS.length - 1; fi >= 0; fi--){
-        if (pointInRect(p0.x, p0.y, doorFlipHitRect(DOORS[fi]))){
-          var fd = DOORS[fi];
-          var oldOpening = doorOpeningRect(fd);
-          var oldPocket = doorPocketRect(fd);
-          var wasOnWall = anyWallCellUnder(oldPocket); // only this door's own pocket side
-                                                        // tells us whether it sits on a real
-                                                        // wall run at all (see helper above)
-          // Flipping swaps which half is the open part and which is the door part —
-          // it must NOT move or resize the overall opening+pocket run (that was the
-          // bug: the pocket used to relocate to the far side of a still-fixed opening,
-          // stretching the whole assembly outward instead of just swapping halves).
-          // Shifting the anchor by one door-length as we toggle keeps the new opening
-          // sitting exactly where the old pocket was, and vice versa.
-          if (fd.horiz) { fd.x += fd.flip ? fd.len : -fd.len; }
-          else { fd.y += fd.flip ? fd.len : -fd.len; }
-          fd.flip = !fd.flip;
-          var wallChanged = false;
-          if (wasOnWall){
-            // old opening is now the pocket side — the wall there comes back; the
-            // new opening (= old pocket) punches the hole instead, same as placement
-            if (restoreWallCellsUnder(oldOpening)) wallChanged = true;
-            if (clearWallCellsUnder(doorOpeningRect(fd))) wallChanged = true;
-          }
-          if (wallChanged){ renderWallLayer(); saveWalls(); }
-          renderDoorLayer();
-          saveDoors();
-          build3D();
-          renderClearanceCheck(); // the opening just moved — circulation may have changed
-          commitUndoableChange();
-          return;
-        }
-      }
-
-      // tapping/dragging an existing door either moves it (drag) or removes it
-      // (a plain tap, same as before) — decided by how far the pointer travels,
-      // the same tap-vs-drag split the equipment blocks already use
-      for (var i = DOORS.length - 1; i >= 0; i--){
-        if (pointInRect(p0.x, p0.y, padRect(doorUnionRect(DOORS[i]), 0.08))){
-          var moving = DOORS[i];
-          DOORS.splice(i, 1);
-          renderDoorLayer();
-          var origX = moving.x, origY = moving.y;
-          var moved = false;
-          function candidateFrom(p1){
-            var dx = p1.x - p0.x, dy = p1.y - p0.y;
-            if (Math.hypot(dx, dy) >= DOOR_MOVE_TOL) moved = true;
-            var nx = Math.round((origX + dx) / WALL_CELL) * WALL_CELL;
-            var ny = Math.round((origY + dy) / WALL_CELL) * WALL_CELL;
-            return {x:nx, y:ny, len:moving.len, horiz:moving.horiz, flip:moving.flip};
-          }
-          var movePreview = candidateFrom(p0);
-          renderDoorPreview(movePreview);
-          startPointerTracking(function(mv){
-            var np = modelPointFromClient(svg, mv.clientX, mv.clientY);
-            movePreview = candidateFrom(np);
-            renderDoorPreview(movePreview);
-          }, function(){
-            renderDoorPreview(null);
-            if (!moved){
-              // never actually dragged — treat it as the old tap-to-delete
-              saveDoors();
-              build3D();
-              renderClearanceCheck();
-              commitUndoableChange();
-              return;
-            }
-            // committing a move: clear anything the new spot now overlaps, drop it
-            // in, and open the wall there too — same as placing a brand-new door
-            for (var j = DOORS.length - 1; j >= 0; j--){
-              if (rectsOverlap(doorUnionRect(DOORS[j]), doorUnionRect(movePreview))) DOORS.splice(j, 1);
-            }
-            DOORS.push(movePreview);
-            var mop = doorOpeningRect(movePreview);
-            var mWallChanged = false;
-            WALL_CELLS.forEach(function(k){
-              var parts = k.split(",");
-              var gx = parseInt(parts[0], 10), gy = parseInt(parts[1], 10);
-              var cx = gx*WALL_CELL, cy = gy*WALL_CELL;
-              if (cx + WALL_CELL > mop.x && cx < mop.x + mop.w && cy + WALL_CELL > mop.y && cy < mop.y + mop.h){
-                WALL_CELLS.delete(k); mWallChanged = true;
-              }
-            });
-            if (mWallChanged){ renderWallLayer(); saveWalls(); }
-            renderDoorLayer();
-            saveDoors();
-            build3D();
-            renderClearanceCheck();
-            commitUndoableChange();
-          });
-          return; // either a move or a delete just started/finished — don't also start drawing a new door
-        }
-      }
 
       var snappedX0 = Math.round(p0.x / WALL_CELL) * WALL_CELL;
       var snappedY0 = Math.round(p0.y / WALL_CELL) * WALL_CELL;
