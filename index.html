@@ -138,7 +138,7 @@
           <i class="fa-solid fa-ban"></i> キャンセルは各納品日の3日前 18:00 まで可能です（注文履歴タブから）
         </p>
         <p class="text-[10px] text-amber-700 mt-1">
-          <i class="fa-solid fa-circle-info"></i> 注文内容税抜5,000円未満の場合、配送料2,000円（税抜）が発生します。※配送日ごとの判定です。
+          <i class="fa-solid fa-circle-info"></i> 注文内容税抜5,000円未満の場合、配送料2,000円（税抜）が発生します。※配送日ごとの判定です（同じ日に既にご注文済みの場合は、その分も合算して判定します）。
         </p>
       </div>
       <div class="space-y-1">
@@ -303,6 +303,11 @@
     //   すでに注文済み（キャンセル以外）の配送日一覧。注文履歴タブのhistoryDataとは別に保持し、
     //   注文履歴タブを開いていなくても発注タブ表示時点でマークが出るようにする。
     let orderedDates      = new Set();
+    // ★2026/11/14追加: 配送日ごとの「既存の（キャンセルされていない）注文額」（税抜・配送料除く）。
+    //   refreshOrderedDates()で取得。既にこの日に注文済みの状態で追加注文した場合、配送料の
+    //   発生判定（_checkDeliveryFeeAndConfirm／_showOrderConfirmMulti）で今回の注文額だけでなく
+    //   既存注文額も合算して5,000円判定するために使う（詳細は項目64参照）。
+    let existingOrderTotals = {};
     let blockedDates     = [];
     let weekdayWarnDates = []; // 店舗別「通常は納品しない曜日」（要確認・選択自体は可能）
     let isAdmin          = false;
@@ -659,6 +664,8 @@
         const data = await (await fetch(url, { method: 'GET', redirect: 'follow' })).json();
         if (data.status !== "success") return;
         orderedDates = new Set(data.dates || []);
+        // ★2026/11/14追加: 配送料の発生判定で「既存の注文額」と合算するために保持。
+        existingOrderTotals = data.existingTotalsByDate || {};
         renderOrderCalendar();
       } catch (error) {
         console.warn("発注済み日付の取得に失敗しました（発注カレンダーのマーク表示のみに影響、発注自体は可能です）:", error);
@@ -1394,11 +1401,20 @@
 
     // ============================================================
     //  配送料が発生する日をまとめてチェックし、警告を1回だけ表示
+    //  ★2026/11/14修正: 以前は「今回の注文分だけ」の小計で5,000円未満かどうかを判定していたため、
+    //    既にその配送日に別で注文済み（例: 既存5,000円分）がある状態で追加注文（例: 1,000円分）
+    //    すると、合計では6,000円で配送料不要のはずなのに、追加分だけでは5,000円未満と判定され、
+    //    誤って配送料が発生してしまっていた。refreshOrderedDates()で取得済みの
+    //    existingOrderTotals（配送日ごとの既存注文額・税抜・配送料除く）を合算してから判定する。
     // ============================================================
     function _checkDeliveryFeeAndConfirm(orders, notes) {
       const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
       const feeDates = orders
-        .filter(o => o.items.reduce((s, i) => s + i.subtotal, 0) < 5000)
+        .filter(o => {
+          const newExTax      = o.items.reduce((s, i) => s + i.subtotal, 0);
+          const existingExTax = existingOrderTotals[o.deliveryDate] || 0;
+          return (newExTax + existingExTax) < 5000;
+        })
         .map(o => o.deliveryDate);
 
       if (feeDates.length === 0) {
@@ -1440,11 +1456,14 @@
     function _showOrderConfirmMulti(orders, notes) {
       const DAYS_JP = ["（日）","（月）","（火）","（水）","（木）","（金）","（土）"];
 
+      // ★2026/11/14修正: _checkDeliveryFeeAndConfirmと同様、既にその配送日に別で注文済みの
+      //   既存注文額（existingOrderTotals）も合算してから5,000円判定する。
       const finalOrders = orders.map(o => {
-        const totalExTax = o.items.reduce((s, i) => s + i.subtotal, 0);
+        const totalExTax     = o.items.reduce((s, i) => s + i.subtotal, 0);
+        const existingExTax  = existingOrderTotals[o.deliveryDate] || 0;
         const items = [...o.items];
         let fee = 0;
-        if (totalExTax < 5000) {
+        if (totalExTax + existingExTax < 5000) {
           fee = 2000;
           items.push({ productId: "delivery", productName: "配送料", price: fee, quantity: 1, subtotal: fee });
         }
