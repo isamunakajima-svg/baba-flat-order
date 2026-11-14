@@ -596,10 +596,10 @@
       <li><b>トイレ(現地確認済み):</b>北東側の凹みのあたりに、トイレ用の配管設備が現地で確認できました。この一帯をトイレゾーンとしています</li>
       <li><b>更衣室・休憩所:</b>トイレの周囲(主に東側)を更衣室・休憩所としてまとめています。更衣室は入口の自動ドアを入ってすぐの南側一帯(入口の真正面)に配置し、入口から最初に入る部屋として機能するようにしています</li>
       <li><b>階段室側の切り欠き:</b>図面右下、共用階段とみられる記号の付近で南東角が面取り(斜め)+段差で切れています。この階段は専有部外(共用)と判断し、面積・什器配置からは除外しています</li>
-      <li><b>目安寸法の機器:</b>ミキサー、オーブン、ミニモルダー、6ドア冷蔵庫、シンク、番重洗浄機はメーカー公開寸法が未確認のため一般的なサイズ感での目安値です</li>
+      <li><b>目安寸法の機器:</b>ミキサー、オーブン、ミニモルダー、6ドア冷凍庫、シンク、番重洗浄機はメーカー公開寸法が未確認のため一般的なサイズ感での目安値です</li>
       <li><b>確定寸法の機器:</b>ドウコン、リターダー、コールドテーブル、粉計量機、オシキリDQS2/4・RVS、レオンVX701-A・PR101は、メーカー公式カタログまたは現地実測に基づく確認済み寸法を使用しています</li>
       <li><b>分割・丸め機の比較配置(新規):</b>ゾーンBには候補①レオンVR250ライン(フレックスデバイダーVX701-A+パンチラウンダーPR101)を仮に入れています。候補②オシキリDQS2/4+RVS(1玉230g/最小分割40gで現物テスト済み・問題なし)は建物の外側、右の「仮置き場」に置いてあります。どちらもドラッグで本体側⇄仮置き場を入れ替えられるので、実際の動線を見ながら比較してください。VX701-A・PR101は奥行きが長いため、初期配置では90°回転した状態(⟳ボタンで戻せます)で置いています</li>
-      <li><b>壁際配置:</b>ドウコン・コールドテーブル180①②・リターダーは西壁沿い、6ドア冷蔵庫は東壁沿いに配置しています</li>
+      <li><b>壁際配置:</b>ドウコン・コールドテーブル180①②・リターダーは西壁沿い、6ドア冷凍庫は東壁沿いに配置しています</li>
       <li><b>焼成ゾーンの電気容量比較(2026-10-21):</b>キューブエア×4台(合計31.2kW)に対し、デッキオーブン「コンド」(6枚差・1段、CO1.1212)×1台+キューブエア×2台(合計10.9+15.6=26.5kW)の組み合わせの方が電気容量を抑えられるため、こちらをゾーンFの現行配置としています。退避させたキューブエア③④は仮置き場に置いてあるので、ドラッグでいつでも4台案に戻せます</li>
       <li><b>番重洗浄機をガス式に変更(2026-10-21):</b>電気容量削減のため、電気式(目安)からタニコー TDWG-A4DB3(ガスブースター内蔵の小型ドアタイプ洗浄機)に差し替えました。電気消費は1.7kWまで下がりますが、新たにガス配管(給排気含む)が必要になる点と、ラックサイズが番重の実寸に収まるかはメーカー・販売店への確認が必要な点にご注意ください</li>
       <li><b>出荷置き場(ゾーンL)を新設(2026-10-22):</b>食品工場のゾーニング(清浄区域・準清潔区域・汚染区域の区分け)と異物混入防止の考え方に基づき、配送業者が製造エリア(清潔区域)に立ち入らずに完成品を受け取れる専用スペースを入口の東側に追加しました。更衣室(ゾーンJ)の幅を7.10→5.60mに縮小し、空いた東側(入口を出てすぐ右)を出荷置き場に割り当てています — 入口から見て左が更衣室、右が出荷置き場になる動線です。スタッフが製造エリア側から梱包済み商品を出荷棚まで運び、配送員はそこまでしか立ち入らない運用を想定しています。ただし施設基準の詳細(専用区画の要否・寸法等)は自治体の条例によるため、着工前に板橋区保健所へ図面持参での事前相談を推奨します</li>
@@ -728,7 +728,7 @@
   // on 三相200V even well under 1kW, while a pure refrigeration-compressor load in the same kW
   // range is just as often 単相. So per the owner's own judgment (2026-10-21): the geared-motor
   // forming machines 分割機レオン・丸め機レオン and 2 compressor items the owner flagged by eye
-  // (リターダー, 6ドア縦型冷蔵庫) were marked "doryoku" — still unconfirmed (powerConfirmed stays
+  // (リターダー, 6ドア縦型冷凍庫) were marked "doryoku" — still unconfirmed (powerConfirmed stays
   // false/unset), same as any other "〜"/estimate figure in this sheet. ミニモルダー(愛工舎) was
   // initially included in that same judgment-call batch but UNFLAGGED again the same day once the
   // maker's own product page (aicohsha.co.jp, 2026-10-21) turned up: it states the motor is only
@@ -748,10 +748,10 @@
     // 仕様書ではないため kwConfirmed は false のまま。
     {name:"コールドテーブル150(ホシザキ RFT-150SDG-R・仕込み台)", w:1500,d:750, h:900,  x:2.34, y:0.20, zone:"A", kind:"cold", status:"confirmed", util:["power"], kw:0.50, kwConfirmed:false, short:"コールド\nテーブル150\n(RFT-150)"},
     {name:"ミキサー(愛工舎 マイティE90)",        w:700, d:900, h:1000, x:4.00, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:["power"], kw:4.4,  kwConfirmed:true, short:"ミキサー", power:"doryoku"},
-    {name:"シンク",                               w:750, d:600, h:850,  x:4.80, y:0.20, zone:"A", kind:"util", status:"estimate",  util:["water","drain"], kw:null, kwConfirmed:false, short:"シンク"},
-    {name:"粉置き場(シェルフ)",                   w:900, d:500, h:1800, x:5.65, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:[], kw:null, kwConfirmed:false, short:"粉置き場", notEquipment:true},
-    {name:"粉計量機",                             w:400, d:600, h:450,  x:6.65, y:0.20, zone:"A", kind:"prod", status:"confirmed", util:["power"], kw:0.1, kwConfirmed:false, short:"粉計量機"},
-    {name:"番重置き場①(仕込み場付近)",            w:400, d:600, h:600,  x:7.10, y:0.20, zone:"A", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重①", notEquipment:true},
+    {name:"シンク",                               w:1800,d:650, h:900,  x:4.80, y:0.20, zone:"A", kind:"util", status:"estimate",  util:["water","drain"], kw:null, kwConfirmed:false, short:"シンク"},
+    {name:"粉置き場(シェルフ)",                   w:900, d:500, h:1800, x:6.70, y:0.20, zone:"A", kind:"prod", status:"estimate",  util:[], kw:null, kwConfirmed:false, short:"粉置き場", notEquipment:true},
+    {name:"粉計量機",                             w:400, d:600, h:450,  x:7.70, y:0.20, zone:"A", kind:"prod", status:"confirmed", util:["power"], kw:0.1, kwConfirmed:false, short:"粉計量機"},
+    {name:"番重置き場①(仕込み場付近)",            w:400, d:600, h:600,  x:8.15, y:0.20, zone:"A", kind:"pack", status:"new",       util:[], kw:null, kwConfirmed:false, short:"番重①", notEquipment:true},
 
     // 分割・丸め機 比較中(2026-10-17〜): ゾーンBには候補①レオンVR250ライン(VX701-A+PR101)を
     // 仮に入れてあります。候補②オシキリDQS2/4+RVSは下の「仮置き場(DOCK)」に出してあるので、
@@ -795,7 +795,7 @@
     // 前提で、テーブル右辺を起点に右方向へ2320mm分を展開 — deployOutline参照、build2Dで描画)。
     {name:"コールドテーブル180②(+リバースシーター)", w:1800,d:900, h:800, x:0.20, y:5.80, zone:"D", kind:"cold", status:"confirmed", util:["power"], kw:1.00, kwConfirmed:true, short:"コールド\nテーブル180②\n+シーター", power:"doryoku", powerConfirmed:true, deployOutline:{w:2320, d:860, label:"展開時(使用時)"}},
 
-    {name:"6ドア縦型冷蔵庫(既存)",                w:1800,d:800, h:1900, x:10.60,y:4.30, zone:"E", kind:"cold", status:"estimate",  util:["power"], kw:0.5, kwConfirmed:false, short:"6ドア\n冷蔵庫", power:"doryoku"},
+    {name:"6ドア縦型冷凍庫(既存)",                w:1800,d:800, h:1900, x:10.60,y:4.30, zone:"E", kind:"cold", status:"estimate",  util:["power"], kw:0.5, kwConfirmed:false, short:"6ドア\n冷凍庫", power:"doryoku"},
 
     // エコノ10枚差しは2026-10-17の調査で、ガス式ではなく電気焼成+スチーム式(給排水あり)の
     // モデルが見つかったため util を gas→water/drain に修正(本文の返信で要確認と案内)。
@@ -827,7 +827,7 @@
     {name:"分割機(オシキリ DQS2/4・2/4ポケット切替)", w:740, d:1400,h:1555, x:13.43, y:0.40, zone:"DOCK", kind:"prod", status:"confirmed", util:["power"], kw:1.9, kwConfirmed:false, short:"分割機\n(オシキリ)", power:"doryoku"},
     {name:"丸め機(オシキリ RVS・円筒型ラウンダ)",     w:800, d:800, h:1521, x:13.43, y:1.95, zone:"DOCK", kind:"prod", status:"confirmed", util:["power","air"], kw:0.81, kwConfirmed:false, short:"丸め機\n(オシキリ)"},
 
-    // 急速凍結庫 BF-K120 — 2026-10-17、現物の仕様書(写真)で追加。6ドア冷蔵庫のすぐ南側に設置。
+    // 急速凍結庫 BF-K120 — 2026-10-17、現物の仕様書(写真)で追加。6ドア冷凍庫のすぐ南側に設置。
     // 新しい項目は必ずこの配列の末尾に追加すること — 途中に挿入すると、保存済みのレイアウト
     // (localStorage/クラウド同期とも) がインデックス番号で各ベース機器の位置を復元している
     // ため、以降の機器すべての番号がずれて位置が入れ替わってしまう。
