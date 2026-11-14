@@ -201,7 +201,11 @@
       <!-- ★2026/11/14追加: カレンダーだけでは月全体の内容が一目で分からないため、
            表示中の月の注文を日付順にリスト化して一覧性を上げる -->
       <h3 class="text-xs font-bold text-amber-800 mt-5 mb-2 px-1">この月の注文一覧</h3>
-      <div id="history-list" class="space-y-1.5"></div>
+      <!-- ★2026/11/14追加: カレンダー（#cal-grid・凡例・この見出し）はこのdivの外側にあるため
+           スクロールしない。一覧部分だけをoverflow-y-auto＋max-heightで独立スクロール領域にし、
+           「カレンダーは固定・一覧だけスクロール」を実現する。-webkit-overflow-scrollingは
+           LINEアプリ内ブラウザ等でスクロールの慣性を効かせるため（bodyの既存設定と同じ理由）。 -->
+      <div id="history-list" class="space-y-1.5 overflow-y-auto max-h-[45vh] pr-0.5" style="-webkit-overflow-scrolling: touch;"></div>
     </div>
     <div id="history-empty" class="hidden text-center py-8 text-slate-400 text-sm">
       <i class="fa-solid fa-box-open text-2xl mb-2 block"></i>
