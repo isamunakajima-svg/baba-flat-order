@@ -197,6 +197,11 @@
         <div class="w-4 h-4 rounded bg-amber-100 border-2 border-amber-600"></div>
         <span class="text-[10px] text-slate-400">注文あり（タップで詳細）</span>
       </div>
+
+      <!-- ★2026/11/14追加: カレンダーだけでは月全体の内容が一目で分からないため、
+           表示中の月の注文を日付順にリスト化して一覧性を上げる -->
+      <h3 class="text-xs font-bold text-amber-800 mt-5 mb-2 px-1">この月の注文一覧</h3>
+      <div id="history-list" class="space-y-1.5"></div>
     </div>
     <div id="history-empty" class="hidden text-center py-8 text-slate-400 text-sm">
       <i class="fa-solid fa-box-open text-2xl mb-2 block"></i>
@@ -757,7 +762,9 @@
     }
 
     // ============================================================
-    //  カレンダー描画（注文履歴タブ側・変更なし）
+    //  カレンダー描画（注文履歴タブ側）
+    //  ★2026/11/14変更: カレンダー描画後に、同じ月の注文一覧リスト（renderHistoryList）
+    //    も続けて描画するようにした。
     // ============================================================
     function renderCalendar() {
       document.getElementById('cal-title').innerText = `${calYear}年 ${calMonth + 1}月`;
@@ -804,6 +811,68 @@
         }
         grid.appendChild(cell);
       }
+
+      renderHistoryList();
+    }
+
+    // ============================================================
+    //  ★2026/11/14新設: 表示中の月の注文を、日付の若い順に一覧表示する。
+    //    カレンダーはタップしないと内容が分からないため、ひと目で
+    //    「いつ・何を・何個」発注したか分かるようにするための補助表示。
+    //    同じ日に複数の発注（分割発注）がある場合は商品ごとに数量を合算して1行にまとめる。
+    //    行をタップすると、カレンダーのマス目タップと同じ詳細モーダル（showHistoryDetail）を開く。
+    // ============================================================
+    function renderHistoryList() {
+      const listEl = document.getElementById('history-list');
+      if (!listEl) return;
+
+      const DAYS_JP  = ["日","月","火","水","木","金","土"];
+      const lastDate = new Date(calYear, calMonth + 1, 0).getDate();
+
+      const rows = [];
+      for (let d = 1; d <= lastDate; d++) {
+        const dateStr = `${calYear}-${String(calMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+        const records = historyData.filter(h => h.deliveryDate === dateStr);
+        if (records.length === 0) continue;
+
+        const activeRecords = records.filter(r => r.status !== "キャンセル");
+        const allCancelled  = activeRecords.length === 0;
+
+        // 商品名ごとに数量を合算（同日に複数発注がある場合も1行にまとめる）
+        const itemMap = new Map();
+        activeRecords.forEach(r => {
+          r.items.forEach(item => {
+            itemMap.set(item.name, (itemMap.get(item.name) || 0) + item.quantity);
+          });
+        });
+        const summary = allCancelled
+          ? "（キャンセル済み）"
+          : Array.from(itemMap.entries()).map(([name, qty]) => `${name}×${qty}`).join("、");
+
+        rows.push({ dateStr, day: d, dow: new Date(calYear, calMonth, d).getDay(), summary, allCancelled });
+      }
+
+      if (rows.length === 0) {
+        listEl.innerHTML = `<p class="text-center text-[11px] text-slate-400 py-3">この月の注文はありません。</p>`;
+        return;
+      }
+
+      listEl.innerHTML = rows.map(r => `
+        <button type="button" onclick="showHistoryDetail('${r.dateStr}')"
+          class="w-full flex items-start gap-3 bg-white rounded-xl px-3 py-2.5 shadow-sm border border-amber-100 text-left hover:bg-amber-50 active:scale-[0.99] transition-all ${r.allCancelled ? "opacity-60" : ""}">
+          <div class="shrink-0 w-10 text-center">
+            <div class="text-[10px] font-bold ${r.dow === 0 ? "text-red-400" : r.dow === 6 ? "text-blue-400" : "text-slate-400"}">${DAYS_JP[r.dow]}</div>
+            <div class="text-base font-bold text-amber-900 leading-tight">${r.day}</div>
+          </div>
+          <div class="flex-1 min-w-0 pt-0.5">
+            <p class="text-xs text-slate-600 leading-snug">${r.summary}</p>
+            ${r.allCancelled ? '<span class="inline-block mt-1 text-[10px] font-bold text-red-500">⚠️ キャンセル済み</span>' : ''}
+          </div>
+          <div class="shrink-0 self-center text-slate-300">
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </div>
+        </button>
+      `).join("");
     }
 
     function changeMonth(delta) {
