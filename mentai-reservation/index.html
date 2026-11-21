@@ -73,6 +73,12 @@
   .dot.off { background: #eee; }
   .dot.sel { background: #06C755; }
 
+  .stock-box { margin-top: 12px; border-top: 1px solid #eee; padding-top: 10px; }
+  .stock-title { font-size: 12px; font-weight: bold; color: #555; margin-bottom: 6px; }
+  .stock-row { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; }
+  .stock-row .v { font-weight: bold; }
+  .stock-row .v.zero { color: #c0392b; }
+  .stock-row .v.closed { color: #999; font-weight: normal; }
   .shift-option {
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px; border: 2px solid #eee; border-radius: 10px; margin-bottom: 10px; cursor: pointer;
@@ -123,6 +129,10 @@
       <span><span class="dot sel"></span>選択中</span>
     </div>
     <div class="hint" id="dateNote" style="margin-top:10px;margin-bottom:0;"></div>
+    <div class="stock-box" id="stockBox" style="display:none;">
+      <div class="stock-title" id="stockTitle"></div>
+      <div id="stockRows"></div>
+    </div>
   </div>
 
   <div class="card" id="shiftCard" style="display:none;">
@@ -220,6 +230,7 @@ async function main() {
     document.getElementById('qtyPlus').addEventListener('click', function () { changeQty(1); });
     document.getElementById('submitBtn').addEventListener('click', submitReservation);
     setupPhoneInput();
+    loadSavedCustomer();
 
     await loadCalendar();
   } catch (e) {
@@ -355,6 +366,7 @@ async function loadAvailability(dateStr) {
   document.getElementById('shiftCard').style.display = 'none';
   document.getElementById('qtyCard').style.display = 'none';
   selectedShift = null;
+  document.getElementById('stockBox').style.display = 'none';
   document.getElementById('dateNote').textContent = '選択中：' + formatDateJp(dateStr);
 
   try {
@@ -385,7 +397,7 @@ function renderShifts() {
     div.innerHTML =
       '<div>' +
         '<div class="shift-name">' + s.name + '（' + formatTime(s.startTime) + '〜）</div>' +
-        '<div class="shift-remain">' + (s.closed ? '受付終了' : '残り ' + s.remaining + '個') + '</div>' +
+        '<div class="shift-remain">' + remainText(s) + '</div>' +
       '</div>';
     if (!disabled) {
       div.addEventListener('click', function () { selectShift(s, div); });
@@ -393,6 +405,7 @@ function renderShifts() {
     list.appendChild(div);
   });
   document.getElementById('shiftCard').style.display = 'block';
+  renderStockSummary();
 
   if (keepMsgOnce) { keepMsgOnce = false; return; }
 
@@ -403,6 +416,33 @@ function renderShifts() {
   } else {
     document.getElementById('msgArea').innerHTML = '';
   }
+}
+
+// 便ごとの残り本数の表示文字
+function remainText(s) {
+  if (s.remaining <= 0) return '完売';
+  if (s.closed) return '受付終了（残り ' + s.remaining + '個）';
+  return '残り ' + s.remaining + '個';
+}
+
+// カレンダーの下に、選んだ日の各便の残り本数を表示する
+function renderStockSummary() {
+  document.getElementById('stockTitle').textContent = formatDateJp(selectedDate) + ' の残り本数';
+  const rows = document.getElementById('stockRows');
+  rows.innerHTML = '';
+  currentShifts.forEach(function (s) {
+    const row = document.createElement('div');
+    row.className = 'stock-row';
+    const left = document.createElement('span');
+    left.textContent = s.name + '（' + formatTime(s.startTime) + '〜）';
+    const right = document.createElement('span');
+    right.className = 'v' + (s.remaining <= 0 ? ' zero' : (s.closed ? ' closed' : ''));
+    right.textContent = remainText(s);
+    row.appendChild(left);
+    row.appendChild(right);
+    rows.appendChild(row);
+  });
+  document.getElementById('stockBox').style.display = 'block';
 }
 
 function formatTime(t) {
@@ -436,6 +476,34 @@ function updateQtyView() {
   document.getElementById('qtyPlus').disabled = quantity >= maxQty();
   document.getElementById('qtyNote').textContent =
     '1人様、同じ日に全便合わせて' + maxPerPerson + '本までです（この日はあと' + remainingForMe() + '本）';
+}
+
+/* ---------------- 名前・電話番号の保存（この端末のみ） ---------------- */
+
+const SAVE_KEY = 'mentaiCustomer';
+
+function loadSavedCustomer() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved.name) document.getElementById('nameInput').value = saved.name;
+    if (saved.phone) {
+      const phoneEl = document.getElementById('phoneInput');
+      phoneEl.value = cleanPhone(saved.phone);
+      phoneEl.dispatchEvent(new Event('input'));
+    }
+  } catch (e) {
+    // 保存データが読めない場合は何もしない
+  }
+}
+
+function saveCustomer(name, phone) {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ name: name, phone: phone }));
+  } catch (e) {
+    // 保存できない環境では何もしない
+  }
 }
 
 /* ---------------- 電話番号 ---------------- */
@@ -507,6 +575,7 @@ async function submitReservation() {
     });
 
     if (data.success) {
+      saveCustomer(name, phone);
       showMessage('success', 'ご予約が完了しました！LINEに確認メッセージが届きます。');
       setTimeout(function () { liff.closeWindow(); }, 2500);
     } else {
