@@ -68,6 +68,12 @@
   .go:active { background: #176f3c; }
   .undo { width: 100%; height: 52px; border: 2px solid #aaa; border-radius: 12px; background: #fff; color: #666; font-size: 17px; }
   .done-label { font-size: 18px; font-weight: bold; color: #1f8f4e; }
+  .note-box { background: #fff4c9; border: 2px solid #f0c040; border-radius: 12px; padding: 10px 12px; font-size: 18px; line-height: 1.5; color: #4a3a00; word-break: break-all; -webkit-user-select: text; user-select: text; }
+  .note-box b { display: inline-block; font-size: 13px; background: #f0a500; color: #fff; border-radius: 6px; padding: 1px 8px; margin-right: 8px; vertical-align: 2px; }
+  .card.done .note-box { background: #f1eede; border-color: #d8d2b0; color: #7a7455; }
+  .note-btn { width: 100%; height: 48px; border: 2px dashed #c9a53a; border-radius: 12px; background: #fffdf2; color: #8a6a00; font-size: 17px; font-weight: bold; }
+  .dialog textarea { width: 100%; height: 130px; font-size: 20px; font-weight: normal; padding: 10px 12px; border: 2px solid #ccc; border-radius: 12px; font-family: inherit; resize: none; -webkit-user-select: text; user-select: text; }
+  .dialog .cnt { font-size: 14px; color: #888; font-weight: normal; text-align: right; margin-top: 4px; }
   .viewonly { font-size: 14px; color: #888; text-align: center; padding: 6px 0; }
   .empty { text-align: center; color: #888; padding: 60px 0; font-size: 20px; }
 
@@ -104,7 +110,9 @@
     #printArea td.chk { text-align: center; font-size: 15pt; }
     #printArea td.qty { text-align: center; font-size: 14pt; font-weight: bold; color: #000; background: none; }
     #printArea td.nm { font-size: 12pt; font-weight: bold; }
-    #printArea .sm { font-size: 8.5pt; color: #333; }
+    #printArea .sm { font-size: 8pt; color: #333; }
+    #printArea td.sm { font-size: 7pt; }
+    #printArea td.tel { white-space: nowrap; font-size: 10pt; }
     #printArea tr.done td { color: #666; }
     #printArea .pnone { margin: 6mm 0; }
   }
@@ -144,7 +152,7 @@ window.addEventListener('error', function (e) {
       <button class="nav-btn" id="printBtn" style="padding:0 16px;">印刷</button>
     </div>
     <div class="row2">
-      <input id="search" type="search" placeholder="お名前で探す">
+      <input id="search" type="search" placeholder="お名前・メモで探す">
       <label class="chk"><input type="checkbox" id="hideDone"> お渡し済みを隠す</label>
     </div>
     <div class="summary" id="summary"></div>
@@ -291,7 +299,7 @@ function render() {
 
   let shown = all.filter(function (x) {
     if (hideDone && x.handedAt) return false;
-    if (keyword && String(x.name).indexOf(keyword) < 0) return false;
+    if (keyword && (String(x.name) + ' ' + String(x.note || '')).indexOf(keyword) < 0) return false;
     return true;
   });
 
@@ -330,7 +338,16 @@ function buildCard(x, isToday) {
       '来店予定：' + (x.pickup ? '<span class="pk">' + esc(x.pickup) + ' ごろ</span>' : '指定なし（' + esc(data.noPickupDeadline) + 'まで）') + '<br>' +
       'TEL ' + esc(fmtPhone(x.phone)) +
     '</div>' +
+    (x.note ? '<div class="note-box"><b>取り置き</b>' + esc(x.note) + '</div>' : '') +
     '<div class="id">' + esc(x.id) + '</div>';
+
+  if (data.date >= data.today) {
+    const nb = document.createElement('button');
+    nb.className = 'note-btn';
+    nb.textContent = x.note ? '✎ 取り置きメモを直す' : '＋ 取り置きメモを書く（ほかのパン）';
+    nb.addEventListener('click', function () { editNote(x); });
+    card.appendChild(nb);
+  }
 
   if (done) {
     const label = document.createElement('div');
@@ -361,13 +378,14 @@ function buildCard(x, isToday) {
 
 /* ---------- 確認ダイアログ付きの操作 ---------- */
 
-function ask(title, bodyHtml, yesLabel, danger) {
+function ask(title, bodyHtml, yesLabel, danger, onShow) {
   return new Promise(function (resolve) {
     $('dTitle').textContent = title;
     $('dBody').innerHTML = bodyHtml;
     $('dYes').textContent = yesLabel;
     $('dYes').className = 'ok' + (danger ? ' danger' : '');
     $('overlay').classList.add('show');
+    if (onShow) onShow();
     busy = true;
     const close = function (v) {
       $('overlay').classList.remove('show');
@@ -398,6 +416,42 @@ async function confirmUndo(x) {
     '取り消す', true);
   if (!ok) return;
   await send(x.id, true, x.name + ' 様を未渡しに戻しました');
+}
+
+async function editNote(x) {
+  const max = (data && data.noteMax) || 200;
+  const ok = await ask(
+    '取り置きメモ',
+    esc(x.name) + ' 様（' + esc(x.qty) + '本）' +
+      '<div class="sub">電話で受けた、ほかのパンの取り置きを書きます。空にして保存すると消えます。</div>' +
+      '<textarea id="noteInput" maxlength="' + max + '" placeholder="例：クロワッサン2個、食パン1斤"></textarea>' +
+      '<div class="cnt" id="noteCnt"></div>',
+    '保存する', false,
+    function () {
+      const t = $('noteInput');
+      t.value = x.note || '';
+      const upd = function () { $('noteCnt').textContent = t.value.length + ' / ' + max + '文字'; };
+      t.addEventListener('input', upd);
+      upd();
+      setTimeout(function () { t.focus(); }, 60);
+    });
+  if (!ok) return;
+  const text = $('noteInput').value;
+  busy = true;
+  try {
+    const r = await callGAS({ action: 'staffNote', pin: pin, reservationId: x.id, note: text });
+    if (r.success) {
+      toast(r.note ? '取り置きメモを保存しました' : '取り置きメモを消しました', false);
+    } else {
+      if (r.badPin || r.locked) { showLogin(r.error); return; }
+      toast(r.error || '保存に失敗しました', true);
+    }
+  } catch (e) {
+    toast('通信エラーです。もう一度お試しください', true);
+  } finally {
+    busy = false;
+  }
+  await load(true);
 }
 
 async function send(id, undo, okMessage) {
@@ -456,18 +510,18 @@ function buildPrint() {
     if (items.length === 0) return;
     const qty = items.reduce(function (a, x) { return a + x.qty; }, 0);
     h += '<h2>' + esc(sh.name) + '（' + esc(sh.startTime) + '〜）　' + items.length + '件・' + qty + '本</h2>' +
-      '<table><colgroup><col style="width:9mm"><col style="width:27mm"><col style="width:40mm"><col style="width:13mm"><col style="width:33mm"><col style="width:36mm"><col></colgroup>' +
+      '<table><colgroup><col style="width:8mm"><col style="width:23mm"><col style="width:31mm"><col style="width:11mm"><col style="width:34mm"><col style="width:24mm"><col></colgroup>' +
       '<tr><th>渡</th><th>来店予定</th><th>お名前</th><th>本数</th><th>電話番号</th><th>予約番号</th><th>メモ</th></tr>';
     items.forEach(function (x) {
       const done = !!x.handedAt;
       h += '<tr' + (done ? ' class="done"' : '') + '>' +
         '<td class="chk">' + (done ? '✓' : '□') + '</td>' +
-        '<td>' + (x.pickup ? esc(x.pickup) + 'ごろ' : '指定なし<br><span class="sm">' + esc(data.noPickupDeadline) + 'まで</span>') + '</td>' +
+        '<td style="white-space:nowrap">' + (x.pickup ? esc(x.pickup) + 'ごろ' : '指定なし<br><span class="sm">' + esc(data.noPickupDeadline) + 'まで</span>') + '</td>' +
         '<td class="nm">' + esc(x.name) + ' 様</td>' +
         '<td class="qty">' + esc(x.qty) + '</td>' +
-        '<td>' + esc(fmtPhone(x.phone)) + '</td>' +
+        '<td class="tel">' + esc(fmtPhone(x.phone)) + '</td>' +
         '<td class="sm">' + esc(x.id) + '</td>' +
-        '<td>' + (done ? '<span class="sm">お渡し済 ' + esc(x.handedAt.slice(-5)) + '</span>' : '') + '</td>' +
+        '<td>' + (x.note ? '<b>' + esc(x.note) + '</b>' : '') + (done ? (x.note ? '<br>' : '') + '<span class="sm">お渡し済 ' + esc(x.handedAt.slice(-5)) + '</span>' : '') + '</td>' +
         '</tr>';
     });
     h += '</table>';
