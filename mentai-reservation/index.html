@@ -155,6 +155,7 @@ let selectedShift = null;
 let quantity = 1;
 let currentShifts = [];
 
+// GETリクエストでGASを呼ぶ（CORS回避のため）
 function callGAS(params) {
   const query = Object.keys(params)
     .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
@@ -164,47 +165,37 @@ function callGAS(params) {
 }
 
 async function main() {
-  const debugDiv = document.createElement('div');
-  debugDiv.style.cssText = 'background:#000;color:#0f0;padding:10px;font-size:11px;white-space:pre-wrap;word-break:break-all;';
-  document.body.insertBefore(debugDiv, document.body.firstChild);
-  function log(msg) { debugDiv.textContent += msg + '\n'; }
-
   try {
-    log('1. liff.init 開始');
     await liff.init({ liffId: LIFF_ID });
-    log('2. liff.init 成功');
 
-    log('3. isLoggedIn: ' + liff.isLoggedIn());
     if (!liff.isLoggedIn()) {
-      log('4. ログインしていないのでlogin()を呼びます');
       liff.login();
       return;
     }
 
-    log('5. getProfile 開始');
     const profile = await liff.getProfile();
     userId = profile.userId;
-    log('6. getProfile 成功: ' + userId);
 
-    log('7. getFriendship 開始');
+    // 友だち追加チェック（チャネルのリンク設定が無い環境ではエラーになるため、失敗しても続行）
     try {
       const friendship = await liff.getFriendship();
-      log('8. getFriendship 成功: friendFlag=' + friendship.friendFlag);
       if (!friendship.friendFlag) {
-        showMessage('error', 'ご予約の前に、公式アカウントの友だち追加をお願いします。');
         document.getElementById('loading').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        showMessage('error', 'ご予約の前に、公式アカウントの友だち追加をお願いします。');
         const btn = document.createElement('button');
         btn.textContent = '友だち追加する';
         btn.className = 'submit';
-        btn.onclick = () => liff.openWindow({ url: 'https://line.me/R/ti/p/@493rwgms', external: false });
+        btn.onclick = function () {
+          liff.openWindow({ url: 'https://line.me/R/ti/p/@493rwgms', external: false });
+        };
         document.getElementById('msgArea').appendChild(btn);
         return;
       }
     } catch (fe) {
-      log('8. getFriendship エラー: ' + fe.message);
+      // getFriendshipが使えない場合はそのまま続行
     }
 
-    log('9. 画面表示処理へ');
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
 
@@ -212,16 +203,14 @@ async function main() {
     const dateInput = document.getElementById('dateInput');
     dateInput.min = formatDate(today);
     dateInput.value = formatDate(today);
-    log('10. loadAvailability 開始');
     loadAvailability(dateInput.value);
 
-    dateInput.addEventListener('change', () => loadAvailability(dateInput.value));
-    document.getElementById('qtyMinus').addEventListener('click', () => changeQty(-1));
-    document.getElementById('qtyPlus').addEventListener('click', () => changeQty(1));
+    dateInput.addEventListener('change', function () { loadAvailability(dateInput.value); });
+    document.getElementById('qtyMinus').addEventListener('click', function () { changeQty(-1); });
+    document.getElementById('qtyPlus').addEventListener('click', function () { changeQty(1); });
     document.getElementById('submitBtn').addEventListener('click', submitReservation);
-    log('11. 完了');
   } catch (e) {
-    log('!!! main()内でエラー: ' + e.message);
+    document.getElementById('loading').textContent = '読み込みに失敗しました。LINEアプリから開き直してください。';
   }
 }
 
@@ -259,7 +248,7 @@ function renderShifts() {
       </div>
     `;
     if (!s.closed) {
-      div.addEventListener('click', () => selectShift(s, div));
+      div.addEventListener('click', function () { selectShift(s, div); });
     }
     list.appendChild(div);
   });
@@ -317,7 +306,7 @@ async function submitReservation() {
 
     if (data.success) {
       showMessage('success', 'ご予約が完了しました！LINEに確認メッセージが届きます。');
-      setTimeout(() => liff.closeWindow(), 2500);
+      setTimeout(function () { liff.closeWindow(); }, 2500);
     } else {
       showMessage('error', data.error || '予約に失敗しました');
       btn.disabled = false;
