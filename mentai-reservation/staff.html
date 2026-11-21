@@ -1,1 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="受け渡し">
+<meta name="robots" content="noindex, nofollow">
+<title>明太フランス 受け渡し</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+    background: #f3f1ec;
+    color: #222;
+    font-size: 18px;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  button { font-family: inherit; cursor: pointer; }
 
+  /* ログイン */
+  #login { max-width: 420px; margin: 80px auto; padding: 28px; background: #fff; border-radius: 18px; box-shadow: 0 2px 10px rgba(0,0,0,.08); text-align: center; }
+  #login h1 { font-size: 24px; margin: 0 0 6px; }
+  #login p { color: #777; font-size: 15px; margin: 0 0 18px; }
+  #pinInput { width: 100%; font-size: 32px; letter-spacing: 8px; text-align: center; padding: 12px; border: 2px solid #ddd; border-radius: 12px; -webkit-user-select: text; user-select: text; }
+  #loginBtn { width: 100%; margin-top: 14px; padding: 16px; font-size: 20px; font-weight: bold; border: none; border-radius: 12px; background: #1f8f4e; color: #fff; }
+  #loginErr { color: #c0392b; font-size: 15px; min-height: 22px; margin-top: 10px; }
+  .remember { margin-top: 10px; font-size: 15px; color: #666; }
+
+  /* ヘッダー */
+  header { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #ddd; padding: 12px 18px; }
+  .row1 { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .title { font-size: 22px; font-weight: bold; margin-right: auto; }
+  .nav-btn { min-width: 52px; height: 48px; border: 1px solid #ccc; background: #fff; border-radius: 10px; font-size: 18px; }
+  .nav-btn:disabled { opacity: .35; }
+  .date-label { font-size: 22px; font-weight: bold; min-width: 190px; text-align: center; }
+  .row2 { display: flex; align-items: center; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+  #search { flex: 1; min-width: 200px; height: 48px; font-size: 18px; padding: 0 14px; border: 1px solid #ccc; border-radius: 10px; -webkit-user-select: text; user-select: text; }
+  .chk { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+  .chk input { width: 22px; height: 22px; }
+  .summary { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .pill { padding: 6px 14px; border-radius: 999px; background: #eef5ef; font-size: 16px; font-weight: bold; color: #1f6f3d; }
+  .pill.wait { background: #fff1d6; color: #9a5b00; }
+  .pill.view { background: #e8eef8; color: #2d5aa0; }
+  .updated { font-size: 13px; color: #888; margin-left: auto; align-self: center; }
+
+  /* 一覧 */
+  main { padding: 14px 18px 60px; }
+  .shift-title { font-size: 20px; font-weight: bold; margin: 18px 0 10px; display: flex; align-items: baseline; gap: 10px; }
+  .shift-title small { font-size: 15px; color: #777; font-weight: normal; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+  .card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 1px 5px rgba(0,0,0,.08); display: flex; flex-direction: column; gap: 10px; border-left: 8px solid #f0a500; }
+  .card.done { background: #ecece8; border-left-color: #b9b9b3; color: #888; box-shadow: none; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .name { font-size: 28px; font-weight: bold; line-height: 1.2; word-break: break-all; }
+  .name small { font-size: 18px; font-weight: normal; margin-left: 4px; }
+  .qty { flex: none; min-width: 84px; text-align: center; background: #222; color: #fff; border-radius: 14px; padding: 6px 12px; }
+  .qty b { font-size: 36px; line-height: 1; }
+  .qty span { font-size: 16px; margin-left: 2px; }
+  .card.done .qty { background: #aaa; }
+  .meta { font-size: 16px; color: #666; line-height: 1.6; }
+  .meta .pk { color: #b35c00; font-weight: bold; }
+  .card.done .meta .pk { color: #888; }
+  .id { font-size: 12px; color: #aaa; }
+  .go { width: 100%; height: 64px; border: none; border-radius: 14px; background: #1f8f4e; color: #fff; font-size: 22px; font-weight: bold; }
+  .go:active { background: #176f3c; }
+  .undo { width: 100%; height: 52px; border: 2px solid #aaa; border-radius: 12px; background: #fff; color: #666; font-size: 17px; }
+  .done-label { font-size: 18px; font-weight: bold; color: #1f8f4e; }
+  .viewonly { font-size: 14px; color: #888; text-align: center; padding: 6px 0; }
+  .empty { text-align: center; color: #888; padding: 60px 0; font-size: 20px; }
+
+  /* 確認ダイアログ */
+  #overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  #overlay.show { display: flex; }
+  .dialog { background: #fff; border-radius: 20px; padding: 26px; width: 100%; max-width: 480px; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+  .dialog h2 { margin: 0 0 8px; font-size: 22px; }
+  .dialog .body { font-size: 24px; line-height: 1.5; margin-bottom: 20px; font-weight: bold; }
+  .dialog .sub { font-size: 15px; color: #777; font-weight: normal; margin-top: 6px; }
+  .dialog .btns { display: flex; gap: 12px; }
+  .dialog button { flex: 1; height: 68px; font-size: 22px; font-weight: bold; border-radius: 14px; border: none; }
+  .dialog .ok { background: #1f8f4e; color: #fff; }
+  .dialog .ok.danger { background: #c0392b; }
+  .dialog .no { background: #e6e6e6; color: #444; }
+
+  #toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: #222; color: #fff; padding: 14px 26px; border-radius: 999px; font-size: 18px; display: none; z-index: 200; max-width: 90%; text-align: center; }
+  #toast.err { background: #c0392b; }
+</style>
+</head>
+<body>
+
+<!-- 暗証番号の入力 -->
+<div id="login" style="display:none;">
+  <h1>受け渡し画面</h1>
+  <p>店舗用の暗証番号を入力してください</p>
+  <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" placeholder="••••••">
+  <label class="remember"><input type="checkbox" id="rememberPin" checked> このiPadに暗証番号を記憶する</label>
+  <button id="loginBtn">開く</button>
+  <div id="loginErr"></div>
+</div>
+
+<!-- 受け渡し画面 -->
+<div id="app" style="display:none;">
+  <header>
+    <div class="row1">
+      <div class="title">明太フランス 受け渡し</div>
+      <button class="nav-btn" id="prevBtn">◀</button>
+      <div class="date-label" id="dateLabel"></div>
+      <button class="nav-btn" id="nextBtn">▶</button>
+      <button class="nav-btn" id="todayBtn" style="padding:0 16px;">今日</button>
+      <button class="nav-btn" id="reloadBtn" style="padding:0 16px;">更新</button>
+    </div>
+    <div class="row2">
+      <input id="search" type="search" placeholder="お名前で探す">
+      <label class="chk"><input type="checkbox" id="hideDone"> お渡し済みを隠す</label>
+    </div>
+    <div class="summary" id="summary"></div>
+  </header>
+  <main id="lists"></main>
+</div>
+
+<div id="overlay">
+  <div class="dialog">
+    <h2 id="dTitle"></h2>
+    <div class="body" id="dBody"></div>
+    <div class="btns">
+      <button class="no" id="dNo">いいえ</button>
+      <button class="ok" id="dYes">はい</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyo3bKfGoxZYOqFnWeqAutK36b5Lv2hlhOxhIVMVKyPvDknGUyIvis1dZntfQnl6xKosA/exec';
+const PIN_KEY = 'mentaiStaffPin';
+const REFRESH_MS = 30000;
+
+let pin = '';
+let viewDate = '';
+let todayStr = '';
+let data = null;          // 直近の一覧データ
+let busy = false;         // 操作中は自動更新しない
+let timer = null;
+
+function callGAS(params) {
+  const query = Object.keys(params)
+    .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
+    .join('&');
+  return fetch(GAS_URL + '?' + query).then(function (res) { return res.json(); });
+}
+
+function $(id) { return document.getElementById(id); }
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+/* ---------- 暗証番号 ---------- */
+
+function showLogin(msg) {
+  stopTimer();
+  $('app').style.display = 'none';
+  $('login').style.display = 'block';
+  $('loginErr').textContent = msg || '';
+  $('pinInput').value = '';
+  setTimeout(function () { $('pinInput').focus(); }, 50);
+}
+
+async function tryLogin(inputPin, remember) {
+  $('loginBtn').disabled = true;
+  try {
+    const r = await callGAS({ action: 'staffList', pin: inputPin, date: viewDate || '' });
+    if (!r.success) {
+      try { localStorage.removeItem(PIN_KEY); } catch (e) {}
+      showLogin(r.error || '開けませんでした');
+      return;
+    }
+    pin = inputPin;
+    if (remember) { try { localStorage.setItem(PIN_KEY, pin); } catch (e) {} }
+    $('login').style.display = 'none';
+    $('app').style.display = 'block';
+    applyData(r);
+    startTimer();
+  } catch (e) {
+    showLogin('通信エラーです。ネットワークを確認してください。');
+  } finally {
+    $('loginBtn').disabled = false;
+  }
+}
+
+/* ---------- 読み込み・表示 ---------- */
+
+async function load(silent) {
+  try {
+    const r = await callGAS({ action: 'staffList', pin: pin, date: viewDate });
+    if (!r.success) {
+      if (r.badPin || r.locked) { showLogin(r.error); return; }
+      toast(r.error || '読み込みに失敗しました', true);
+      return;
+    }
+    applyData(r);
+  } catch (e) {
+    if (!silent) toast('通信エラーです', true);
+  }
+}
+
+function applyData(r) {
+  data = r;
+  todayStr = r.today;
+  viewDate = r.date;
+  render();
+}
+
+function dateLabel(s) {
+  const y = Number(s.slice(0, 4)), m = Number(s.slice(5, 7)), d = Number(s.slice(8, 10));
+  const w = ['日', '月', '火', '水', '木', '金', '土'][new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return m + '月' + d + '日（' + w + '）';
+}
+
+function addDays(s, n) {
+  const y = Number(s.slice(0, 4)), m = Number(s.slice(5, 7)), d = Number(s.slice(8, 10));
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return t.getUTCFullYear() + '-' + String(t.getUTCMonth() + 1).padStart(2, '0') + '-' + String(t.getUTCDate()).padStart(2, '0');
+}
+
+function fmtPhone(p) {
+  if (/^0\d{10}$/.test(p)) return p.slice(0, 3) + '-' + p.slice(3, 7) + '-' + p.slice(7);
+  if (/^0\d{9}$/.test(p)) return p.slice(0, 2) + '-' + p.slice(2, 6) + '-' + p.slice(6);
+  return p;
+}
+
+function render() {
+  if (!data) return;
+  const isToday = data.date === data.today;
+  $('dateLabel').textContent = dateLabel(data.date) + (isToday ? '・今日' : '');
+
+  const keyword = $('search').value.trim();
+  const hideDone = $('hideDone').checked;
+
+  const all = data.items;
+  const doneN = all.filter(function (x) { return x.handedAt; }).length;
+  const waitN = all.length - doneN;
+  const waitQty = all.filter(function (x) { return !x.handedAt; }).reduce(function (a, x) { return a + x.qty; }, 0);
+  $('summary').innerHTML =
+    '<span class="pill wait">未渡し ' + waitN + '件・' + waitQty + '本</span>' +
+    '<span class="pill">お渡し済み ' + doneN + '件</span>' +
+    (isToday ? '' : '<span class="pill view">今日以外は確認のみ（お渡しの操作はできません）</span>') +
+    '<span class="updated">更新 ' + esc(data.now) + '</span>';
+
+  const lists = $('lists');
+  lists.innerHTML = '';
+
+  let shown = all.filter(function (x) {
+    if (hideDone && x.handedAt) return false;
+    if (keyword && String(x.name).indexOf(keyword) < 0) return false;
+    return true;
+  });
+
+  if (shown.length === 0) {
+    lists.innerHTML = '<div class="empty">' + (all.length === 0 ? 'この日の予約はありません' : '該当する予約がありません') + '</div>';
+    return;
+  }
+
+  data.shifts.forEach(function (sh) {
+    const items = shown.filter(function (x) { return x.shift === sh.name; });
+    if (items.length === 0) return;
+    const qty = items.reduce(function (a, x) { return a + x.qty; }, 0);
+
+    const title = document.createElement('div');
+    title.className = 'shift-title';
+    title.innerHTML = esc(sh.name) + '（' + esc(sh.startTime) + '〜）<small>' + items.length + '件・' + qty + '本</small>';
+    lists.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    items.forEach(function (x) { grid.appendChild(buildCard(x, isToday)); });
+    lists.appendChild(grid);
+  });
+}
+
+function buildCard(x, isToday) {
+  const done = !!x.handedAt;
+  const card = document.createElement('div');
+  card.className = 'card' + (done ? ' done' : '');
+  card.innerHTML =
+    '<div class="top">' +
+      '<div class="name">' + esc(x.name) + '<small>様</small></div>' +
+      '<div class="qty"><b>' + esc(x.qty) + '</b><span>本</span></div>' +
+    '</div>' +
+    '<div class="meta">' +
+      '来店予定：' + (x.pickup ? '<span class="pk">' + esc(x.pickup) + ' ごろ</span>' : '指定なし（' + esc(data.noPickupDeadline) + 'まで）') + '<br>' +
+      'TEL ' + esc(fmtPhone(x.phone)) +
+    '</div>' +
+    '<div class="id">' + esc(x.id) + '</div>';
+
+  if (done) {
+    const label = document.createElement('div');
+    label.className = 'done-label';
+    label.textContent = '✓ お渡し済み（' + x.handedAt.slice(-5) + '）';
+    card.appendChild(label);
+    if (isToday) {
+      const b = document.createElement('button');
+      b.className = 'undo';
+      b.textContent = 'お渡し済みを取り消す';
+      b.addEventListener('click', function () { confirmUndo(x); });
+      card.appendChild(b);
+    }
+  } else if (isToday) {
+    const b = document.createElement('button');
+    b.className = 'go';
+    b.textContent = 'お渡し済み';
+    b.addEventListener('click', function () { confirmHandover(x); });
+    card.appendChild(b);
+  } else {
+    const v = document.createElement('div');
+    v.className = 'viewonly';
+    v.textContent = '（確認のみ）';
+    card.appendChild(v);
+  }
+  return card;
+}
+
+/* ---------- 確認ダイアログ付きの操作 ---------- */
+
+function ask(title, bodyHtml, yesLabel, danger) {
+  return new Promise(function (resolve) {
+    $('dTitle').textContent = title;
+    $('dBody').innerHTML = bodyHtml;
+    $('dYes').textContent = yesLabel;
+    $('dYes').className = 'ok' + (danger ? ' danger' : '');
+    $('overlay').classList.add('show');
+    busy = true;
+    const close = function (v) {
+      $('overlay').classList.remove('show');
+      $('dYes').onclick = null;
+      $('dNo').onclick = null;
+      busy = false;
+      resolve(v);
+    };
+    $('dYes').onclick = function () { close(true); };
+    $('dNo').onclick = function () { close(false); };
+  });
+}
+
+async function confirmHandover(x) {
+  const ok = await ask(
+    'お渡し済みにしますか？',
+    esc(x.name) + ' 様<br>' + esc(x.qty) + ' 本' +
+      '<div class="sub">' + esc(x.shift) + '　名前と本数をご確認ください</div>',
+    'お渡し済みにする', false);
+  if (!ok) return;
+  await send(x.id, false, x.name + ' 様をお渡し済みにしました');
+}
+
+async function confirmUndo(x) {
+  const ok = await ask(
+    '取り消しますか？',
+    esc(x.name) + ' 様 ' + esc(x.qty) + ' 本<div class="sub">「お渡し済み」を取り消して、未渡しに戻します</div>',
+    '取り消す', true);
+  if (!ok) return;
+  await send(x.id, true, x.name + ' 様を未渡しに戻しました');
+}
+
+async function send(id, undo, okMessage) {
+  busy = true;
+  try {
+    const r = await callGAS({ action: 'staffHandover', pin: pin, reservationId: id, undo: undo ? '1' : '0' });
+    if (r.success) {
+      toast(okMessage, false);
+    } else {
+      if (r.badPin || r.locked) { showLogin(r.error); return; }
+      toast(r.error || '失敗しました', true);
+    }
+  } catch (e) {
+    toast('通信エラーです。もう一度お試しください', true);
+  } finally {
+    busy = false;
+  }
+  await load(true);
+}
+
+/* ---------- その他 ---------- */
+
+let toastTimer = null;
+function toast(msg, isErr) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = isErr ? 'err' : '';
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.style.display = 'none'; }, isErr ? 5000 : 2500);
+}
+
+function startTimer() {
+  stopTimer();
+  timer = setInterval(function () { if (!busy && document.visibilityState === 'visible') load(true); }, REFRESH_MS);
+}
+function stopTimer() { if (timer) { clearInterval(timer); timer = null; } }
+
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && pin && !busy) load(true);
+});
+
+$('loginBtn').addEventListener('click', function () {
+  const v = $('pinInput').value.trim();
+  if (!v) { $('loginErr').textContent = '暗証番号を入力してください'; return; }
+  tryLogin(v, $('rememberPin').checked);
+});
+$('pinInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('loginBtn').click(); });
+
+$('prevBtn').addEventListener('click', function () { viewDate = addDays(viewDate, -1); load(false); });
+$('nextBtn').addEventListener('click', function () { viewDate = addDays(viewDate, 1); load(false); });
+$('todayBtn').addEventListener('click', function () { viewDate = ''; load(false); });
+$('reloadBtn').addEventListener('click', function () { load(false); });
+$('search').addEventListener('input', render);
+$('hideDone').addEventListener('change', render);
+
+(function init() {
+  let saved = '';
+  try { saved = localStorage.getItem(PIN_KEY) || ''; } catch (e) {}
+  if (saved) {
+    tryLogin(saved, true);
+  } else {
+    showLogin('');
+  }
+})();
+</script>
+</body>
+</html>
