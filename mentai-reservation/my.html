@@ -40,6 +40,9 @@
   .btn.cancel { background: #fff; color: #c0392b; border: 2px solid #c0392b; }
   .btn.danger { background: #c0392b; color: #fff; }
   .btn.back { background: #eee; color: #555; }
+  .btn.change { background: #fff; color: #06a047; border: 2px solid #06C755; }
+  .btn.save { background: #06C755; color: #fff; }
+  select.pk { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; margin-top: 6px; background: #fff; }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .msg { text-align: center; padding: 12px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; }
   .msg.error { background: #ffe5e5; color: #c0392b; }
@@ -155,23 +158,114 @@ function render(items) {
     card.innerHTML =
       '<div class="r-date">' + esc(formatDateJp(date)) + '　' + esc(r['便']) + '</div>' +
       '<div class="r-line">個数：' + esc(r['個数']) + '個</div>' +
+      '<div class="r-line">来店予定：' + (r['来店予定時刻'] ? esc(r['来店予定時刻']) + 'ごろ' : '指定なし') + '</div>' +
+      '<div class="r-line">受け取り期限：' + esc(r['受け取り期限']) + 'まで（過ぎると自動でキャンセルになります）</div>' +
       '<div class="r-line">お名前：' + esc(r['お名前']) + ' 様</div>' +
       '<div class="r-id">予約番号：' + esc(id) + '</div>' +
       '<div class="actions"></div>';
 
     const actions = card.querySelector('.actions');
-    if (locked) {
-      actions.innerHTML = '<div class="note">当日朝7時を過ぎているため、アプリからはキャンセルできません。お手数ですが店舗にお電話ください。</div>';
-    } else {
-      showCancelButton(actions, id);
+    if (r['お渡し日時']) {
+      actions.innerHTML = '<div class="note" style="color:#1e7e34;font-size:14px;">お渡し済みです（' + esc(String(r['お渡し日時']).slice(-5)) + '）</div>';
+      list.appendChild(card);
+      return;
     }
+    byId[id] = { r: r, locked: locked };
+    showActions(actions, id);
     list.appendChild(card);
   });
 }
 
+const byId = {};
+
+// 予約ごとのボタン（来店予定時刻の変更／キャンセル）を表示する
+function showActions(actions, id) {
+  const info = byId[id];
+  const r = info.r;
+  actions.innerHTML = '';
+
+  if (r.canChangePickup) {
+    const b = document.createElement('button');
+    b.className = 'btn change';
+    b.textContent = '来店予定時刻を変更する';
+    b.addEventListener('click', function () { showChange(actions, id); });
+    actions.appendChild(b);
+  } else {
+    const n = document.createElement('div');
+    n.className = 'note';
+    n.textContent = '来店予定時刻を過ぎているため、時刻の変更はできません。';
+    actions.appendChild(n);
+  }
+
+  if (info.locked) {
+    const n2 = document.createElement('div');
+    n2.className = 'note';
+    n2.textContent = '当日朝7時を過ぎているため、アプリからはキャンセルできません。お手数ですが店舗にお電話ください。';
+    actions.appendChild(n2);
+  } else {
+    const c = document.createElement('button');
+    c.className = 'btn cancel';
+    c.textContent = 'この予約をキャンセルする';
+    c.addEventListener('click', function () { showConfirm(actions, id); });
+    actions.appendChild(c);
+  }
+}
+
 function showCancelButton(actions, id) {
-  actions.innerHTML = '<button class="btn cancel">この予約をキャンセルする</button>';
-  actions.querySelector('button').addEventListener('click', function () { showConfirm(actions, id); });
+  showActions(actions, id);
+}
+
+function toMin(t) {
+  const p = String(t).split(':');
+  return Number(p[0]) * 60 + Number(p[1]);
+}
+
+// 来店予定時刻の変更画面
+function showChange(actions, id) {
+  const r = byId[id].r;
+  const now = nowJst();
+  const nowMin = toMin(now.hhmm.slice(0, 2) + ':' + now.hhmm.slice(2));
+  const isToday = r['受け取り日'] === now.date;
+  const current = r['来店予定時刻'] || '';
+
+  let html = '<div class="r-line" style="margin-top:12px;font-weight:bold;">来店予定時刻</div><select class="pk" id="pk">';
+  if (!isToday || nowMin < toMin(r['noPickupDeadline'])) {
+    html += '<option value="">指定なし（' + esc(r['noPickupDeadline']) + 'までにお越しください）</option>';
+  }
+  (r['pickupOptions'] || []).forEach(function (t) {
+    if (isToday && toMin(t) <= nowMin) return;   // 当日は、いまより後の時刻だけ
+    html += '<option value="' + esc(t) + '"' + (t === current ? ' selected' : '') + '>' + esc(t) + ' ごろ</option>';
+  });
+  html += '</select>' +
+    '<div class="r-line" style="margin-top:6px;">時刻を過ぎると変更できなくなります。受け取り期限（指定時刻の30分後、最長18:45。指定なしは17:00）を過ぎると、自動でキャンセルになります。</div>' +
+    '<button class="btn save" id="save">この時刻に変更する</button>' +
+    '<button class="btn back" id="no">戻る</button>';
+  actions.innerHTML = html;
+
+  actions.querySelector('#no').addEventListener('click', function () { showActions(actions, id); });
+  actions.querySelector('#save').addEventListener('click', function () { doChange(actions, id); });
+}
+
+async function doChange(actions, id) {
+  const save = actions.querySelector('#save');
+  const no = actions.querySelector('#no');
+  const value = actions.querySelector('#pk').value;
+  save.disabled = true;
+  no.disabled = true;
+  save.textContent = '処理中...';
+  try {
+    const data = await callGAS({ action: 'changePickup', userId: userId, reservationId: id, pickupTime: value });
+    if (data.success) {
+      showMessage('success', '来店予定時刻を変更しました。LINEに確認メッセージが届きます。');
+      await loadList();
+    } else {
+      showMessage('error', data.error || '変更に失敗しました');
+      await loadList();
+    }
+  } catch (e) {
+    showMessage('error', '通信エラーが発生しました');
+    showActions(actions, id);
+  }
 }
 
 function showConfirm(actions, id) {
