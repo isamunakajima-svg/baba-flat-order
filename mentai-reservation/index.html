@@ -14,17 +14,8 @@
     padding: 16px;
     color: #333;
   }
-  h1 {
-    font-size: 20px;
-    text-align: center;
-    margin-bottom: 4px;
-  }
-  .subtitle {
-    text-align: center;
-    color: #888;
-    font-size: 13px;
-    margin-bottom: 20px;
-  }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 20px; }
   .card {
     background: white;
     border-radius: 12px;
@@ -32,77 +23,78 @@
     margin-bottom: 16px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
-  label {
-    display: block;
-    font-size: 13px;
-    font-weight: bold;
-    margin-bottom: 6px;
-    color: #555;
-  }
-  input[type="text"], input[type="tel"], input[type="date"], input[type="number"] {
+  label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 6px; color: #555; }
+  input[type="text"], input[type="tel"] {
     width: 100%;
     padding: 10px;
     border: 1px solid #ddd;
     border-radius: 8px;
-    font-size: 15px;
-    margin-bottom: 14px;
+    font-size: 16px;
+    margin-bottom: 6px;
   }
-  .shift-option {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px;
-    border: 2px solid #eee;
+  .hint { font-size: 12px; color: #888; margin-bottom: 14px; }
+  .hint.err { color: #c0392b; }
+
+  /* カレンダー */
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .cal-title { font-size: 16px; font-weight: bold; }
+  .cal-nav {
+    width: 40px; height: 36px; border: none; border-radius: 8px;
+    background: #f0f0f0; font-size: 16px; cursor: pointer; color: #333;
+  }
+  .cal-nav:disabled { opacity: 0.3; cursor: not-allowed; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-dow { text-align: center; font-size: 12px; color: #888; padding: 4px 0; }
+  .cal-dow.sun { color: #d9534f; }
+  .cal-dow.sat { color: #3b82c4; }
+  .cal-day {
+    aspect-ratio: 1 / 1;
+    border: none;
     border-radius: 10px;
-    margin-bottom: 10px;
+    background: #fff;
+    font-size: 15px;
+    font-weight: bold;
+    color: #333;
     cursor: pointer;
+    padding: 0;
   }
-  .shift-option.selected {
-    border-color: #06C755;
-    background: #f0fff4;
-  }
-  .shift-option.disabled {
-    opacity: 0.4;
+  .cal-day.empty { visibility: hidden; }
+  .cal-day.today { box-shadow: inset 0 0 0 2px #cfe9d8; }
+  .cal-day.selected { background: #06C755; color: #fff; }
+  .cal-day.off {
+    background: #eee;
+    color: #b5b5b5;
+    font-weight: normal;
     cursor: not-allowed;
   }
+  .cal-legend { font-size: 12px; color: #888; margin-top: 10px; display: flex; gap: 14px; align-items: center; }
+  .dot { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: -2px; }
+  .dot.ok { background: #fff; border: 1px solid #ccc; }
+  .dot.off { background: #eee; }
+  .dot.sel { background: #06C755; }
+
+  .shift-option {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px; border: 2px solid #eee; border-radius: 10px; margin-bottom: 10px; cursor: pointer;
+  }
+  .shift-option.selected { border-color: #06C755; background: #f0fff4; }
+  .shift-option.disabled { opacity: 0.4; cursor: not-allowed; }
   .shift-name { font-weight: bold; }
   .shift-remain { font-size: 13px; color: #888; }
-  .qty-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 14px;
-  }
+  .qty-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 8px; }
   .qty-btn {
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    border: none;
-    background: #06C755;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
+    width: 40px; height: 40px; border-radius: 50%; border: none;
+    background: #06C755; color: white; font-size: 20px; cursor: pointer;
   }
+  .qty-btn:disabled { background: #ccc; cursor: not-allowed; }
   .qty-value { font-size: 22px; font-weight: bold; min-width: 30px; text-align: center; }
+  .qty-note { text-align: center; font-size: 12px; color: #888; }
   button.submit {
-    width: 100%;
-    padding: 14px;
-    background: #06C755;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
+    width: 100%; padding: 14px; background: #06C755; color: white; border: none;
+    border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer;
   }
   button.submit:disabled { background: #ccc; }
-  .msg {
-    text-align: center;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 14px;
-    font-size: 14px;
-  }
+  .msg { text-align: center; padding: 12px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; }
   .msg.error { background: #ffe5e5; color: #c0392b; }
   .msg.success { background: #e5ffe9; color: #1e7e34; }
   .loading { text-align: center; padding: 40px; color: #888; }
@@ -119,7 +111,18 @@
 
   <div class="card">
     <label>受け取り日</label>
-    <input type="date" id="dateInput">
+    <div class="cal-head">
+      <button class="cal-nav" id="calPrev">◀</button>
+      <div class="cal-title" id="calTitle"></div>
+      <button class="cal-nav" id="calNext">▶</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-legend">
+      <span><span class="dot ok"></span>予約できる</span>
+      <span><span class="dot off"></span>予約できない</span>
+      <span><span class="dot sel"></span>選択中</span>
+    </div>
+    <div class="hint" id="dateNote" style="margin-top:10px;margin-bottom:0;"></div>
   </div>
 
   <div class="card" id="shiftCard" style="display:none;">
@@ -134,13 +137,15 @@
       <div class="qty-value" id="qtyValue">1</div>
       <button class="qty-btn" id="qtyPlus">＋</button>
     </div>
+    <div class="qty-note" id="qtyNote"></div>
   </div>
 
   <div class="card">
     <label>お名前</label>
-    <input type="text" id="nameInput" placeholder="山田 太郎">
+    <input type="text" id="nameInput" placeholder="山田 太郎" autocomplete="name">
     <label>電話番号</label>
-    <input type="tel" id="phoneInput" placeholder="090-1234-5678">
+    <input type="tel" id="phoneInput" inputmode="numeric" placeholder="09012345678" autocomplete="tel">
+    <div class="hint" id="phoneHint">ハイフンなしの数字で入力してください（携帯は11桁、固定電話は10桁）</div>
   </div>
 
   <button class="submit" id="submitBtn">この内容で予約する</button>
@@ -149,19 +154,29 @@
 <script>
 const LIFF_ID = '2010599952-MaUdLuhq';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyo3bKfGoxZYOqFnWeqAutK36b5Lv2hlhOxhIVMVKyPvDknGUyIvis1dZntfQnl6xKosA/exec';
+const MAX_PER_PERSON = 3; // 1人・1日あたりの上限（サーバー側の設定が優先されます）
 
 let userId = null;
 let selectedShift = null;
 let quantity = 1;
 let currentShifts = [];
+let myCount = 0;           // 選択中の日に、すでに予約している本数
+let maxPerPerson = MAX_PER_PERSON;
+
+let calendar = {};         // 'YYYY-MM-DD' -> { ok, reason }
+let todayStr = '';
+let lastDateStr = '';
+let selectedDate = null;
+let viewYear = 0;
+let viewMonth = 0;         // 1〜12
+let keepMsgOnce = false;   // 予約失敗のメッセージを、直後の再読み込みで消さないためのフラグ
 
 // GETリクエストでGASを呼ぶ（CORS回避のため）
 function callGAS(params) {
   const query = Object.keys(params)
     .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
     .join('&');
-  const url = GAS_URL + '?' + query;
-  return fetch(url).then(function (res) { return res.json(); });
+  return fetch(GAS_URL + '?' + query).then(function (res) { return res.json(); });
 }
 
 async function main() {
@@ -199,60 +214,195 @@ async function main() {
     document.getElementById('loading').style.display = 'none';
     document.getElementById('app').style.display = 'block';
 
-    const today = new Date();
-    const dateInput = document.getElementById('dateInput');
-    dateInput.min = formatDate(today);
-    dateInput.value = formatDate(today);
-    loadAvailability(dateInput.value);
-
-    dateInput.addEventListener('change', function () { loadAvailability(dateInput.value); });
+    document.getElementById('calPrev').addEventListener('click', function () { moveMonth(-1); });
+    document.getElementById('calNext').addEventListener('click', function () { moveMonth(1); });
     document.getElementById('qtyMinus').addEventListener('click', function () { changeQty(-1); });
     document.getElementById('qtyPlus').addEventListener('click', function () { changeQty(1); });
     document.getElementById('submitBtn').addEventListener('click', submitReservation);
+    setupPhoneInput();
+
+    await loadCalendar();
   } catch (e) {
+    document.getElementById('loading').style.display = 'block';
     document.getElementById('loading').textContent = '読み込みに失敗しました。LINEアプリから開き直してください。';
   }
 }
 
-function formatDate(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+/* ---------------- カレンダー ---------------- */
+
+async function loadCalendar() {
+  try {
+    const data = await callGAS({ action: 'getCalendar', userId: userId });
+    if (!data.success) throw new Error(data.error || 'calendar');
+
+    todayStr = data.today;
+    lastDateStr = data.lastDate;
+    maxPerPerson = data.maxPerPerson || MAX_PER_PERSON;
+    calendar = {};
+    data.days.forEach(function (d) { calendar[d.date] = d; });
+
+    // 最初に予約できる日を選んでおく
+    let first = null;
+    for (let i = 0; i < data.days.length; i++) {
+      if (data.days[i].ok) { first = data.days[i].date; break; }
+    }
+    if (!selectedDate || !(calendar[selectedDate] && calendar[selectedDate].ok)) {
+      selectedDate = first;
+    }
+
+    const base = selectedDate || todayStr;
+    viewYear = Number(base.slice(0, 4));
+    viewMonth = Number(base.slice(5, 7));
+    renderCalendar();
+
+    if (selectedDate) {
+      loadAvailability(selectedDate);
+    } else {
+      document.getElementById('shiftCard').style.display = 'none';
+      document.getElementById('qtyCard').style.display = 'none';
+      showMessage('error', '現在、予約できる日がありません。');
+    }
+  } catch (e) {
+    showMessage('error', 'カレンダーの取得に失敗しました。LINEアプリから開き直してください。');
+  }
 }
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function toDateStr(y, m, d) { return y + '-' + pad2(m) + '-' + pad2(d); }
+
+function monthKey(y, m) { return y * 12 + (m - 1); }
+
+function moveMonth(delta) {
+  let m = viewMonth + delta;
+  let y = viewYear;
+  if (m < 1) { m = 12; y--; }
+  if (m > 12) { m = 1; y++; }
+  const minKey = monthKey(Number(todayStr.slice(0, 4)), Number(todayStr.slice(5, 7)));
+  const maxKey = monthKey(Number(lastDateStr.slice(0, 4)), Number(lastDateStr.slice(5, 7)));
+  if (monthKey(y, m) < minKey || monthKey(y, m) > maxKey) return;
+  viewYear = y;
+  viewMonth = m;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  document.getElementById('calTitle').textContent = viewYear + '年' + viewMonth + '月';
+
+  const minKey = monthKey(Number(todayStr.slice(0, 4)), Number(todayStr.slice(5, 7)));
+  const maxKey = monthKey(Number(lastDateStr.slice(0, 4)), Number(lastDateStr.slice(5, 7)));
+  document.getElementById('calPrev').disabled = monthKey(viewYear, viewMonth) <= minKey;
+  document.getElementById('calNext').disabled = monthKey(viewYear, viewMonth) >= maxKey;
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  const dows = ['日', '月', '火', '水', '木', '金', '土'];
+  dows.forEach(function (w, i) {
+    const el = document.createElement('div');
+    el.className = 'cal-dow' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
+    el.textContent = w;
+    grid.appendChild(el);
+  });
+
+  const firstDow = new Date(Date.UTC(viewYear, viewMonth - 1, 1)).getUTCDay();
+  const daysInMonth = new Date(Date.UTC(viewYear, viewMonth, 0)).getUTCDate();
+
+  for (let i = 0; i < firstDow; i++) {
+    const blank = document.createElement('button');
+    blank.className = 'cal-day empty';
+    blank.disabled = true;
+    grid.appendChild(blank);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = toDateStr(viewYear, viewMonth, d);
+    const info = calendar[ds];
+    const ok = !!(info && info.ok);
+
+    const btn = document.createElement('button');
+    btn.textContent = d;
+    let cls = 'cal-day';
+    if (!ok) cls += ' off';
+    if (ds === todayStr) cls += ' today';
+    if (ds === selectedDate) cls += ' selected';
+    btn.className = cls;
+
+    if (ok) {
+      btn.addEventListener('click', function () { selectDate(ds); });
+    } else {
+      btn.disabled = true;
+    }
+    grid.appendChild(btn);
+  }
+}
+
+function formatDateJp(s) {
+  const y = Number(s.slice(0, 4)), m = Number(s.slice(5, 7)), d = Number(s.slice(8, 10));
+  const w = ['日', '月', '火', '水', '木', '金', '土'][new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return m + '月' + d + '日（' + w + '）';
+}
+
+function selectDate(ds) {
+  selectedDate = ds;
+  document.getElementById('msgArea').innerHTML = '';
+  renderCalendar();
+  loadAvailability(ds);
+}
+
+/* ---------------- 便・個数 ---------------- */
 
 async function loadAvailability(dateStr) {
   document.getElementById('shiftCard').style.display = 'none';
   document.getElementById('qtyCard').style.display = 'none';
   selectedShift = null;
+  document.getElementById('dateNote').textContent = '選択中：' + formatDateJp(dateStr);
 
   try {
-    const data = await callGAS({ action: 'getAvailability', date: dateStr });
+    const data = await callGAS({ action: 'getAvailability', date: dateStr, userId: userId });
+    if (dateStr !== selectedDate) return; // 読み込み中に別の日が選ばれた場合は無視
     currentShifts = data.shifts || [];
+    myCount = Number(data.myCount || 0);
+    maxPerPerson = Number(data.maxPerPerson || MAX_PER_PERSON);
     renderShifts();
   } catch (e) {
     showMessage('error', '在庫情報の取得に失敗しました');
   }
 }
 
+function remainingForMe() {
+  return Math.max(0, maxPerPerson - myCount);
+}
+
 function renderShifts() {
   const list = document.getElementById('shiftList');
   list.innerHTML = '';
+  const limitReached = remainingForMe() <= 0;
+
   currentShifts.forEach(function (s) {
+    const disabled = s.closed || limitReached;
     const div = document.createElement('div');
-    div.className = 'shift-option' + (s.closed ? ' disabled' : '');
-    div.innerHTML = `
-      <div>
-        <div class="shift-name">${s.name}（${formatTime(s.startTime)}〜）</div>
-        <div class="shift-remain">${s.closed ? '受付終了' : '残り ' + s.remaining + '個'}</div>
-      </div>
-    `;
-    if (!s.closed) {
+    div.className = 'shift-option' + (disabled ? ' disabled' : '');
+    div.innerHTML =
+      '<div>' +
+        '<div class="shift-name">' + s.name + '（' + formatTime(s.startTime) + '〜）</div>' +
+        '<div class="shift-remain">' + (s.closed ? '受付終了' : '残り ' + s.remaining + '個') + '</div>' +
+      '</div>';
+    if (!disabled) {
       div.addEventListener('click', function () { selectShift(s, div); });
     }
     list.appendChild(div);
   });
   document.getElementById('shiftCard').style.display = 'block';
+
+  if (keepMsgOnce) { keepMsgOnce = false; return; }
+
+  if (limitReached) {
+    showMessage('error', 'この日は1人様' + maxPerPerson + '本までです。すでに' + myCount + '本ご予約済みのため、これ以上ご予約いただけません。');
+  } else if (myCount > 0) {
+    showMessage('success', 'この日はすでに' + myCount + '本ご予約済みです。あと' + remainingForMe() + '本までご予約いただけます。');
+  } else {
+    document.getElementById('msgArea').innerHTML = '';
+  }
 }
 
 function formatTime(t) {
@@ -261,33 +411,85 @@ function formatTime(t) {
   return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
+function maxQty() {
+  const stockMax = selectedShift ? selectedShift.remaining : 1;
+  return Math.max(1, Math.min(stockMax, remainingForMe()));
+}
+
 function selectShift(s, el) {
   selectedShift = s;
   document.querySelectorAll('.shift-option').forEach(function (o) { o.classList.remove('selected'); });
   el.classList.add('selected');
   quantity = 1;
-  document.getElementById('qtyValue').textContent = quantity;
+  updateQtyView();
   document.getElementById('qtyCard').style.display = 'block';
 }
 
 function changeQty(delta) {
-  const max = selectedShift ? selectedShift.remaining : 99;
-  quantity = Math.min(max, Math.max(1, quantity + delta));
-  document.getElementById('qtyValue').textContent = quantity;
+  quantity = Math.min(maxQty(), Math.max(1, quantity + delta));
+  updateQtyView();
 }
 
+function updateQtyView() {
+  document.getElementById('qtyValue').textContent = quantity;
+  document.getElementById('qtyMinus').disabled = quantity <= 1;
+  document.getElementById('qtyPlus').disabled = quantity >= maxQty();
+  document.getElementById('qtyNote').textContent =
+    '1人様、同じ日に全便合わせて' + maxPerPerson + '本までです（この日はあと' + remainingForMe() + '本）';
+}
+
+/* ---------------- 電話番号 ---------------- */
+
+function toHalfWidth(str) {
+  return str.replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
+}
+
+// 数字だけを残し、最大11桁までにする
+function cleanPhone(v) {
+  return toHalfWidth(v).replace(/[^0-9]/g, '').slice(0, 11);
+}
+
+function isValidPhone(p) {
+  return /^0[5789]0\d{8}$/.test(p) || /^0(?![5789]0)[1-9]\d{8}$/.test(p);
+}
+
+function setupPhoneInput() {
+  const input = document.getElementById('phoneInput');
+  const hint = document.getElementById('phoneHint');
+  input.addEventListener('input', function () {
+    const cleaned = cleanPhone(input.value);
+    if (input.value !== cleaned) input.value = cleaned;
+    if (cleaned.length === 0) {
+      hint.className = 'hint';
+      hint.textContent = 'ハイフンなしの数字で入力してください（携帯は11桁、固定電話は10桁）';
+    } else if (isValidPhone(cleaned)) {
+      hint.className = 'hint';
+      hint.textContent = '✓ 電話番号の形式は正しいです';
+    } else {
+      hint.className = 'hint err';
+      hint.textContent = '電話番号が正しくありません（携帯は 090/080/070/050 から始まる11桁、固定電話は 0 から始まる10桁）';
+    }
+  });
+}
+
+/* ---------------- 予約送信 ---------------- */
+
 function showMessage(type, text) {
-  document.getElementById('msgArea').innerHTML = `<div class="msg ${type}">${text}</div>`;
+  document.getElementById('msgArea').innerHTML = '<div class="msg ' + type + '">' + text + '</div>';
 }
 
 async function submitReservation() {
   const name = document.getElementById('nameInput').value.trim();
-  const phone = document.getElementById('phoneInput').value.trim();
-  const date = document.getElementById('dateInput').value;
+  const phone = cleanPhone(document.getElementById('phoneInput').value);
 
+  if (!selectedDate) { showMessage('error', '受け取り日を選択してください'); return; }
   if (!selectedShift) { showMessage('error', '受け取り便を選択してください'); return; }
   if (!name) { showMessage('error', 'お名前を入力してください'); return; }
   if (!phone) { showMessage('error', '電話番号を入力してください'); return; }
+  if (!isValidPhone(phone)) {
+    showMessage('error', '電話番号が正しくありません。ハイフンなしの数字で入力してください（携帯は11桁、固定電話は10桁）。');
+    return;
+  }
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
@@ -299,7 +501,7 @@ async function submitReservation() {
       userId: userId,
       name: name,
       phone: phone,
-      date: date,
+      date: selectedDate,
       shift: selectedShift.name,
       quantity: quantity
     });
@@ -311,6 +513,9 @@ async function submitReservation() {
       showMessage('error', data.error || '予約に失敗しました');
       btn.disabled = false;
       btn.textContent = 'この内容で予約する';
+      // 在庫やカレンダーの状態が変わっている可能性があるので読み直す（エラー表示は残す）
+      keepMsgOnce = true;
+      loadCalendar();
     }
   } catch (e) {
     showMessage('error', '通信エラーが発生しました');
