@@ -1,1 +1,211 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ご予約の確認・キャンセル</title>
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+    background: #fafafa;
+    margin: 0;
+    padding: 16px;
+    color: #333;
+  }
+  h1 { font-size: 20px; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #888; font-size: 13px; margin-bottom: 20px; }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .r-date { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+  .r-line { font-size: 14px; color: #555; margin-bottom: 2px; }
+  .r-id { font-size: 11px; color: #aaa; margin-top: 6px; }
+  .note { font-size: 12px; color: #c0392b; margin-top: 8px; }
+  .btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+  .btn.cancel { background: #fff; color: #c0392b; border: 2px solid #c0392b; }
+  .btn.danger { background: #c0392b; color: #fff; }
+  .btn.back { background: #eee; color: #555; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .msg { text-align: center; padding: 12px; border-radius: 8px; margin-bottom: 14px; font-size: 14px; }
+  .msg.error { background: #ffe5e5; color: #c0392b; }
+  .msg.success { background: #e5ffe9; color: #1e7e34; }
+  .loading, .empty { text-align: center; padding: 40px; color: #888; }
+  a.link { display: block; text-align: center; color: #06C755; font-weight: bold; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading">読み込み中...</div>
+<div id="app" style="display:none;">
+  <h1>ご予約の確認・キャンセル</h1>
+  <div class="subtitle">明太フランス</div>
+  <div id="msgArea"></div>
+  <div id="list"></div>
+  <a class="link" href="https://liff.line.me/2010599952-MaUdLuhq">新しく予約する</a>
+</div>
+
+<script>
+const LIFF_ID = '2010599952-MaUdLuhq';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyo3bKfGoxZYOqFnWeqAutK36b5Lv2hlhOxhIVMVKyPvDknGUyIvis1dZntfQnl6xKosA/exec';
+
+let userId = null;
+
+function callGAS(params) {
+  const query = Object.keys(params)
+    .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]); })
+    .join('&');
+  return fetch(GAS_URL + '?' + query).then(function (res) { return res.json(); });
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function showMessage(type, text) {
+  document.getElementById('msgArea').innerHTML = '<div class="msg ' + type + '">' + esc(text) + '</div>';
+}
+
+// 日本時間の今日の日付(yyyy-MM-dd)と現在のHHmm
+function nowJst() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(new Date());
+  const o = {};
+  parts.forEach(function (p) { o[p.type] = p.value; });
+  const hh = o.hour === '24' ? '00' : o.hour;
+  return { date: o.year + '-' + o.month + '-' + o.day, hhmm: hh + o.minute };
+}
+
+function formatDateJp(s) {
+  const p = s.split('-');
+  const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  const w = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+  return Number(p[1]) + '月' + Number(p[2]) + '日（' + w + '）';
+}
+
+async function main() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+    const profile = await liff.getProfile();
+    userId = profile.userId;
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    await loadList();
+  } catch (e) {
+    document.getElementById('loading').textContent = '読み込みに失敗しました。LINEアプリから開き直してください。';
+  }
+}
+
+async function loadList() {
+  const list = document.getElementById('list');
+  list.innerHTML = '<div class="loading">読み込み中...</div>';
+  try {
+    const data = await callGAS({ action: 'myReservations', userId: userId });
+    if (!data.success) {
+      list.innerHTML = '';
+      showMessage('error', data.error || '予約の取得に失敗しました');
+      return;
+    }
+    render(data.reservations || []);
+  } catch (e) {
+    list.innerHTML = '';
+    showMessage('error', '通信エラーが発生しました');
+  }
+}
+
+function render(items) {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty">現在、ご予約はありません。</div>';
+    return;
+  }
+  const now = nowJst();
+
+  items.forEach(function (r) {
+    const id = r['予約ID'];
+    const date = r['受け取り日'];
+    const locked = (date === now.date && now.hhmm > '0700');
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML =
+      '<div class="r-date">' + esc(formatDateJp(date)) + '　' + esc(r['便']) + '</div>' +
+      '<div class="r-line">個数：' + esc(r['個数']) + '個</div>' +
+      '<div class="r-line">お名前：' + esc(r['お名前']) + ' 様</div>' +
+      '<div class="r-id">予約番号：' + esc(id) + '</div>' +
+      '<div class="actions"></div>';
+
+    const actions = card.querySelector('.actions');
+    if (locked) {
+      actions.innerHTML = '<div class="note">当日朝7時を過ぎているため、アプリからはキャンセルできません。お手数ですが店舗にお電話ください。</div>';
+    } else {
+      showCancelButton(actions, id);
+    }
+    list.appendChild(card);
+  });
+}
+
+function showCancelButton(actions, id) {
+  actions.innerHTML = '<button class="btn cancel">この予約をキャンセルする</button>';
+  actions.querySelector('button').addEventListener('click', function () { showConfirm(actions, id); });
+}
+
+function showConfirm(actions, id) {
+  actions.innerHTML =
+    '<div class="r-line" style="margin-top:12px;font-weight:bold;">本当にキャンセルしますか？</div>' +
+    '<button class="btn danger" id="yes">はい、キャンセルする</button>' +
+    '<button class="btn back" id="no">戻る</button>';
+  actions.querySelector('#no').addEventListener('click', function () { showCancelButton(actions, id); });
+  actions.querySelector('#yes').addEventListener('click', function () { doCancel(actions, id); });
+}
+
+async function doCancel(actions, id) {
+  const yes = actions.querySelector('#yes');
+  const no = actions.querySelector('#no');
+  yes.disabled = true;
+  no.disabled = true;
+  yes.textContent = '処理中...';
+  try {
+    const data = await callGAS({ action: 'cancel', userId: userId, reservationId: id });
+    if (data.success) {
+      showMessage('success', 'キャンセルしました。LINEに確認メッセージが届きます。');
+      await loadList();
+    } else {
+      showMessage('error', data.error || 'キャンセルに失敗しました');
+      showCancelButton(actions, id);
+    }
+  } catch (e) {
+    showMessage('error', '通信エラーが発生しました');
+    showCancelButton(actions, id);
+  }
+}
+
+main();
+</script>
+</body>
+</html>
