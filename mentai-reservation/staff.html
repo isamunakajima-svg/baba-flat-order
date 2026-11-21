@@ -86,9 +86,40 @@
 
   #toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: #222; color: #fff; padding: 14px 26px; border-radius: 999px; font-size: 18px; display: none; z-index: 200; max-width: 90%; text-align: center; }
   #toast.err { background: #c0392b; }
+
+  /* ---------- 印刷（A4縦） ---------- */
+  #printArea { display: none; }
+  @media print {
+    @page { size: A4 portrait; margin: 12mm; }
+    html, body { background: #fff !important; }
+    body > *:not(#printArea) { display: none !important; }
+    #printArea { display: block !important; color: #000; font-size: 11pt; -webkit-user-select: auto; user-select: auto; }
+    #printArea h1 { font-size: 16pt; margin: 0 0 2mm; }
+    #printArea .psub { font-size: 10pt; margin: 0 0 5mm; color: #333; }
+    #printArea h2 { font-size: 12pt; margin: 6mm 0 1.5mm; padding-bottom: 1mm; border-bottom: 1.5pt solid #000; break-after: avoid; }
+    #printArea table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    #printArea tr { break-inside: avoid; }
+    #printArea th, #printArea td { border: 0.6pt solid #666; padding: 2.2mm 1.6mm; text-align: left; vertical-align: middle; word-break: break-all; }
+    #printArea th { background: #eee; font-size: 9.5pt; }
+    #printArea td.chk { text-align: center; font-size: 15pt; }
+    #printArea td.qty { text-align: center; font-size: 14pt; font-weight: bold; color: #000; background: none; }
+    #printArea td.nm { font-size: 12pt; font-weight: bold; }
+    #printArea .sm { font-size: 8.5pt; color: #333; }
+    #printArea tr.done td { color: #666; }
+    #printArea .pnone { margin: 6mm 0; }
+  }
 </style>
 </head>
 <body>
+
+<div id="boot" style="padding:40px;text-align:center;color:#777;font-size:18px;">読み込み中...</div>
+<script>
+// 何かのエラーで画面が白いままにならないよう、エラーを画面に表示する
+window.addEventListener('error', function (e) {
+  var b = document.getElementById('boot');
+  if (b) { b.style.display = 'block'; b.style.color = '#c0392b'; b.textContent = '画面の読み込みに失敗しました：' + (e && e.message ? e.message : ''); }
+});
+</script>
 
 <!-- 暗証番号の入力 -->
 <div id="login" style="display:none;">
@@ -110,6 +141,7 @@
       <button class="nav-btn" id="nextBtn">▶</button>
       <button class="nav-btn" id="todayBtn" style="padding:0 16px;">今日</button>
       <button class="nav-btn" id="reloadBtn" style="padding:0 16px;">更新</button>
+      <button class="nav-btn" id="printBtn" style="padding:0 16px;">印刷</button>
     </div>
     <div class="row2">
       <input id="search" type="search" placeholder="お名前で探す">
@@ -131,6 +163,7 @@
   </div>
 </div>
 <div id="toast"></div>
+<div id="printArea"></div>
 
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyo3bKfGoxZYOqFnWeqAutK36b5Lv2hlhOxhIVMVKyPvDknGUyIvis1dZntfQnl6xKosA/exec';
@@ -163,6 +196,7 @@ function esc(s) {
 
 function showLogin(msg) {
   stopTimer();
+  $('boot').style.display = 'none';
   $('app').style.display = 'none';
   $('login').style.display = 'block';
   $('loginErr').textContent = msg || '';
@@ -181,6 +215,7 @@ async function tryLogin(inputPin, remember) {
     }
     pin = inputPin;
     if (remember) { try { localStorage.setItem(PIN_KEY, pin); } catch (e) {} }
+    $('boot').style.display = 'none';
     $('login').style.display = 'none';
     $('app').style.display = 'block';
     applyData(r);
@@ -405,6 +440,47 @@ document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible' && pin && !busy) load(true);
 });
 
+
+/* ---------- 印刷用（A4縦）の表を作る ---------- */
+function buildPrint() {
+  if (!data) return false;
+  const all = data.items;
+  const total = all.reduce(function (a, x) { return a + x.qty; }, 0);
+  let h = '<h1>明太フランス 予約一覧</h1>' +
+    '<div class="psub">' + esc(dateLabel(data.date)) + '　／　' + all.length + '件・' + total + '本　／　印刷 ' + esc(data.now) + '</div>';
+  if (all.length === 0) {
+    h += '<div class="pnone">この日の予約はありません。</div>';
+  }
+  data.shifts.forEach(function (sh) {
+    const items = all.filter(function (x) { return x.shift === sh.name; });
+    if (items.length === 0) return;
+    const qty = items.reduce(function (a, x) { return a + x.qty; }, 0);
+    h += '<h2>' + esc(sh.name) + '（' + esc(sh.startTime) + '〜）　' + items.length + '件・' + qty + '本</h2>' +
+      '<table><colgroup><col style="width:9mm"><col style="width:27mm"><col style="width:40mm"><col style="width:13mm"><col style="width:33mm"><col style="width:36mm"><col></colgroup>' +
+      '<tr><th>渡</th><th>来店予定</th><th>お名前</th><th>本数</th><th>電話番号</th><th>予約番号</th><th>メモ</th></tr>';
+    items.forEach(function (x) {
+      const done = !!x.handedAt;
+      h += '<tr' + (done ? ' class="done"' : '') + '>' +
+        '<td class="chk">' + (done ? '✓' : '□') + '</td>' +
+        '<td>' + (x.pickup ? esc(x.pickup) + 'ごろ' : '指定なし<br><span class="sm">' + esc(data.noPickupDeadline) + 'まで</span>') + '</td>' +
+        '<td class="nm">' + esc(x.name) + ' 様</td>' +
+        '<td class="qty">' + esc(x.qty) + '</td>' +
+        '<td>' + esc(fmtPhone(x.phone)) + '</td>' +
+        '<td class="sm">' + esc(x.id) + '</td>' +
+        '<td>' + (done ? '<span class="sm">お渡し済 ' + esc(x.handedAt.slice(-5)) + '</span>' : '') + '</td>' +
+        '</tr>';
+    });
+    h += '</table>';
+  });
+  $('printArea').innerHTML = h;
+  return true;
+}
+
+function doPrint() {
+  if (!buildPrint()) { toast('先に一覧を読み込んでください', true); return; }
+  window.print();
+}
+
 $('loginBtn').addEventListener('click', function () {
   const v = $('pinInput').value.trim();
   if (!v) { $('loginErr').textContent = '暗証番号を入力してください'; return; }
@@ -416,6 +492,7 @@ $('prevBtn').addEventListener('click', function () { viewDate = addDays(viewDate
 $('nextBtn').addEventListener('click', function () { viewDate = addDays(viewDate, 1); load(false); });
 $('todayBtn').addEventListener('click', function () { viewDate = ''; load(false); });
 $('reloadBtn').addEventListener('click', function () { load(false); });
+$('printBtn').addEventListener('click', doPrint);
 $('search').addEventListener('input', render);
 $('hideDone').addEventListener('change', render);
 
