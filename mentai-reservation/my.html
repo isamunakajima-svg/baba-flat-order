@@ -258,7 +258,7 @@ function showChange(actions, id) {
     html += '<option value="' + esc(t) + '"' + (t === current ? ' selected' : '') + '>' + esc(t) + ' ごろ</option>';
   });
   html += '</select>' +
-    '<div class="r-line" style="margin-top:6px;">時刻を過ぎると変更できなくなります。受け取り期限（指定時刻の30分後、最長18:45。指定なしは17:00）を過ぎると、自動でキャンセルになります。</div>' +
+    '<div class="r-line" style="margin-top:6px;">時刻を過ぎると変更できなくなります。受け取り期限（15:00までの時刻は17:00、15:30以降の時刻は18:30。指定なしは17:00）を過ぎると、自動でキャンセルになります。</div>' +
     '<button class="btn save" id="save">この時刻に変更する</button>' +
     '<button class="btn back" id="no">戻る</button>';
   actions.innerHTML = html;
