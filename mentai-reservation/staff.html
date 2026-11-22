@@ -59,6 +59,8 @@
   .card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 1px 5px rgba(0,0,0,.08); display: flex; flex-direction: column; gap: 10px; border-left: 8px solid #f0a500; }
   .card.done { background: #ecece8; border-left-color: #b9b9b3; color: #888; box-shadow: none; }
   .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .rep { display: inline-block; margin-left: 10px; padding: 3px 10px; border-radius: 999px; background: #e8f0ff; color: #1a4fb4; font-size: 15px; font-weight: bold; vertical-align: 4px; white-space: nowrap; }
+  .card.done .rep { background: #ececec; color: #888; }
   .name { font-size: 28px; font-weight: bold; line-height: 1.2; word-break: break-all; }
   .name small { font-size: 18px; font-weight: normal; margin-left: 4px; }
   .qty { flex: none; min-width: 84px; text-align: center; background: #222; color: #fff; border-radius: 14px; padding: 6px 12px; }
@@ -392,7 +394,7 @@ function buildCard(x, isToday) {
   card.className = 'card' + (done ? ' done' : '');
   card.innerHTML =
     '<div class="top">' +
-      '<div class="name">' + esc(x.name) + '<small>様</small></div>' +
+      '<div class="name">' + esc(x.name) + '<small>様</small>' + (x.visit >= 2 ? '<span class="rep">🔁 ' + esc(x.visit) + '回目</span>' : '') + '</div>' +
       '<div class="qty"><b>' + esc(x.qty) + '</b><span>本</span></div>' +
     '</div>' +
     '<div class="meta">' +
@@ -578,7 +580,7 @@ function buildPrint() {
       h += '<tr' + (done ? ' class="done"' : '') + '>' +
         '<td class="chk">' + (done ? '✓' : '□') + '</td>' +
         '<td style="white-space:nowrap">' + (x.pickup ? esc(x.pickup) + 'ごろ' : '指定なし<br><span class="sm">' + esc(data.noPickupDeadline) + 'まで</span>') + '</td>' +
-        '<td class="nm">' + esc(x.name) + ' 様</td>' +
+        '<td class="nm">' + esc(x.name) + ' 様' + (x.visit >= 2 ? '<br><span class="sm">' + esc(x.visit) + '回目</span>' : '') + '</td>' +
         '<td class="qty">' + esc(x.qty) + '</td>' +
         '<td class="tel">' + esc(fmtPhone(x.phone)) + '</td>' +
         '<td class="sm">' + esc(x.id) + '</td>' +
