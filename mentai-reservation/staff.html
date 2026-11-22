@@ -398,6 +398,7 @@ function buildCard(x, isToday) {
       '<div class="qty"><b>' + esc(x.qty) + '</b><span>本</span></div>' +
     '</div>' +
     '<div class="meta">' +
+      (data.price ? '金額：<b>' + esc(Number(x.qty * data.price).toLocaleString('ja-JP')) + '円</b>（税込）<br>' : '') +
       '来店予定：' + (x.pickup ? '<span class="pk">' + esc(x.pickup) + ' ごろ</span>' : '指定なし（' + esc(data.noPickupDeadline) + 'まで）') + '<br>' +
       'TEL ' + esc(fmtPhone(x.phone)) +
     '</div>' +
