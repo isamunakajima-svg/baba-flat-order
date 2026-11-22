@@ -101,6 +101,26 @@
   #toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: #222; color: #fff; padding: 14px 26px; border-radius: 999px; font-size: 18px; display: none; z-index: 200; max-width: 90%; text-align: center; }
   #toast.err { background: #c0392b; }
 
+
+  /* ---------- 休業日カレンダー ---------- */
+  #holOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 90; padding: 16px; }
+  #holOverlay.show { display: flex; }
+  .holbox { background: #fff; border-radius: 20px; padding: 20px; width: 100%; max-width: 560px; max-height: 96vh; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+  .holbox h2 { margin: 0 0 4px; font-size: 22px; }
+  .holbox .hsub { font-size: 14px; color: #777; margin-bottom: 10px; line-height: 1.5; }
+  .holnav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .holnav .ym { font-size: 22px; font-weight: bold; }
+  .holgrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .holgrid .dow { text-align: center; font-size: 14px; color: #888; padding: 2px 0; }
+  .holgrid button { height: 64px; border: 1px solid #ccc; background: #fff; border-radius: 10px; font-size: 20px; font-weight: bold; line-height: 1.15; padding: 0; }
+  .holgrid button small { display: block; font-size: 12px; font-weight: normal; }
+  .holgrid button.empty { border: none; background: transparent; }
+  .holgrid button.closed { background: #9a9a9a; border-color: #9a9a9a; color: #fff; }
+  .holgrid button.past { opacity: .35; }
+  .holgrid button.today { outline: 3px solid #009DE2; }
+  .holgrid button:disabled { cursor: default; }
+  .holclose { width: 100%; height: 56px; margin-top: 14px; border: none; border-radius: 14px; background: #e6e6e6; color: #444; font-size: 20px; font-weight: bold; }
+
   /* ---------- 印刷（A4縦） ---------- */
   #printArea { display: none; }
   @media print {
@@ -159,6 +179,7 @@ window.addEventListener('error', function (e) {
       <button class="nav-btn" id="todayBtn" style="padding:0 16px;">今日</button>
       <button class="nav-btn" id="reloadBtn" style="padding:0 16px;">更新</button>
       <button class="nav-btn" id="printBtn" style="padding:0 16px;">印刷</button>
+      <button class="nav-btn" id="holBtn" style="padding:0 16px;">休業日</button>
     </div>
     <div class="row2">
       <input id="search" type="search" placeholder="お名前・メモで探す">
@@ -177,6 +198,19 @@ window.addEventListener('error', function (e) {
       <button class="no" id="dNo">いいえ</button>
       <button class="ok" id="dYes">はい</button>
     </div>
+  </div>
+</div>
+<div id="holOverlay">
+  <div class="holbox">
+    <h2>休業日の設定</h2>
+    <div class="hsub">日付をタップすると、グレー（休業）になります。もう一度タップすると営業日に戻ります。休業日はお客さんの予約カレンダーでも選べなくなります。</div>
+    <div class="holnav">
+      <button class="nav-btn" id="holPrev">◀</button>
+      <div class="ym" id="holYm"></div>
+      <button class="nav-btn" id="holNext">▶</button>
+    </div>
+    <div class="holgrid" id="holGrid"></div>
+    <button class="holclose" id="holClose">閉じる</button>
   </div>
 </div>
 <div id="toast"></div>
@@ -653,6 +687,91 @@ $('datePick').addEventListener('click', function () {
 });
 $('reloadBtn').addEventListener('click', function () { delete cache[viewDate]; clearTimeout(navTimer); load(false); });
 $('printBtn').addEventListener('click', doPrint);
+
+/* ---------- 休業日の設定 ---------- */
+let holYm = '';
+let holData = null;
+let holBusy = false;
+
+function holShift(ym, delta) {
+  const y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7)) - 1 + delta;
+  const d = new Date(Date.UTC(y, m, 1));
+  return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2);
+}
+
+async function holLoad(ym) {
+  holYm = ym;
+  $('holYm').textContent = ym.slice(0, 4) + '年' + Number(ym.slice(5, 7)) + '月';
+  $('holGrid').innerHTML = '<div style="grid-column:1/8;text-align:center;color:#777;padding:30px;">読み込み中...</div>';
+  try {
+    const r = await callGAS({ action: 'staffHolidayMonth', pin: pin, month: ym });
+    if (holYm !== ym) return;
+    if (!r.success) { toast(r.error || '読み込めませんでした', true); return; }
+    holData = r;
+    holRender();
+  } catch (e) { toast('通信に失敗しました', true); }
+}
+
+function holRender() {
+  const r = holData;
+  const g = $('holGrid');
+  g.innerHTML = '';
+  ['日', '月', '火', '水', '木', '金', '土'].forEach(function (w) {
+    const d = document.createElement('div'); d.className = 'dow'; d.textContent = w; g.appendChild(d);
+  });
+  const first = new Date(Date.UTC(Number(r.month.slice(0, 4)), Number(r.month.slice(5, 7)) - 1, 1)).getUTCDay();
+  for (let i = 0; i < first; i++) {
+    const b = document.createElement('button'); b.className = 'empty'; b.disabled = true; g.appendChild(b);
+  }
+  r.days.forEach(function (x) {
+    const b = document.createElement('button');
+    const past = x.date < r.today;
+    b.className = (x.closed ? 'closed' : '') + (past ? ' past' : '') + (x.date === r.today ? ' today' : '');
+    b.innerHTML = Number(x.date.slice(8)) + '<small>' + (x.closed ? '休業' : (x.reserved ? '予約' + x.reserved : '')) + '</small>';
+    if (x.closed && x.reserved) b.innerHTML = Number(x.date.slice(8)) + '<small>休業・予約' + x.reserved + '</small>';
+    if (past) b.disabled = true;
+    else b.addEventListener('click', function () { holToggle(x); });
+    g.appendChild(b);
+  });
+}
+
+async function holToggle(x) {
+  if (holBusy) return;
+  const toClosed = !x.closed;
+  if (toClosed && x.reserved > 0) {
+    $('holOverlay').classList.remove('show');
+    const ok = await ask(
+      Number(x.date.slice(5, 7)) + '月' + Number(x.date.slice(8)) + '日を休業にしますか？',
+      'この日にはすでに ' + x.reserved + ' 件の予約があります。' +
+        '<div class="sub">休業にしても、入っている予約は自動ではキャンセルされません。お客さんへの連絡・キャンセルは、予約一覧から行ってください。</div>',
+      '休業にする', true);
+    $('holOverlay').classList.add('show');
+    if (!ok) return;
+  }
+  holBusy = true;
+  // すぐ色を変える（結果は通信のあとで確定）
+  x.closed = toClosed; holRender();
+  try {
+    const r = await callGAS({ action: 'staffSetHoliday', pin: pin, date: x.date, closed: toClosed ? '1' : '0' });
+    if (!r.success) { toast(r.error || '保存できませんでした', true); await holLoad(holYm); }
+    else if (holYm === r.month) { holData = r; holRender(); }
+  } catch (e) {
+    toast('通信に失敗しました。もう一度お試しください', true);
+    await holLoad(holYm);
+  }
+  holBusy = false;
+}
+
+function openHoliday() {
+  const t = viewDate || todayStr || new Date().toISOString().slice(0, 10);
+  $('holOverlay').classList.add('show');
+  holLoad(t.slice(0, 7));
+}
+$('holBtn').addEventListener('click', openHoliday);
+$('holClose').addEventListener('click', function () { $('holOverlay').classList.remove('show'); });
+$('holPrev').addEventListener('click', function () { holLoad(holShift(holYm, -1)); });
+$('holNext').addEventListener('click', function () { holLoad(holShift(holYm, 1)); });
+
 $('search').addEventListener('input', render);
 $('hideDone').addEventListener('change', render);
 
