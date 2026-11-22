@@ -691,7 +691,10 @@ $('printBtn').addEventListener('click', doPrint);
 /* ---------- 休業日の設定 ---------- */
 let holYm = '';
 let holData = null;
-let holBusy = false;
+let holPending = 0;          // 保存待ちの操作の数
+const holPendingBy = {};     // 月ごとの保存待ち数
+let holChain = Promise.resolve();
+const holCache = {};         // 'YYYY-MM' -> 月のデータ
 
 function holShift(ym, delta) {
   const y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7)) - 1 + delta;
@@ -699,17 +702,29 @@ function holShift(ym, delta) {
   return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2);
 }
 
+function holFetch(ym) {
+  return callGAS({ action: 'staffHolidayMonth', pin: pin, month: ym }).then(function (r) {
+    if (r.success && !holPendingBy[ym]) holCache[ym] = r;
+    return r;
+  });
+}
+
 async function holLoad(ym) {
   holYm = ym;
   $('holYm').textContent = ym.slice(0, 4) + '年' + Number(ym.slice(5, 7)) + '月';
-  $('holGrid').innerHTML = '<div style="grid-column:1/8;text-align:center;color:#777;padding:30px;">読み込み中...</div>';
+  if (holCache[ym]) {
+    holData = holCache[ym]; holRender();      // 前に見た月はすぐ表示（裏で最新に更新）
+  } else {
+    holData = null;
+    $('holGrid').innerHTML = '<div style="grid-column:1/8;text-align:center;color:#777;padding:30px;">読み込み中...</div>';
+  }
   try {
-    const r = await callGAS({ action: 'staffHolidayMonth', pin: pin, month: ym });
-    if (holYm !== ym) return;
+    const r = await holFetch(ym);
+    if (holYm !== ym || holPendingBy[ym]) return;
     if (!r.success) { toast(r.error || '読み込めませんでした', true); return; }
-    holData = r;
-    holRender();
-  } catch (e) { toast('通信に失敗しました', true); }
+    holData = r; holRender();
+    holFetch(holShift(ym, 1)).catch(function () {});   // 次の月を先読み
+  } catch (e) { if (!holData) toast('通信に失敗しました', true); }
 }
 
 function holRender() {
@@ -727,16 +742,15 @@ function holRender() {
     const b = document.createElement('button');
     const past = x.date < r.today;
     b.className = (x.closed ? 'closed' : '') + (past ? ' past' : '') + (x.date === r.today ? ' today' : '');
-    b.innerHTML = Number(x.date.slice(8)) + '<small>' + (x.closed ? '休業' : (x.reserved ? '予約' + x.reserved : '')) + '</small>';
-    if (x.closed && x.reserved) b.innerHTML = Number(x.date.slice(8)) + '<small>休業・予約' + x.reserved + '</small>';
+    const day = Number(x.date.slice(8));
+    b.innerHTML = day + '<small>' + (x.closed ? (x.reserved ? '休業・予約' + x.reserved : '休業') : (x.reserved ? '予約' + x.reserved : '')) + '</small>';
     if (past) b.disabled = true;
-    else b.addEventListener('click', function () { holToggle(x); });
+    else b.addEventListener('click', function () { holToggle(x, b); });
     g.appendChild(b);
   });
 }
 
-async function holToggle(x) {
-  if (holBusy) return;
+async function holToggle(x, btnEl) {
   const toClosed = !x.closed;
   if (toClosed && x.reserved > 0) {
     $('holOverlay').classList.remove('show');
@@ -748,18 +762,30 @@ async function holToggle(x) {
     $('holOverlay').classList.add('show');
     if (!ok) return;
   }
-  holBusy = true;
-  // すぐ色を変える（結果は通信のあとで確定）
-  x.closed = toClosed; holRender();
-  try {
-    const r = await callGAS({ action: 'staffSetHoliday', pin: pin, date: x.date, closed: toClosed ? '1' : '0' });
-    if (!r.success) { toast(r.error || '保存できませんでした', true); await holLoad(holYm); }
-    else if (holYm === r.month) { holData = r; holRender(); }
-  } catch (e) {
-    toast('通信に失敗しました。もう一度お試しください', true);
-    await holLoad(holYm);
-  }
-  holBusy = false;
+  // 画面はすぐ切り替える。保存は裏で順番に行う（連続でタップしても待たされない）
+  x.closed = toClosed;
+  holRender();
+  holPending++;
+  const ym = x.date.slice(0, 7);
+  holPendingBy[ym] = (holPendingBy[ym] || 0) + 1;
+  holChain = holChain.then(function () {
+    return callGAS({ action: 'staffSetHoliday', pin: pin, date: x.date, closed: toClosed ? '1' : '0' })
+      .then(function (r) {
+        if (!r.success) throw new Error(r.error || '保存できませんでした');
+      });
+  }).catch(function (e) {
+    toast((e && e.message) || '通信に失敗しました。もう一度お試しください', true);
+    delete holCache[ym];
+  }).then(function () {
+    holPending--;
+    holPendingBy[ym]--;
+    if (!holPendingBy[holYm] && holYm) {                 // 全部保存できたら、裏で最新を確認して反映
+      if (holData) holCache[holYm] = holData;
+      holFetch(holYm).then(function (r) {
+        if (r.success && !holPendingBy[r.month] && holYm === r.month) { holData = r; holRender(); }
+      }).catch(function () {});
+    }
+  });
 }
 
 function openHoliday() {
