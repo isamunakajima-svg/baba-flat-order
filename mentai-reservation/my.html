@@ -48,6 +48,9 @@
   .msg.error { background: #ffe5e5; color: #c0392b; }
   .msg.success { background: #e5ffe9; color: #1e7e34; }
   .loading, .empty { text-align: center; padding: 40px; color: #888; }
+  a.tel { display: block; text-align: center; margin-top: 10px; padding: 12px; border: 2px solid #06C755; border-radius: 10px; color: #06a047; font-weight: bold; font-size: 16px; text-decoration: none; background: #fff; }
+  a.tel .telno { font-size: 20px; letter-spacing: 1px; }
+  .telhours { text-align: center; font-size: 12px; color: #666; margin-top: 6px; }
   a.link { display: block; text-align: center; color: #06C755; font-weight: bold; margin-top: 8px; }
 </style>
 </head>
@@ -64,6 +67,9 @@
 
 <script>
 const LIFF_ID = '2010599952-MaUdLuhq';
+// ★ 馬場FLATの電話番号（例：'03-1234-5678'）。空のままだと電話ボタンは出ません。
+const STORE_TEL = '03-6205-5443';
+const STORE_TEL_HOURS = '受付時間 8:30〜19:00';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbyo3bKfGoxZYOqFnWeqAutK36b5Lv2hlhOxhIVMVKyPvDknGUyIvis1dZntfQnl6xKosA/exec';
 
 let userId = null;
@@ -81,8 +87,18 @@ function esc(s) {
   });
 }
 
+// 電話ボタン（スマホならタップで電話アプリが開く）
+function telHtml() {
+  if (!STORE_TEL) return '';
+  const num = STORE_TEL.replace(/[^0-9+]/g, '');
+  return '<a class="tel" href="tel:' + esc(num) + '">📞 馬場FLATに電話する<br><span class="telno">' + esc(STORE_TEL) + '</span></a>' +
+    '<div class="telhours">※' + esc(STORE_TEL_HOURS) + '（時間外はつながりません）</div>';
+}
+
 function showMessage(type, text) {
-  document.getElementById('msgArea').innerHTML = '<div class="msg ' + type + '">' + esc(text) + '</div>';
+  const wantsTel = (type === 'error' && String(text).indexOf('お電話') >= 0);
+  document.getElementById('msgArea').innerHTML =
+    '<div class="msg ' + type + '">' + esc(text) + (wantsTel ? telHtml() : '') + '</div>';
 }
 
 // 日本時間の今日の日付(yyyy-MM-dd)と現在のHHmm
@@ -202,6 +218,11 @@ function showActions(actions, id) {
     n2.className = 'note';
     n2.textContent = '当日朝7時を過ぎているため、アプリからはキャンセルできません。お手数ですが店舗にお電話ください。';
     actions.appendChild(n2);
+    if (STORE_TEL) {
+      const w = document.createElement('div');
+      w.innerHTML = telHtml();
+      actions.appendChild(w);
+    }
   } else {
     const c = document.createElement('button');
     c.className = 'btn cancel';
