@@ -369,6 +369,7 @@ function renderCalendar() {
 
     const btn = document.createElement('button');
     btn.textContent = d;
+    if (info && info.reason === 'holiday') { btn.innerHTML = d + '<span style="display:block;font-size:9px;line-height:1;">休</span>'; }
     let cls = 'cal-day';
     if (!ok) cls += ' off';
     if (ds === todayStr) cls += ' today';
