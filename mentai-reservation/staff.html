@@ -137,6 +137,16 @@
   .row.open .r-main { background: #fafaf7; border-radius: 12px 12px 0 0; }
   .r-detail .cancel-btn { margin-top: 4px; }
 
+
+  .tab.cx { border-color: #d9a1a1; }
+  .tab.cx.on { background: #b03a3a; border-color: #b03a3a; }
+  .row.cx { background: #fbf1f1; border-left-color: #d9a1a1; color: #777; }
+  .row.cx .r-time { color: #b03a3a; font-size: 15px; }
+  .row.cx .cxn { text-decoration: line-through; text-decoration-color: #c99; }
+  .row.cx .r-qty { background: #bbb; }
+  .row.cx .r-act .go { background: #fff; color: #1f6f3d; border: 2px solid #1f8f4e; font-size: 17px; }
+  .cx-sub { font-size: 14px; color: #888; font-weight: normal; margin-left: 8px; }
+
   /* ---------- 休業日カレンダー ---------- */
   #holOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 90; padding: 16px; }
   #holOverlay.show { display: flex; }
@@ -424,7 +434,8 @@ function render() {
   const keyword = $('search').value.trim();
   const hideDone = $('hideDone').checked;
 
-  const all = data.items;
+  const all = data.items.filter(function (x) { return !x.cancelled; });
+  const cxItems = data.items.filter(function (x) { return x.cancelled; });
   const doneN = all.filter(function (x) { return x.handedAt; }).length;
   const waitN = all.length - doneN;
   const waitQty = all.filter(function (x) { return !x.handedAt; }).reduce(function (a, x) { return a + x.qty; }, 0);
@@ -437,16 +448,33 @@ function render() {
   if (renderedDate !== data.date) { renderedDate = data.date; shiftTab = 'auto'; }
   const keyword2 = keyword;
   const curTab = resolveTab(isToday);
-  renderTabs(all, curTab);
+  renderTabs(all, curTab, cxItems);
   $('modeBtn').textContent = viewMode === 'compact' ? '表示：コンパクト' : '表示：大きいカード';
 
   const lists = $('lists');
   lists.innerHTML = '';
 
+  if (curTab === '__cx' && !keyword2) {
+    if (cxItems.length === 0) { lists.innerHTML = '<div class="empty">キャンセルされた予約はありません</div>'; return; }
+    data.shifts.forEach(function (sh) {
+      const items = cxItems.filter(function (x) { return x.shift === sh.name; });
+      if (items.length === 0) return;
+      const title = document.createElement('div');
+      title.className = 'shift-title';
+      title.innerHTML = esc(sh.name) + '（' + esc(sh.startTime) + '〜）<small>' + items.length + '件</small>';
+      lists.appendChild(title);
+      const box = document.createElement('div');
+      box.className = 'list';
+      items.forEach(function (x) { box.appendChild(buildCancelRow(x)); });
+      lists.appendChild(box);
+    });
+    return;
+  }
+
   let shown = all.filter(function (x) {
     if (hideDone && x.handedAt) return false;
     if (keyword2 && (String(x.name) + ' ' + String(x.note || '')).indexOf(keyword2) < 0) return false;
-    if (!keyword2 && curTab !== 'all' && x.shift !== curTab) return false;   // 検索中は全部の便から探す
+    if (!keyword2 && curTab !== 'all' && curTab !== '__cx' && x.shift !== curTab) return false;   // 検索中は全部の便から探す
     return true;
   });
 
@@ -462,7 +490,7 @@ function render() {
     if (items.length === 0) return;
     const qty = items.reduce(function (a, x) { return a + x.qty; }, 0);
 
-    if (curTab === 'all' || keyword2) {
+    if (curTab === 'all' || curTab === '__cx' || keyword2) {
       const title = document.createElement('div');
       title.className = 'shift-title';
       title.innerHTML = esc(sh.name) + '（' + esc(sh.startTime) + '〜）<small>' + items.length + '件・' + qty + '本</small>';
@@ -479,7 +507,7 @@ function render() {
 // いま表示する便（auto のときは、時間に合わせて自動で決める）
 function resolveTab(isToday) {
   if (shiftTab !== 'auto') {
-    if (shiftTab === 'all' || data.shifts.some(function (s) { return s.name === shiftTab; })) return shiftTab;
+    if (shiftTab === 'all' || shiftTab === '__cx' || data.shifts.some(function (s) { return s.name === shiftTab; })) return shiftTab;
     shiftTab = 'auto';
   }
   if (!isToday) return 'all';
@@ -493,7 +521,7 @@ function resolveTab(isToday) {
   return pick;
 }
 
-function renderTabs(all, curTab) {
+function renderTabs(all, curTab, cxItems) {
   const el = $('tabs');
   el.innerHTML = '';
   const mk = function (key, label, sub, zero) {
@@ -511,6 +539,12 @@ function renderTabs(all, curTab) {
     const n = all.filter(function (x) { return x.shift === s.name; }).length;
     mk(s.name, s.name + '（' + s.startTime + '）', '未渡し ' + w + '／' + n + '件', w === 0);
   });
+  const cx = document.createElement('button');
+  cx.type = 'button';
+  cx.className = 'tab cx' + (curTab === '__cx' ? ' on' : '') + (cxItems.length === 0 ? ' zero' : '');
+  cx.innerHTML = 'キャンセル済<small>' + cxItems.length + '件</small>';
+  cx.addEventListener('click', function () { shiftTab = '__cx'; render(); window.scrollTo(0, 0); });
+  el.appendChild(cx);
 }
 
 function buildRow(x, isToday) {
@@ -684,7 +718,7 @@ async function confirmCancel(x) {
     'この予約をキャンセルしますか？',
     esc(x.name) + ' 様 ' + esc(x.qty) + ' 本' +
       '<div class="sub">' + esc(x.shift) + '　お電話でキャンセルのご連絡があった予約です。<br>' +
-      '在庫は元に戻り、お客さまのLINEにキャンセルのお知らせが届きます。取り消しはできません。</div>',
+      '在庫は元に戻り、お客さまのLINEにキャンセルのお知らせが届きます。間違えたときは「キャンセル済」タブから元に戻せます。</div>',
     'キャンセルする', true);
   if (!ok) return;
   busy = true;
@@ -703,6 +737,58 @@ async function confirmCancel(x) {
   }
   await load(true);
 }
+function buildCancelRow(x) {
+  const row = document.createElement('div');
+  row.className = 'row cx';
+  const main = document.createElement('div');
+  main.className = 'r-main';
+  main.style.cursor = 'default';
+  main.innerHTML =
+    '<div class="r-time">' + esc(x.cancelType) + '<small>で取消</small></div>' +
+    '<div class="r-name"><span class="cxn">' + esc(x.name) + '</span><small>様</small>' +
+      '<span class="cx-sub">TEL ' + esc(fmtPhone(x.phone)) + (x.pickup ? '　来店予定 ' + esc(x.pickup) : '') + '</span></div>' +
+    '<div class="r-qty"><b>' + esc(x.qty) + '</b><span>本</span></div>';
+  const act = document.createElement('div');
+  act.className = 'r-act';
+  if (data.date >= data.today) {
+    const b = document.createElement('button');
+    b.className = 'go'; b.textContent = '予約を元に戻す';
+    b.addEventListener('click', function () { confirmRestore(x); });
+    act.appendChild(b);
+  } else {
+    act.innerHTML = '<div class="viewonly">（確認のみ）</div>';
+  }
+  main.appendChild(act);
+  row.appendChild(main);
+  return row;
+}
+
+async function confirmRestore(x) {
+  const ok = await ask(
+    'この予約を元に戻しますか？',
+    esc(x.name) + ' 様 ' + esc(x.qty) + ' 本' +
+      '<div class="sub">' + esc(x.shift) + '　キャンセルを取り消して、予約を有効に戻します。<br>' +
+      '在庫が減り、お客さまのLINEに「元に戻しました」のお知らせが届きます。在庫や1人3本のルールを超える場合は戻せません。</div>',
+    '元に戻す', false);
+  if (!ok) return;
+  busy = true;
+  try {
+    const r = await callGAS({ action: 'staffRestore', pin: pin, reservationId: x.id });
+    if (r.success) {
+      toast(x.name + ' 様の予約を元に戻しました', false);
+      shiftTab = x.shift;     // 戻した予約の便に移動して、確認できるようにする
+    } else {
+      if (r.badPin || r.locked) { showLogin(r.error); return; }
+      toast(r.error || '元に戻せませんでした', true);
+    }
+  } catch (e) {
+    toast('通信エラーです。もう一度お試しください', true);
+  } finally {
+    busy = false;
+  }
+  await load(true);
+}
+
 async function confirmUndo(x) {
   const ok = await ask(
     '取り消しますか？',
@@ -792,7 +878,7 @@ document.addEventListener('visibilitychange', function () {
 /* ---------- 印刷用（A4縦）の表を作る ---------- */
 function buildPrint() {
   if (!data) return false;
-  const all = data.items;
+  const all = data.items.filter(function (x) { return !x.cancelled; });
   const total = all.reduce(function (a, x) { return a + x.qty; }, 0);
   let h = '<h1>明太フランス 予約一覧</h1>' +
     '<div class="psub">' + esc(dateLabel(data.date)) + '　／　' + all.length + '件・' + total + '本　／　印刷 ' + esc(data.now) + '</div>';

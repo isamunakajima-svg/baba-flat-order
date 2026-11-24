@@ -204,7 +204,7 @@ let quantity = 1;
 let currentShifts = [];
 let price = 410;           // 1個の値段（税込）。サーバー側の設定が優先されます
 function yen(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
-let rules = { noPickupDeadline: '17:00', lastPickup: '18:30', earlyLimit: '15:00', lateDeadline: '18:30' };
+let rules = { noPickupDeadline: '17:00', lastPickup: '18:45', earlyLimit: '15:00', lateDeadline: '18:45' };
 let myCount = 0;           // 選択中の日に、すでに予約している本数
 let maxPerPerson = MAX_PER_PERSON;
 
