@@ -88,7 +88,7 @@
   /* 確認ダイアログ */
   #overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
   #overlay.show { display: flex; }
-  .dialog { background: #fff; border-radius: 20px; padding: 26px; width: 100%; max-width: 480px; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+  .dialog { background: #fff; border-radius: 20px; padding: 26px; width: 100%; max-width: 480px; max-height: 100%; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,.3); }
   .dialog h2 { margin: 0 0 8px; font-size: 22px; }
   .dialog .body { font-size: 24px; line-height: 1.5; margin-bottom: 20px; font-weight: bold; }
   .dialog .sub { font-size: 15px; color: #777; font-weight: normal; margin-top: 6px; }
@@ -138,6 +138,15 @@
   .r-detail .cancel-btn { margin-top: 4px; }
 
 
+  .tab.hold { border-color: #c9a53a; }
+  .tab.hold.on { background: #8a6a00; border-color: #8a6a00; }
+  .row.hold { border-left-color: #8a6a00; }
+  .row.hold .r-main { grid-template-columns: 78px 1fr 150px; }
+  .row.hold .r-time { color: #8a6a00; }
+  .row.hold .r-name .hb { margin-left: 8px; font-size: 13px; padding: 2px 8px; border-radius: 8px; background: #8a6a00; color: #fff; font-weight: bold; vertical-align: 3px; }
+  .dialog .fld { display: block; margin-top: 12px; font-size: 15px; font-weight: bold; color: #555; }
+  .dialog .fld input { display: block; width: 100%; margin-top: 4px; height: 52px; font-size: 20px; font-weight: normal; padding: 0 12px; border: 2px solid #ccc; border-radius: 12px; font-family: inherit; -webkit-user-select: text; user-select: text; }
+  .dialog .fld textarea { margin-top: 4px; height: 100px; }
   .tab.cx { border-color: #d9a1a1; }
   .tab.cx.on { background: #b03a3a; border-color: #b03a3a; }
   .row.cx { background: #fbf1f1; border-left-color: #d9a1a1; color: #777; }
@@ -229,6 +238,7 @@ window.addEventListener('error', function (e) {
       <input id="search" type="search" placeholder="お名前・メモで探す">
       <label class="chk"><input type="checkbox" id="hideDone"> お渡し済みを隠す</label>
       <button class="mode-btn" id="modeBtn" type="button">表示：コンパクト</button>
+      <button class="mode-btn" id="holdAddBtn" type="button">＋ 取り置き</button>
       <button class="mode-btn" id="holBtn" type="button">休業日</button>
     </div>
     <div class="summary" id="summary"></div>
@@ -436,23 +446,49 @@ function render() {
 
   const all = data.items.filter(function (x) { return !x.cancelled; });
   const cxItems = data.items.filter(function (x) { return x.cancelled; });
+  const holdsAll = data.holds || [];
   const doneN = all.filter(function (x) { return x.handedAt; }).length;
   const waitN = all.length - doneN;
   const waitQty = all.filter(function (x) { return !x.handedAt; }).reduce(function (a, x) { return a + x.qty; }, 0);
   $('summary').innerHTML =
     '<span class="pill wait">未渡し ' + waitN + '件・' + waitQty + '本</span>' +
     '<span class="pill">お渡し済み ' + doneN + '件</span>' +
+    (holdsAll.length ? '<span class="pill">取り置きのみ ' + holdsAll.filter(function (x) { return !x.handedAt; }).length + '／' + holdsAll.length + '件</span>' : '') +
     (isToday ? '' : '<span class="pill view">今日以外は確認のみ（お渡しの操作はできません）</span>') +
     '<span class="updated">更新 ' + esc(data.now) + '</span>';
 
   if (renderedDate !== data.date) { renderedDate = data.date; shiftTab = 'auto'; }
   const keyword2 = keyword;
   const curTab = resolveTab(isToday);
-  renderTabs(all, curTab, cxItems);
+  renderTabs(all, curTab, cxItems, holdsAll);
   $('modeBtn').textContent = viewMode === 'compact' ? '表示：コンパクト' : '表示：大きいカード';
 
   const lists = $('lists');
   lists.innerHTML = '';
+
+  const holdsShown = holdsAll.filter(function (x) {
+    if (hideDone && x.handedAt) return false;
+    if (keyword2 && (String(x.name) + ' ' + String(x.note || '')).indexOf(keyword2) < 0) return false;
+    return true;
+  });
+  const holdSection = function () {
+    if (holdsShown.length === 0) return;
+    const title = document.createElement('div');
+    title.className = 'shift-title';
+    title.innerHTML = '電話の取り置き（明太フランスなし）<small>' + holdsShown.length + '件</small>';
+    lists.appendChild(title);
+    const box = document.createElement('div');
+    box.className = 'list';
+    holdsShown.filter(function (x) { return !x.handedAt; }).concat(holdsShown.filter(function (x) { return x.handedAt; }))
+      .forEach(function (x) { box.appendChild(buildHoldRow(x, isToday)); });
+    lists.appendChild(box);
+  };
+
+  if (curTab === '__hold' && !keyword2) {
+    if (holdsAll.length === 0) { lists.innerHTML = '<div class="empty">この日の取り置きはありません。上の「＋ 取り置き」で追加できます</div>'; return; }
+    holdSection();
+    return;
+  }
 
   if (curTab === '__cx' && !keyword2) {
     if (cxItems.length === 0) { lists.innerHTML = '<div class="empty">キャンセルされた予約はありません</div>'; return; }
@@ -478,10 +514,11 @@ function render() {
     return true;
   });
 
-  if (shown.length === 0) {
+  if (shown.length === 0 && !((curTab === 'all' || keyword2) && holdsShown.length)) {
     lists.innerHTML = '<div class="empty">' + (all.length === 0 ? 'この日の予約はありません' : '該当する予約がありません') + '</div>';
     return;
   }
+  if (curTab === 'all' || keyword2) holdSection();
 
   data.shifts.forEach(function (sh) {
     // 未渡しを上、お渡し済みを下に（それぞれ元の順序＝時間順のまま）
@@ -507,7 +544,7 @@ function render() {
 // いま表示する便（auto のときは、時間に合わせて自動で決める）
 function resolveTab(isToday) {
   if (shiftTab !== 'auto') {
-    if (shiftTab === 'all' || shiftTab === '__cx' || data.shifts.some(function (s) { return s.name === shiftTab; })) return shiftTab;
+    if (shiftTab === 'all' || shiftTab === '__cx' || shiftTab === '__hold' || data.shifts.some(function (s) { return s.name === shiftTab; })) return shiftTab;
     shiftTab = 'auto';
   }
   if (!isToday) return 'all';
@@ -521,7 +558,7 @@ function resolveTab(isToday) {
   return pick;
 }
 
-function renderTabs(all, curTab, cxItems) {
+function renderTabs(all, curTab, cxItems, holdsAll) {
   const el = $('tabs');
   el.innerHTML = '';
   const mk = function (key, label, sub, zero) {
@@ -539,6 +576,13 @@ function renderTabs(all, curTab, cxItems) {
     const n = all.filter(function (x) { return x.shift === s.name; }).length;
     mk(s.name, s.name + '（' + s.startTime + '）', '未渡し ' + w + '／' + n + '件', w === 0);
   });
+  const hb = document.createElement('button');
+  hb.type = 'button';
+  const holdWait = holdsAll.filter(function (x) { return !x.handedAt; }).length;
+  hb.className = 'tab hold' + (curTab === '__hold' ? ' on' : '') + (holdsAll.length === 0 ? ' zero' : '');
+  hb.innerHTML = '取り置き<small>' + (holdsAll.length ? '未渡し ' + holdWait + '／' + holdsAll.length + '件' : '0件') + '</small>';
+  hb.addEventListener('click', function () { shiftTab = '__hold'; render(); window.scrollTo(0, 0); });
+  el.appendChild(hb);
   const cx = document.createElement('button');
   cx.type = 'button';
   cx.className = 'tab cx' + (curTab === '__cx' ? ' on' : '') + (cxItems.length === 0 ? ' zero' : '');
@@ -737,6 +781,140 @@ async function confirmCancel(x) {
   }
   await load(true);
 }
+function buildHoldRow(x, isToday) {
+  const done = !!x.handedAt;
+  const row = document.createElement('div');
+  row.className = 'row hold' + (done ? ' done' : '') + (openRows[x.id] ? ' open' : '');
+  const main = document.createElement('div');
+  main.className = 'r-main';
+  main.innerHTML =
+    '<div class="r-time">' + (x.pickup ? esc(x.pickup) : '—') + '<small>' + (x.pickup ? '来店予定' : '指定なし') + '</small></div>' +
+    '<div class="r-name">' + esc(x.name) + '<small>様</small><span class="hb">取り置きのみ</span></div>';
+  const act = document.createElement('div');
+  act.className = 'r-act';
+  if (done) {
+    act.innerHTML = '<div class="doneat">✓ お渡し済み ' + esc(x.handedAt.slice(-5)) + '</div>';
+    if (isToday) {
+      const b = document.createElement('button');
+      b.className = 'undo'; b.textContent = '取り消す';
+      b.addEventListener('click', function (e) { e.stopPropagation(); confirmHoldHandover(x, true); });
+      act.appendChild(b);
+    }
+  } else if (isToday) {
+    const b = document.createElement('button');
+    b.className = 'go'; b.textContent = 'お渡し済み';
+    b.addEventListener('click', function (e) { e.stopPropagation(); confirmHoldHandover(x, false); });
+    act.appendChild(b);
+  } else {
+    act.innerHTML = '<div class="viewonly">（確認のみ）</div>';
+  }
+  main.appendChild(act);
+  main.addEventListener('click', function () {
+    const o = row.classList.toggle('open');
+    if (o) openRows[x.id] = true; else delete openRows[x.id];
+  });
+  row.appendChild(main);
+
+  const n = document.createElement('div');
+  n.className = 'r-note';
+  n.innerHTML = '<b>取り置き</b>' + esc(x.note);
+  row.appendChild(n);
+
+  const d = document.createElement('div');
+  d.className = 'r-detail';
+  d.innerHTML = '<div class="meta">来店予定：' + (x.pickup ? '<span class="pk">' + esc(x.pickup) + ' ごろ</span>' : '指定なし') +
+    (x.phone ? '<br>TEL ' + esc(fmtPhone(x.phone)) : '') + '</div><div class="id">' + esc(x.id) + '</div>';
+  if (data.date >= data.today) {
+    const eb = document.createElement('button');
+    eb.className = 'note-btn';
+    eb.textContent = '✎ 内容を直す（お名前・取り置き・時間）';
+    eb.addEventListener('click', function () { addHold(x); });
+    d.appendChild(eb);
+  }
+  if (!done && data.date >= data.today) {
+    const cb = document.createElement('button');
+    cb.className = 'cancel-btn';
+    cb.textContent = 'この取り置きを消す';
+    cb.addEventListener('click', function () { confirmHoldDelete(x); });
+    d.appendChild(cb);
+  }
+  row.appendChild(d);
+  return row;
+}
+
+async function holdCall(params, okMsg) {
+  busy = true;
+  try {
+    const r = await callGAS(Object.assign({ pin: pin }, params));
+    if (r.success) {
+      toast(okMsg, false);
+    } else {
+      if (r.badPin || r.locked) { showLogin(r.error); return false; }
+      toast(r.error || '失敗しました', true);
+      return false;
+    }
+  } catch (e) {
+    toast('通信エラーです。もう一度お試しください', true);
+    return false;
+  } finally {
+    busy = false;
+  }
+  delete cache[viewDate];
+  await load(true);
+  return true;
+}
+
+async function confirmHoldHandover(x, undo) {
+  const ok = await ask(
+    undo ? '取り消しますか？' : 'お渡し済みにしますか？',
+    esc(x.name) + ' 様<div class="sub">' + esc(x.note) + '</div>',
+    undo ? '取り消す' : 'お渡し済みにする', undo);
+  if (!ok) return;
+  await holdCall({ action: 'staffHoldHandover', holdId: x.id, undo: undo ? '1' : '0' },
+    undo ? x.name + ' 様を未渡しに戻しました' : x.name + ' 様の取り置きをお渡し済みにしました');
+}
+
+async function confirmHoldDelete(x) {
+  const ok = await ask(
+    'この取り置きを消しますか？',
+    esc(x.name) + ' 様<div class="sub">' + esc(x.note) + '</div><div class="sub">間違えて入れたときなどに使います。消したあとは、画面からは戻せません。</div>',
+    '消す', true);
+  if (!ok) return;
+  await holdCall({ action: 'staffHoldDelete', holdId: x.id }, '取り置きを消しました');
+}
+
+// 取り置きの入力ダイアログ（追加と書き直しで共通）。edit があれば書き直し
+async function addHold(edit) {
+  if (!data || !viewDate) return;
+  if (data.date < data.today) { toast('過去の日付の取り置きは変更できません', true); return; }
+  const max = data.noteMax || 200;
+  let v = edit ? { name: edit.name, note: edit.note, time: edit.pickup || '', phone: edit.phone || '' } : { name: '', note: '', time: '', phone: '' };
+  while (true) {
+    const ok = await ask(
+      edit ? '取り置きの内容を直す' : '電話の取り置きを追加',
+      esc(dateLabel(data.date)) + ' の取り置き' +
+        '<div class="sub">明太フランスを含まない、パンだけの取り置きを書きます。</div>' +
+        '<label class="fld">お名前<input id="holdName" type="text" maxlength="30" placeholder="例：山田"></label>' +
+        '<label class="fld">取り置きの内容<textarea id="holdNote" maxlength="' + max + '" placeholder="例：クロワッサン2個、食パン1斤"></textarea></label>' +
+        '<label class="fld">来店予定の時間（わかれば）<input id="holdTime" type="time"></label>' +
+        '<label class="fld">電話番号（わかれば）<input id="holdPhone" type="tel" inputmode="numeric" placeholder="例：09012345678"></label>',
+      edit ? '保存する' : '追加する', false,
+      function () {
+        $('holdName').value = v.name; $('holdNote').value = v.note; $('holdTime').value = v.time; $('holdPhone').value = v.phone;
+        setTimeout(function () { $(v.name ? 'holdNote' : 'holdName').focus(); }, 60);
+      });
+    v = { name: $('holdName').value.trim(), note: $('holdNote').value.trim(), time: $('holdTime').value, phone: $('holdPhone').value };
+    if (!ok) return;
+    if (!v.name || !v.note) { toast('お名前と取り置きの内容を入力してください', true); continue; }   // 入力はそのまま残して、開き直す
+    const done = await holdCall(
+      edit ? { action: 'staffHoldEdit', holdId: edit.id, name: v.name, note: v.note, pickup: v.time, phone: v.phone }
+           : { action: 'staffHoldAdd', date: data.date, name: v.name, note: v.note, pickup: v.time, phone: v.phone },
+      v.name + ' 様の取り置きを' + (edit ? '保存しました' : '追加しました'));
+    if (done) { if (!edit) { shiftTab = '__hold'; } render(); return; }
+    // 失敗したときも、入力を残して開き直す
+  }
+}
+
 function buildCancelRow(x) {
   const row = document.createElement('div');
   row.className = 'row cx';
@@ -882,7 +1060,7 @@ function buildPrint() {
   const total = all.reduce(function (a, x) { return a + x.qty; }, 0);
   let h = '<h1>明太フランス 予約一覧</h1>' +
     '<div class="psub">' + esc(dateLabel(data.date)) + '　／　' + all.length + '件・' + total + '本　／　印刷 ' + esc(data.now) + '</div>';
-  if (all.length === 0) {
+  if (all.length === 0 && !(data.holds || []).length) {
     h += '<div class="pnone">この日の予約はありません。</div>';
   }
   data.shifts.forEach(function (sh) {
@@ -906,6 +1084,20 @@ function buildPrint() {
     });
     h += '</table>';
   });
+  const holds = data.holds || [];
+  if (holds.length) {
+    h += '<h2>電話の取り置き（明太フランスなし）　' + holds.length + '件</h2>' +
+      '<table><colgroup><col style="width:8mm"><col style="width:23mm"><col style="width:31mm"><col style="width:34mm"><col></colgroup>' +
+      '<tr><th>渡</th><th>来店予定</th><th>お名前</th><th>電話番号</th><th>取り置き内容</th></tr>';
+    holds.forEach(function (x) {
+      const done = !!x.handedAt;
+      h += '<tr' + (done ? ' class="done"' : '') + '><td class="chk">' + (done ? '✓' : '□') + '</td>' +
+        '<td style="white-space:nowrap">' + (x.pickup ? esc(x.pickup) + 'ごろ' : '指定なし') + '</td>' +
+        '<td class="nm">' + esc(x.name) + ' 様</td><td class="tel">' + esc(fmtPhone(x.phone)) + '</td>' +
+        '<td><b>' + esc(x.note) + '</b>' + (done ? '<br><span class="sm">お渡し済 ' + esc(x.handedAt.slice(-5)) + '</span>' : '') + '</td></tr>';
+    });
+    h += '</table>';
+  }
   $('printArea').innerHTML = h;
   return true;
 }
@@ -935,6 +1127,7 @@ $('datePick').addEventListener('click', function () {
 });
 $('reloadBtn').addEventListener('click', function () { delete cache[viewDate]; clearTimeout(navTimer); load(false); });
 $('printBtn').addEventListener('click', doPrint);
+$('holdAddBtn').addEventListener('click', function () { addHold(null); });
 $('modeBtn').addEventListener('click', function () {
   viewMode = viewMode === 'compact' ? 'card' : 'compact';
   try { localStorage.setItem('staffViewMode', viewMode); } catch (e) {}
