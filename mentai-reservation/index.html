@@ -193,6 +193,11 @@
     <input type="text" id="nameInput" placeholder="ヤマダ タロウ" autocomplete="off">
     <div class="hint" id="nameHint">お店で呼びやすいよう、カタカナで入力してください（ひらがなで入れると自動でカタカナになります）</div>
     <label>電話番号</label>
+    <div id="phoneSaved" style="display:none;margin-bottom:8px;">
+      <span id="phoneSavedText" style="font-size:16px;"></span>
+      <button type="button" id="phoneChange" style="margin-left:10px;padding:6px 12px;border:1px solid #999;border-radius:6px;background:#fff;font-size:14px;">変更する</button>
+      <div class="hint" style="margin-top:4px;">前回ご入力の電話番号です（一部を伏せて表示）。変えるときは「変更する」を押してください。</div>
+    </div>
     <input type="tel" id="phoneInput" inputmode="numeric" placeholder="09012345678" autocomplete="tel">
     <div class="hint" id="phoneHint">ハイフンなしの数字で入力してください（携帯は11桁、固定電話は10桁）</div>
   </div>
@@ -217,6 +222,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbyo3bKfGoxZYOqFnWeqAutK
 const MAX_PER_PERSON = 3; // 1人・1日あたりの上限（サーバー側の設定が優先されます）
 
 let userId = null;
+let reusePhone = false;   // true：前回の電話番号をそのまま使う（サーバーに残っている番号）
 let selectedShift = null;
 let quantity = 1;
 let currentShifts = [];
@@ -285,6 +291,7 @@ async function main() {
     document.getElementById('submitBtn').addEventListener('click', submitReservation);
     document.getElementById('cfOk').addEventListener('click', doReserve);
     document.getElementById('cfCancel').addEventListener('click', function () { document.getElementById('cfBack').style.display = 'none'; });
+    document.getElementById('phoneChange').addEventListener('click', changePhone);
     setupNameInput();
     setupPhoneInput();
     loadSavedCustomer();
@@ -309,6 +316,7 @@ async function loadCalendar() {
     maxPerPerson = data.maxPerPerson || MAX_PER_PERSON;
     calendar = {};
     data.days.forEach(function (d) { calendar[d.date] = d; });
+    applyProfile(data.profile);
 
     // 最初に予約できる日を選んでおく
     let first = null;
@@ -643,6 +651,30 @@ function setupNameInput() {
   input.addEventListener('blur', function () { refresh(true); });
 }
 
+/* ---------------- 前回の入力の自動入力（サーバー保存） ---------------- */
+
+let profileApplied = false;
+function applyProfile(pf) {
+  if (profileApplied || !pf) return;     // 最初の1回だけ（入力中の内容を上書きしない）
+  profileApplied = true;
+  const nameEl = document.getElementById('nameInput');
+  if (pf.name && !nameEl.value.trim()) { nameEl.value = pf.name; nameEl.dispatchEvent(new Event('input')); }
+  if (pf.phoneMasked) {
+    reusePhone = true;
+    document.getElementById('phoneSavedText').textContent = '電話番号：' + pf.phoneMasked;
+    document.getElementById('phoneSaved').style.display = 'block';
+    document.getElementById('phoneInput').style.display = 'none';
+    document.getElementById('phoneHint').style.display = 'none';
+  }
+}
+function changePhone() {
+  reusePhone = false;
+  document.getElementById('phoneSaved').style.display = 'none';
+  const el = document.getElementById('phoneInput');
+  el.value = ''; el.style.display = ''; el.focus();
+  document.getElementById('phoneHint').style.display = '';
+}
+
 /* ---------------- 電話番号 ---------------- */
 
 function toHalfWidth(str) {
@@ -691,8 +723,8 @@ function submitReservation() {
   if (!selectedShift) { showMessage('error', '受け取り便を選択してください'); return; }
   if (!name) { showMessage('error', 'お名前をカタカナで入力してください'); return; }
   if (!isKatakanaName(name)) { showMessage('error', 'お名前はカタカナで入力してください（漢字・英字は使えません）。例：ヤマダ タロウ'); return; }
-  if (!phone) { showMessage('error', '電話番号を入力してください'); return; }
-  if (!isValidPhone(phone)) {
+  if (!reusePhone && !phone) { showMessage('error', '電話番号を入力してください'); return; }
+  if (!reusePhone && !isValidPhone(phone)) {
     showMessage('error', '電話番号が正しくありません。ハイフンなしの数字で入力してください（携帯は11桁、固定電話は10桁）。');
     return;
   }
@@ -714,8 +746,8 @@ async function doReserve() {
   if (!selectedDate) { showMessage('error', '受け取り日を選択してください'); return; }
   if (!selectedShift) { showMessage('error', '受け取り便を選択してください'); return; }
   if (!name) { showMessage('error', 'お名前を入力してください'); return; }
-  if (!phone) { showMessage('error', '電話番号を入力してください'); return; }
-  if (!isValidPhone(phone)) {
+  if (!reusePhone && !phone) { showMessage('error', '電話番号を入力してください'); return; }
+  if (!reusePhone && !isValidPhone(phone)) {
     showMessage('error', '電話番号が正しくありません。ハイフンなしの数字で入力してください（携帯は11桁、固定電話は10桁）。');
     return;
   }
@@ -729,7 +761,8 @@ async function doReserve() {
       action: 'reserve',
       userId: userId,
       name: name,
-      phone: phone,
+      phone: reusePhone ? '' : phone,
+      reusePhone: reusePhone ? '1' : '',
       date: selectedDate,
       shift: selectedShift.name,
       quantity: quantity,
@@ -737,7 +770,7 @@ async function doReserve() {
     });
 
     if (data.success) {
-      saveCustomer(name, phone);
+      saveCustomer(name, reusePhone ? '' : phone);
       showMessage('success', 'ご予約が完了しました！LINEに確認メッセージが届きます。');
       setTimeout(function () { liff.closeWindow(); }, 2500);
     } else {
