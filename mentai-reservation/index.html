@@ -6,6 +6,12 @@
 <title>明太フランス予約</title>
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
+.cf-back{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:50;display:flex;align-items:flex-end;justify-content:center;}
+.cf-box{background:#fff;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));}
+.cf-title{font-weight:700;font-size:17px;margin-bottom:10px;}
+.cf-summary{font-size:14px;background:#f5f5f5;border-radius:8px;padding:10px 12px;margin-bottom:10px;line-height:1.7;}
+.cf-note{font-size:14px;line-height:1.7;border:1px solid #e0b7b7;background:#fff7f7;border-radius:8px;padding:10px 12px;margin-bottom:10px;}
+.cf-cancel{display:block;width:100%;margin-top:8px;padding:12px;border:none;background:none;color:#666;font-size:15px;}
   * { box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
@@ -183,14 +189,26 @@
   </div>
 
   <div class="card">
-    <label>お名前</label>
-    <input type="text" id="nameInput" placeholder="山田 太郎" autocomplete="name">
+    <label>お名前（カタカナ）</label>
+    <input type="text" id="nameInput" placeholder="ヤマダ タロウ" autocomplete="off">
+    <div class="hint" id="nameHint">お店で呼びやすいよう、カタカナで入力してください（ひらがなで入れると自動でカタカナになります）</div>
     <label>電話番号</label>
     <input type="tel" id="phoneInput" inputmode="numeric" placeholder="09012345678" autocomplete="tel">
     <div class="hint" id="phoneHint">ハイフンなしの数字で入力してください（携帯は11桁、固定電話は10桁）</div>
   </div>
 
   <button class="submit" id="submitBtn">この内容で予約する</button>
+</div>
+
+<div class="cf-back" id="cfBack" style="display:none;">
+  <div class="cf-box" role="dialog" aria-modal="true">
+    <div class="cf-title">ご予約の前にご確認ください</div>
+    <div class="cf-summary" id="cfSummary"></div>
+    <div class="cf-note"><b>会計について</b><br>レジがひとつしかないため、ご予約いただいたお客様も、混雑状況やお時間によっては列に並んでいただく場合もございます。<br>そのため、ご予約いただいたお時間よりも、受取りが遅くなってしまう場合がございます。<br>お時間に余裕を持ってご来店ください。</div>
+    <div class="cf-note"><b>最終受け取り時間</b><br>ご予約商品の最終受け取り時間は17時となります。<br>遅れる場合はご連絡頂けますようお願い致します。<br>ご連絡がない場合はキャンセル扱いとさせて頂きます。</div>
+    <button class="submit" id="cfOk">確認しました（予約を確定する）</button>
+    <button class="cf-cancel" id="cfCancel">戻る</button>
+  </div>
 </div>
 
 <script>
@@ -204,7 +222,7 @@ let quantity = 1;
 let currentShifts = [];
 let price = 410;           // 1個の値段（税込）。サーバー側の設定が優先されます
 function yen(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
-let rules = { noPickupDeadline: '17:00', lastPickup: '18:45', earlyLimit: '15:00', lateDeadline: '18:45' };
+let rules = { noPickupDeadline: '17:00', lastPickup: '17:00', earlyLimit: '17:00', lateDeadline: '17:00' };
 let myCount = 0;           // 選択中の日に、すでに予約している本数
 let maxPerPerson = MAX_PER_PERSON;
 
@@ -265,6 +283,9 @@ async function main() {
     document.getElementById('qtyMinus').addEventListener('click', function () { changeQty(-1); });
     document.getElementById('qtyPlus').addEventListener('click', function () { changeQty(1); });
     document.getElementById('submitBtn').addEventListener('click', submitReservation);
+    document.getElementById('cfOk').addEventListener('click', doReserve);
+    document.getElementById('cfCancel').addEventListener('click', function () { document.getElementById('cfBack').style.display = 'none'; });
+    setupNameInput();
     setupPhoneInput();
     loadSavedCustomer();
 
@@ -537,12 +558,7 @@ function buildPickupOptions(s) {
 function updatePickupHint() {
   const v = document.getElementById('pickupSelect').value;
   const hint = document.getElementById('pickupHint');
-  let limit;
-  if (!v) {
-    limit = rules.noPickupDeadline;
-  } else {
-    limit = toMin(v) <= toMin(rules.earlyLimit) ? rules.noPickupDeadline : rules.lateDeadline;
-  }
+  const limit = rules.noPickupDeadline;   // 最終受け取りは、時間指定の有無にかかわらず同じ
   hint.textContent =
     (v && v === pickupDefault ? 'ご予約の便の開始時刻（' + v + '）が入っています。遅れて来店される場合は、時刻を変更してください。' : '') +
     '受け取り期限は ' + limit + ' までです。期限を過ぎると自動でキャンセルとなり、商品は店頭で販売します。' +
@@ -578,7 +594,7 @@ function loadSavedCustomer() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return;
     const saved = JSON.parse(raw);
-    if (saved.name) document.getElementById('nameInput').value = saved.name;
+    if (saved.name && isKatakanaName(toKatakana(saved.name).trim())) document.getElementById('nameInput').value = toKatakana(saved.name).trim();
     if (saved.phone) {
       const phoneEl = document.getElementById('phoneInput');
       phoneEl.value = cleanPhone(saved.phone);
@@ -595,6 +611,36 @@ function saveCustomer(name, phone) {
   } catch (e) {
     // 保存できない環境では何もしない
   }
+}
+
+/* ---------------- お名前（カタカナ） ---------------- */
+
+// ひらがな→カタカナ、全角英数の空白をそろえる
+function toKatakana(str) {
+  return str.replace(/[ぁ-ゖ]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) + 0x60); })
+            .replace(/[\s　]+/g, ' ');
+}
+function isKatakanaName(v) {
+  return /^[ァ-ヶー・ヽヾ ]+$/.test(v) && v.length <= 40;
+}
+function setupNameInput() {
+  const input = document.getElementById('nameInput');
+  const hint = document.getElementById('nameHint');
+  const base = hint.textContent;
+  let composing = false;
+  function refresh(final) {
+    if (composing) return;
+    const conv = toKatakana(input.value);
+    if (input.value !== conv) input.value = conv;
+    const v = conv.trim();
+    if (!v) { hint.className = 'hint'; hint.textContent = base; return; }
+    if (isKatakanaName(v)) { hint.className = 'hint'; hint.textContent = '✓ カタカナで入力されています'; }
+    else { hint.className = 'hint err'; hint.textContent = 'カタカナで入力してください（漢字・英字は使えません）。例：ヤマダ タロウ'; }
+  }
+  input.addEventListener('compositionstart', function () { composing = true; });
+  input.addEventListener('compositionend', function () { composing = false; refresh(); });
+  input.addEventListener('input', function () { refresh(); });
+  input.addEventListener('blur', function () { refresh(true); });
 }
 
 /* ---------------- 電話番号 ---------------- */
@@ -637,8 +683,32 @@ function showMessage(type, text) {
   document.getElementById('msgArea').innerHTML = '<div class="msg ' + type + '">' + text + '</div>';
 }
 
-async function submitReservation() {
-  const name = document.getElementById('nameInput').value.trim();
+// 「この内容で予約する」→ 内容チェック → お知らせの確認 → 確定
+function submitReservation() {
+  const name = toKatakana(document.getElementById('nameInput').value).trim();
+  const phone = cleanPhone(document.getElementById('phoneInput').value);
+  if (!selectedDate) { showMessage('error', '受け取り日を選択してください'); return; }
+  if (!selectedShift) { showMessage('error', '受け取り便を選択してください'); return; }
+  if (!name) { showMessage('error', 'お名前をカタカナで入力してください'); return; }
+  if (!isKatakanaName(name)) { showMessage('error', 'お名前はカタカナで入力してください（漢字・英字は使えません）。例：ヤマダ タロウ'); return; }
+  if (!phone) { showMessage('error', '電話番号を入力してください'); return; }
+  if (!isValidPhone(phone)) {
+    showMessage('error', '電話番号が正しくありません。ハイフンなしの数字で入力してください（携帯は11桁、固定電話は10桁）。');
+    return;
+  }
+  document.getElementById('msgArea').innerHTML = '';
+  const pk = document.getElementById('pickupSelect').value;
+  document.getElementById('cfSummary').innerHTML =
+    esc(formatDateJp(selectedDate)) + '　' + esc(selectedShift.name) + '<br>' + quantity + '個　' + yen(quantity * price) + '円（税込）<br>' +
+    '来店予定：' + (pk ? esc(pk) + ' ごろ' : '指定なし') + '<br>お名前：' + esc(name);
+  document.getElementById('cfBack').style.display = 'flex';
+}
+
+function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+async function doReserve() {
+  document.getElementById('cfBack').style.display = 'none';
+  const name = toKatakana(document.getElementById('nameInput').value).trim();
   const phone = cleanPhone(document.getElementById('phoneInput').value);
 
   if (!selectedDate) { showMessage('error', '受け取り日を選択してください'); return; }
