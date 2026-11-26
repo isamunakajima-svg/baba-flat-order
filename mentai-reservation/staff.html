@@ -104,6 +104,7 @@
 
 
   /* ---------- コンパクト表示（1行1予約）と便タブ ---------- */
+  body { overflow-x: clip; }   /* スライド中に横スクロールが出ないように */
   .tabs { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; }
   .tab { flex: none; min-width: 96px; height: 56px; padding: 0 16px; border: 2px solid #ccc; border-radius: 12px; background: #fff; color: #444; font-size: 18px; font-weight: bold; line-height: 1.15; }
   .tab small { display: block; font-size: 13px; font-weight: normal; color: #777; }
@@ -389,29 +390,56 @@ function applyData(r) {
 }
 
 // 前後の日をあらかじめ読んでおく（▶◀を押したとき、待たずに表示できる）
+// 前後3日ずつ（計7日のうち読んでいない日）を、1回の通信でまとめて読む
 function prefetchNeighbors(d) {
-  [addDays(d, -1), addDays(d, 1)].forEach(function (x) {
-    if (cache[x] || prefetching[x]) return;
-    prefetching[x] = true;
-    callGAS({ action: 'staffList', pin: pin, date: x })
-      .then(function (r) { if (r && r.success) cache[r.date] = r; })
-      .catch(function () {})
-      .then(function () { delete prefetching[x]; });
-  });
+  const want = [];
+  for (let k = -3; k <= 3; k++) {
+    const x = addDays(d, k);
+    if (!cache[x] && !prefetching[x]) want.push(x);
+  }
+  if (!want.length) return;
+  const from = want[0], last = want[want.length - 1];
+  const days = Math.round((new Date(last + 'T00:00:00Z') - new Date(from + 'T00:00:00Z')) / 86400000) + 1;
+  want.forEach(function (x) { prefetching[x] = true; });
+  callGAS({ action: 'staffListRange', pin: pin, from: from, days: days })
+    .then(function (r) {
+      if (r && r.success && r.days) {
+        r.days.forEach(function (day) { if (day && day.success && !cache[day.date]) cache[day.date] = day; });
+      }
+    })
+    .catch(function () {})
+    .then(function () { want.forEach(function (x) { delete prefetching[x]; }); });
 }
 
 // 日付を切り替える：画面は先に切り替え、通信は少し待ってから1回だけ行う（連打に強い）
+// 日付が変わったとき、一覧を横にスライドして切り替える（先の日へ＝右から、前の日へ＝左から）
+function playSlide(dir) {
+  if (!dir) return;
+  try {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const el = $('lists');
+    if (!el || !el.animate) return;
+    const dx = dir === 'next' ? 56 : -56;
+    el.animate([{ transform: 'translateX(' + dx + 'px)', opacity: 0 }, { transform: 'translateX(0)', opacity: 1 }],
+      { duration: 240, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  } catch (e) {}
+}
+
 function goDate(d) {
+  const prevDate = viewDate;
+  const dir = (prevDate && d && d !== prevDate) ? (d > prevDate ? 'next' : 'prev') : '';
   viewDate = d;
   if (d && cache[d]) {
     data = cache[d];
     todayStr = data.today;
     syncPicker();
     render();
+    playSlide(dir);
   } else if (d) {
     syncPicker();
     $('dateLabel').textContent = dateLabel(d) + (d === todayStr ? '・今日' : '');
     $('lists').innerHTML = '<div class="empty">読み込み中...</div>';
+    playSlide(dir);
   }
   clearTimeout(navTimer);
   const cached = !!(d && cache[d]);
