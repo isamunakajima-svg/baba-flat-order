@@ -782,7 +782,7 @@ async function doReserve() {
       loadCalendar();
     }
   } catch (e) {
-    showMessage('error', '通信エラーが発生しました');
+    showMessage('error', '現在、混み合っているか、通信が不安定です。少し時間をおいて、もう一度お試しください。');
     btn.disabled = false;
     btn.textContent = 'この内容で予約する';
   }
