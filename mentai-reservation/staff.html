@@ -1117,6 +1117,31 @@ $('pinInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') 
 
 $('prevBtn').addEventListener('click', function () { goDate(addDays(viewDate || todayStr, -1)); });
 $('nextBtn').addEventListener('click', function () { goDate(addDays(viewDate || todayStr, 1)); });
+
+// 左右にスワイプで、翌日／前日に移動（左へスワイプ＝翌日、右へスワイプ＝前日）
+// ・横に大きく動かしたときだけ反応（縦スクロールの流れでは動かない）
+// ・入力中、ダイアログが開いているとき、タブの横スクロール上では反応しない
+(function () {
+  let sx = 0, sy = 0, st = 0, active = false;
+  function blocked(t) {
+    if ($('overlay').classList.contains('show') || $('holOverlay').classList.contains('show')) return true;
+    return !!(t && t.closest && t.closest('input, textarea, select, .tabs'));
+  }
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1 || blocked(e.target)) { active = false; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); active = true;
+  }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (!active) return;
+    active = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Date.now() - st > 800) return;                         // ゆっくりした動きは無視
+    if (Math.abs(dx) < 90 || Math.abs(dy) > Math.abs(dx) * 0.5) return;   // 大きく・ほぼ真横のときだけ
+    if (!todayStr) return;
+    goDate(addDays(viewDate || todayStr, dx < 0 ? 1 : -1));
+  }, { passive: true });
+})();
 $('todayBtn').addEventListener('click', function () { goDate(todayStr || ''); });
 $('datePick').addEventListener('change', function () {
   const v = this.value;
